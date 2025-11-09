@@ -9,6 +9,8 @@ import type {
   Address, InsertAddress,
   BlogPost, InsertBlogPost,
   NewsletterSubscriber, InsertNewsletterSubscriber,
+  SupportSession, InsertSupportSession,
+  SupportMessage, InsertSupportMessage,
 } from '@shared/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
 
@@ -61,6 +63,13 @@ export interface IStorage {
   // Newsletter
   subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+  
+  // AI Support Chat
+  getSupportSession(id: string): Promise<SupportSession | undefined>;
+  createSupportSession(session: InsertSupportSession): Promise<SupportSession>;
+  updateSupportSession(id: string, session: Partial<InsertSupportSession>): Promise<void>;
+  getSupportMessages(sessionId: string): Promise<SupportMessage[]>;
+  createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage>;
 }
 
 export class DbStorage implements IStorage {
@@ -341,6 +350,46 @@ export class DbStorage implements IStorage {
   async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
     return db.select().from(schema.newsletterSubscribers)
       .where(eq(schema.newsletterSubscribers.isActive, true));
+  }
+  
+  // AI Support Chat
+  async getSupportSession(id: string): Promise<SupportSession | undefined> {
+    const [session] = await db.select().from(schema.supportSessions)
+      .where(eq(schema.supportSessions.id, id));
+    return session;
+  }
+  
+  async createSupportSession(session: InsertSupportSession): Promise<SupportSession> {
+    const [newSession] = await db.insert(schema.supportSessions)
+      .values({
+        ...session,
+        languageConfidence: session.languageConfidence?.toString() || '0',
+      })
+      .returning();
+    return newSession;
+  }
+  
+  async updateSupportSession(id: string, session: Partial<InsertSupportSession>): Promise<void> {
+    await db.update(schema.supportSessions)
+      .set({
+        ...session,
+        languageConfidence: session.languageConfidence?.toString(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.supportSessions.id, id));
+  }
+  
+  async getSupportMessages(sessionId: string): Promise<SupportMessage[]> {
+    return db.select().from(schema.supportMessages)
+      .where(eq(schema.supportMessages.sessionId, sessionId))
+      .orderBy(schema.supportMessages.createdAt);
+  }
+  
+  async createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage> {
+    const [newMessage] = await db.insert(schema.supportMessages)
+      .values(message)
+      .returning();
+    return newMessage;
   }
 }
 

@@ -6,6 +6,7 @@ import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
 import { createStripePayment, createPayseraPayment } from "./utils/payments";
+import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Categories
@@ -259,6 +260,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(address);
     } catch (error: any) {
       res.status(400).json({ error: error.message || "Failed to create address" });
+    }
+  });
+  
+  // AI Support Chat
+  app.post("/api/support/chat", async (req, res) => {
+    try {
+      const { sessionId, message, language: userLanguage } = req.body;
+      
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      // Set headers for streaming
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      let session;
+      let detectedLang: 'en' | 'et' = userLanguage || 'en';
+      let confidence = 1.0;
+      
+      // Get or create session
+      if (sessionId) {
+        session = await storage.getSupportSession(sessionId);
+        if (session) {
+          detectedLang = session.language as 'en' | 'et';
+        }
+      }
+      
+      if (!session) {
+        // Detect language from first message if not provided
+        if (!userLanguage) {
+          const detection = detectLanguage(message);
+          detectedLang = detection.language;
+          confidence = detection.confidence;
+        }
+        
+        session = await storage.createSupportSession({
+          language: detectedLang,
+          languageConfidence: confidence.toString(),
+          isActive: true,
+        });
+      }
+      
+      // Save user message
+      await storage.createSupportMessage({
+        sessionId: session.id,
+        role: 'user',
+        content: message,
+      });
+      
+      // Update last activity
+      await storage.updateSupportSession(session.id, {
+        lastActivity: new Date(),
+      });
+      
+      // Get conversation history (last 10 messages)
+      const history = await storage.getSupportMessages(session.id);
+      const sessionHistory = history.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      // Get all products for context
+      const allProducts = await storage.getProducts({});
+      
+      // Search for relevant products based on message
+      const relevantProducts = searchProducts(allProducts, message, detectedLang);
+      
+      // Try to extract order number from message
+      const orderNumberMatch = message.match(/#?(\d{6,})/);
+      let order;
+      if (orderNumberMatch) {
+        const orders = await storage.getOrders({});
+        order = orders.find(o => o.orderNumber === orderNumberMatch[1]);
+      }
+      
+      // Stream the response
+      let fullResponse = '';
+      
+      await streamChatResponse(
+        message,
+        detectedLang,
+        {
+          products: relevantProducts,
+          order,
+          sessionHistory
+        },
+        (chunk) => {
+          // Send SSE chunk
+          res.write(`data: ${JSON.stringify({ chunk, sessionId: session.id })}\n\n`);
+          fullResponse += chunk;
+        }
+      );
+      
+      // Save assistant response
+      await storage.createSupportMessage({
+        sessionId: session.id,
+        role: 'assistant',
+        content: fullResponse,
+      });
+      
+      // Send completion signal
+      res.write(`data: ${JSON.stringify({ done: true, sessionId: session.id })}\n\n`);
+      res.end();
+      
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  });
+  
+  // Get chat session history
+  app.get("/api/support/session/:sessionId", async (req, res) => {
+    try {
+      const messages = await storage.getSupportMessages(req.params.sessionId);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat history" });
     }
   });
 

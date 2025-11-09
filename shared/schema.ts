@@ -134,6 +134,30 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
 });
 
+// AI Support Chat Sessions
+export const supportSessions = pgTable("support_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  language: text("language").notNull().default('en'), // 'en' or 'et'
+  languageConfidence: decimal("language_confidence", { precision: 3, scale: 2 }).default('0'), // 0-1
+  sessionTopic: text("session_topic"), // Auto-detected topic summary
+  assistantModel: text("assistant_model").default('gpt-5'), // OpenAI model used
+  isActive: boolean("is_active").default(true),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// AI Support Chat Messages
+export const supportMessages = pgTable("support_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => supportSessions.id, { onDelete: 'cascade' }),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  metadata: json("metadata"), // For storing product IDs, order numbers, etc that were referenced
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -202,3 +226,18 @@ export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSub
 });
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+
+export const insertSupportSessionSchema = createInsertSchema(supportSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSupportSession = z.infer<typeof insertSupportSessionSchema>;
+export type SupportSession = typeof supportSessions.$inferSelect;
+
+export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+export type SupportMessage = typeof supportMessages.$inferSelect;

@@ -2,31 +2,29 @@ import { ShoppingCart, Heart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
+import type { Product } from '@shared/schema';
 
 interface ProductCardProps {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  stock: 'in_stock' | 'low_stock' | 'out_of_stock';
-  isNew?: boolean;
-  salePrice?: number;
+  product: Product;
 }
 
-export default function ProductCard({
-  id,
-  name,
-  price,
-  image,
-  stock,
-  isNew,
-  salePrice,
-}: ProductCardProps) {
-  const { t } = useLanguage();
+export default function ProductCard({ product }: ProductCardProps) {
+  const { language, t } = useLanguage();
   const { addItem } = useCart();
-
+  const { toast } = useToast();
+  
+  const name = language === 'et' ? product.nameEt : product.nameEn;
+  const price = parseFloat(product.price);
+  const salePrice = product.salePrice ? parseFloat(product.salePrice) : null;
+  const inStock = product.stock > 0;
+  const lowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 10);
+  
+  const stock = !inStock ? 'out_of_stock' : lowStock ? 'low_stock' : 'in_stock';
+  
   const stockLabels = {
     in_stock: t.product.inStock,
     low_stock: t.product.lowStock,
@@ -39,73 +37,95 @@ export default function ProductCard({
     out_of_stock: 'bg-muted text-muted-foreground',
   };
 
-  const handleAddToCart = () => {
-    addItem({ id, name, price: salePrice || price, image });
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!inStock) return;
+    
+    addItem({
+      id: product.id,
+      name,
+      price: salePrice || price,
+      image: product.images?.[0] || '',
+    });
+    
+    toast({
+      title: language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart',
+      description: name,
+    });
   };
 
   return (
-    <Card className="group overflow-hidden hover-elevate" data-testid={`card-product-${id}`}>
-      <div className="relative aspect-square overflow-hidden">
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        <div className="absolute top-2 right-2 flex flex-col gap-2">
-          {isNew && (
-            <Badge variant="default" className="text-xs" data-testid="badge-new">
-              {t.product.newArrival}
-            </Badge>
-          )}
-          {salePrice && (
-            <Badge className="bg-destructive text-destructive-foreground text-xs" data-testid="badge-sale">
-              {t.product.sale}
-            </Badge>
-          )}
+    <Link href={`/product/${product.id}`}>
+      <Card className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
+        <div className="relative aspect-square overflow-hidden">
+          <img
+            src={product.images?.[0] || '/placeholder.png'}
+            alt={name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            data-testid={`img-product-${product.id}`}
+          />
+          <div className="absolute top-2 right-2 flex flex-col gap-2">
+            {product.isNew && (
+              <Badge variant="default" className="text-xs" data-testid={`badge-new-${product.id}`}>
+                {t.product.newArrival}
+              </Badge>
+            )}
+            {salePrice && (
+              <Badge className="bg-destructive text-destructive-foreground text-xs" data-testid={`badge-sale-${product.id}`}>
+                {t.product.sale}
+              </Badge>
+            )}
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            data-testid={`button-wishlist-${product.id}`}
+          >
+            <Heart className="h-4 w-4" />
+          </Button>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
-          data-testid="button-wishlist"
-        >
-          <Heart className="h-4 w-4" />
-        </Button>
-      </div>
 
-      <div className="p-4">
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2" data-testid="text-product-name">
-          {name}
-        </h3>
-        <div className="flex items-center gap-2 mb-3">
-          {salePrice ? (
-            <>
-              <span className="text-xl font-bold text-primary" data-testid="text-sale-price">
-                €{salePrice.toFixed(2)}
-              </span>
-              <span className="text-sm text-muted-foreground line-through" data-testid="text-original-price">
+        <div className="p-4 flex flex-col flex-1">
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 flex-1" data-testid={`text-product-name-${product.id}`}>
+            {name}
+          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            {salePrice ? (
+              <>
+                <span className="text-xl font-bold text-primary" data-testid={`text-sale-price-${product.id}`}>
+                  €{salePrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
+                  €{price.toFixed(2)}
+                </span>
+              </>
+            ) : (
+              <span className="text-xl font-bold text-foreground" data-testid={`text-price-${product.id}`}>
                 €{price.toFixed(2)}
               </span>
-            </>
-          ) : (
-            <span className="text-xl font-bold text-foreground" data-testid="text-price">
-              €{price.toFixed(2)}
-            </span>
-          )}
+            )}
+          </div>
+          <Badge className={`mb-3 ${stockColors[stock]}`} data-testid={`badge-stock-${product.id}`}>
+            {stockLabels[stock]}
+          </Badge>
+          <Button
+            className="w-full"
+            disabled={!inStock}
+            onClick={handleAddToCart}
+            data-testid={`button-add-to-cart-${product.id}`}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {t.product.addToCart}
+          </Button>
         </div>
-        <Badge className={`mb-3 ${stockColors[stock]}`} data-testid="badge-stock">
-          {stockLabels[stock]}
-        </Badge>
-        <Button
-          className="w-full"
-          disabled={stock === 'out_of_stock'}
-          onClick={handleAddToCart}
-          data-testid="button-add-to-cart"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {t.product.addToCart}
-        </Button>
-      </div>
-    </Card>
+      </Card>
+    </Link>
   );
 }
