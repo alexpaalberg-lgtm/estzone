@@ -35,13 +35,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           <div className="lg:col-span-2">
             <Link href="/">
-              <a className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 cursor-pointer">
                 <Gamepad2 className="h-6 w-6 text-primary" />
-                <span className="font-bold text-xl">GameVault</span>
-              </a>
+                <span className="font-bold text-xl">EstZone</span>
+              </div>
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              Your premium destination for gaming consoles and accessories.
+              EstZone OÜ - Your premium destination for gaming consoles, accessories, and VR technology.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Pärnu mnt 31, Tallinn, Estonia
             </p>
             <div className="space-y-3">
               <p className="text-sm font-semibold">{t.footer.newsletter}</p>
@@ -66,9 +69,9 @@ export default function Footer() {
               {categories.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href}>
-                    <a className="text-muted-foreground hover:text-foreground transition-colors">
+                    <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
-                    </a>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -81,9 +84,9 @@ export default function Footer() {
               {support.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href}>
-                    <a className="text-muted-foreground hover:text-foreground transition-colors">
+                    <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
-                    </a>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -96,9 +99,9 @@ export default function Footer() {
               {company.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href}>
-                    <a className="text-muted-foreground hover:text-foreground transition-colors">
+                    <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
-                    </a>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -127,7 +130,7 @@ export default function Footer() {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              © 2025 GameVault. All rights reserved.
+              © 2025 EstZone OÜ. All rights reserved.
             </div>
           </div>
         </div>

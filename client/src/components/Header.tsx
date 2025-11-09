@@ -24,20 +24,18 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/">
-            <a className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md" data-testid="link-home">
+            <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <Gamepad2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-xl text-foreground">GameVault</span>
-            </a>
+              <span className="font-bold text-xl text-foreground">EstZone</span>
+            </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}>
-                <a>
-                  <Button variant="ghost" size="sm" data-testid={`link-${item.label.toLowerCase()}`}>
-                    {item.label}
-                  </Button>
-                </a>
+                <Button variant="ghost" size="sm" data-testid={`link-${item.label.toLowerCase()}`}>
+                  {item.label}
+                </Button>
               </Link>
             ))}
           </nav>
@@ -95,11 +93,9 @@ export default function Header() {
                 <nav className="flex flex-col gap-2 mt-8">
                   {navItems.map((item) => (
                     <Link key={item.href} href={item.href}>
-                      <a>
-                        <Button variant="ghost" className="w-full justify-start">
-                          {item.label}
-                        </Button>
-                      </a>
+                      <Button variant="ghost" className="w-full justify-start">
+                        {item.label}
+                      </Button>
                     </Link>
                   ))}
                 </nav>
