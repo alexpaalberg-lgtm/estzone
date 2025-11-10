@@ -54,8 +54,12 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex h-24 sm:h-28 items-center justify-between gap-4">
           <Link href="/">
-            <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+            <div className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-16 sm:h-20 w-auto" />
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+                <span className="text-foreground">Est</span>
+                <span className="text-primary">Zone</span>
+              </span>
             </div>
           </Link>
 
