@@ -1,4 +1,4 @@
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Search, User, Menu, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,17 +18,47 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import type { Category } from '@shared/schema';
 import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { currency, setCurrency } = useCurrency();
   const { totalItems, setIsOpen } = useCart();
+  const [location, setLocation] = useLocation();
+  const [searchInput, setSearchInput] = useState('');
   
   const { data: categories, isLoading, isError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     staleTime: 5 * 60 * 1000, // Categories are static, cache for 5 minutes
   });
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const searchParam = params.get('search');
+    setSearchInput(searchParam || '');
+  }, [location]);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      
+      if (searchInput.trim()) {
+        params.set('search', searchInput.trim());
+      } else {
+        params.delete('search');
+      }
+      
+      const newSearch = params.toString();
+      const currentPath = location.split('?')[0];
+      const newUrl = newSearch ? `${currentPath}?${newSearch}` : currentPath;
+      
+      if (location !== newUrl) {
+        setLocation(newUrl);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
   
   // Group categories by parent
   const { parentCategories, subcategoriesByParent } = useMemo(() => {
@@ -148,6 +178,8 @@ export default function Header() {
                 placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
                 className="pl-9 w-64"
                 data-testid="input-search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
 

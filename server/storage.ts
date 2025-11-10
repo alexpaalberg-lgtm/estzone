@@ -12,7 +12,7 @@ import type {
   SupportSession, InsertSupportSession,
   SupportMessage, InsertSupportMessage,
 } from '@shared/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, or, ilike } from 'drizzle-orm';
 
 export interface IStorage {
   // Users
@@ -126,6 +126,17 @@ export class DbStorage implements IStorage {
     }
     if (filters?.featured) {
       conditions.push(eq(schema.products.isFeatured, true));
+    }
+    if (filters?.search && filters.search.trim()) {
+      const searchTerm = `%${filters.search.trim()}%`;
+      conditions.push(
+        or(
+          ilike(schema.products.nameEn, searchTerm),
+          ilike(schema.products.nameEt, searchTerm),
+          ilike(schema.products.descriptionEn, searchTerm),
+          ilike(schema.products.descriptionEt, searchTerm)
+        )!
+      );
     }
     
     return db.select().from(schema.products)

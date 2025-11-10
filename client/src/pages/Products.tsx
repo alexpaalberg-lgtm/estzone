@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -17,7 +17,11 @@ type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name-asc' | 'newest
 
 export default function Products() {
   const [, params] = useRoute("/products/:categorySlug?");
+  const [location] = useLocation();
   const { language } = useLanguage();
+  
+  const searchParams = new URLSearchParams(window.location.search);
+  const searchQuery = searchParams.get('search') || '';
   
   // Filter state
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 3000]);
@@ -33,8 +37,12 @@ export default function Products() {
   
   const category = categories?.find(c => c.slug === params?.categorySlug);
   
-  const queryKey = params?.categorySlug && category?.id 
-    ? `/api/products?categoryId=${category.id}`
+  const queryParams = new URLSearchParams();
+  if (category?.id) queryParams.set('categoryId', category.id);
+  if (searchQuery) queryParams.set('search', searchQuery);
+  
+  const queryKey = queryParams.toString() 
+    ? `/api/products?${queryParams.toString()}`
     : '/api/products';
     
   const { data: allProducts, isLoading: productsLoading } = useQuery<Product[]>({
