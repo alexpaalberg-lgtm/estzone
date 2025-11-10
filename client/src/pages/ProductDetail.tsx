@@ -14,15 +14,17 @@ import { useState } from "react";
 import type { Product, Category } from "@shared/schema";
 
 export default function ProductDetail() {
-  const [, params] = useRoute("/product/:id");
+  const [match, params] = useRoute("/product/:id");
   const { language } = useLanguage();
   const { formatPrice } = useCurrency();
   const { addItem } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   
+  // Guard: only fetch product if we have a valid route match and ID
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ['/api/products', params?.id],
+    enabled: match && !!params?.id, // Only run query if route matches and ID exists
   });
   
   const { data: categories } = useQuery<Category[]>({
