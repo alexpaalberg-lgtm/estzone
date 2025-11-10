@@ -63,7 +63,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <Card className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
         <div className="relative aspect-square overflow-hidden">
           <img
-            src={product.images?.[0] || '/placeholder.png'}
+            src={product.images?.[0] || '/images/placeholder.jpg'}
             alt={name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             data-testid={`img-product-${product.id}`}

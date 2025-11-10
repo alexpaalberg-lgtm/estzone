@@ -145,7 +145,7 @@ export default function ProductDetail() {
             {/* Product Image */}
             <div className="rounded-md border border-border overflow-hidden bg-card">
               <img
-                src={product.images?.[0] || '/placeholder.png'}
+                src={product.images?.[0] || '/images/placeholder.jpg'}
                 alt={productName}
                 className="w-full aspect-square object-cover"
                 data-testid="img-product"
