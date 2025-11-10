@@ -52,10 +52,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between gap-4">
+        <div className="flex h-24 sm:h-28 items-center justify-between gap-4">
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-12 sm:h-14 w-auto" />
+              <img src={logoImage} alt="EstZone" className="h-16 sm:h-20 w-auto" />
             </div>
           </Link>
 
