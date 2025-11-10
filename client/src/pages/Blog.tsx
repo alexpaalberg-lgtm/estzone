@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,9 +17,20 @@ export default function Blog() {
   const { data: posts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog'],
   });
+
+  const seoTitle = language === 'et' ? 'Blogi - Mänguuudised ja Juhised' : 'Blog - Gaming News & Guides';
+  const seoDescription = language === 'et'
+    ? 'Loe uusimaid mänguuudiseid, ülevaateid ja juhiseid EstZone blogist. Avasta parimaid mängukonsoolide ja tarvikute soovitusi.'
+    : 'Read the latest gaming news, reviews, and guides from EstZone blog. Discover the best gaming console and accessory recommendations.';
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title={seoTitle}
+        description={seoDescription}
+        keywords="gaming news, gaming reviews, gaming guides, PlayStation news, Xbox news, Nintendo news, VR gaming, mänguuudised"
+        ogType="website"
+      />
       <Header />
       
       <main className="flex-1">

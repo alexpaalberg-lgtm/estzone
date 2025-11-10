@@ -4,16 +4,33 @@ import HeroBanner from '@/components/HeroBanner';
 import ProductGrid from '@/components/ProductGrid';
 import ShoppingCart from '@/components/ShoppingCart';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Product } from '@shared/schema';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
+  const { language } = useLanguage();
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products?featured=true'],
   });
 
+  const seoTitle = language === 'et' 
+    ? 'Mängukonsoolid, VR-prillid ja Tarvikud' 
+    : 'Gaming Consoles, VR Headsets & Accessories';
+  
+  const seoDescription = language === 'et'
+    ? 'EstZone - Premium mängutarvikud Eestis. PlayStation, Xbox, Nintendo, VR-prillid ja tarvikud. Kiire kohaletoimetamine, Stripe ja PayPal maksed.'
+    : 'EstZone - Premium gaming products in Estonia. PlayStation, Xbox, Nintendo, VR headsets & accessories. Fast delivery, Stripe & PayPal payments.';
+
   return (
     <div className="flex flex-col min-h-screen">
+      <SEO 
+        title={seoTitle}
+        description={seoDescription}
+        keywords="gaming, consoles, PlayStation, Xbox, Nintendo, VR headsets, gaming accessories, Estonia, Tallinn, mängukonsoolid, mängutarvikud"
+        ogType="website"
+      />
       <Header />
       <main className="flex-1">
         <HeroBanner />

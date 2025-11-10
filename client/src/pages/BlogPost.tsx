@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,10 +56,22 @@ export default function BlogPost() {
   
   const title = language === 'et' ? post.titleEt : post.titleEn;
   const content = language === 'et' ? post.contentEt : post.contentEn;
+  const excerpt = language === 'et' ? post.excerptEt : post.excerptEn;
   const category = post.categoryTag;
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title={title}
+        description={excerpt || ''}
+        keywords={`${category}, gaming, blog, ${language === 'et' ? 'mänguuudised' : 'gaming news'}`}
+        ogType="article"
+        ogImage={post.featuredImage || '/og-default.jpg'}
+        article={{
+          publishedTime: post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined,
+          author: 'EstZone',
+        }}
+      />
       <Header />
       
       <main className="flex-1">

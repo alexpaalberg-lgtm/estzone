@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -81,6 +82,13 @@ export default function ProductDetail() {
   const salePrice = product.salePrice ? parseFloat(product.salePrice) : null;
   const inStock = product.stock > 0;
   
+  const displayPrice = salePrice || price;
+  const productKeywords = product.metaKeywords || `${productName}, ${categoryName}, gaming, Estonia, EstZone`;
+  const seoDescription = productDescription || 
+    (language === 'et' 
+      ? `Osta ${productName} EstZone-st. ${inStock ? 'Laos saadaval' : 'Otsas'}. Kiire kohaletoimetamine Eestis.`
+      : `Buy ${productName} from EstZone. ${inStock ? 'In stock' : 'Out of stock'}. Fast delivery in Estonia.`);
+  
   const handleAddToCart = () => {
     if (!inStock) return;
     
@@ -99,6 +107,18 @@ export default function ProductDetail() {
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title={productName}
+        description={seoDescription}
+        keywords={productKeywords}
+        ogType="product"
+        ogImage={product.images?.[0] || '/og-default.jpg'}
+        product={{
+          price: displayPrice.toString(),
+          currency: 'EUR',
+          availability: inStock ? 'in stock' : 'out of stock',
+        }}
+      />
       <Header />
       
       <main className="flex-1">
