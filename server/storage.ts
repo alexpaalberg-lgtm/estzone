@@ -11,6 +11,8 @@ import type {
   NewsletterSubscriber, InsertNewsletterSubscriber,
   SupportSession, InsertSupportSession,
   SupportMessage, InsertSupportMessage,
+  StockReservation, InsertStockReservation,
+  PaymentEvent, InsertPaymentEvent,
 } from '@shared/schema';
 import { eq, desc, and, sql, or, ilike } from 'drizzle-orm';
 
@@ -52,6 +54,17 @@ export interface IStorage {
   updateOrderStatus(id: string, status: string, paymentStatus?: string): Promise<void>;
   updateOrderTracking(id: string, trackingNumber: string): Promise<void>;
   getOrderItems(orderId: string): Promise<OrderItem[]>;
+  
+  // Stock Reservations
+  createReservation(orderId: string, items: InsertOrderItem[]): Promise<void>;
+  commitReservation(orderId: string, paymentId: string): Promise<void>;
+  releaseReservation(orderId: string, reason: string): Promise<void>;
+  expireOldReservations(): Promise<number>;
+  getReservations(orderId: string): Promise<StockReservation[]>;
+  
+  // Payment Events (for idempotency)
+  recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null>;
+  isPaymentEventProcessed(providerEventId: string): Promise<boolean>;
   
   // Blog
   getBlogPosts(published?: boolean): Promise<BlogPost[]>;
@@ -264,9 +277,15 @@ export class DbStorage implements IStorage {
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
     const orderNumber = `EST-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
+    // Set reservation expiry (15 minutes from now)
+    const reservationExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    
     const orderData = {
       ...order,
       orderNumber,
+      reservationExpiresAt,
+      paymentStatus: 'pending',
+      status: 'pending',
       subtotal: typeof order.subtotal === 'number' ? order.subtotal.toString() : order.subtotal,
       shippingCost: typeof order.shippingCost === 'number' ? order.shippingCost.toString() : order.shippingCost,
       tax: order.tax ? (typeof order.tax === 'number' ? order.tax.toString() : order.tax) : '0',
@@ -286,10 +305,8 @@ export class DbStorage implements IStorage {
     
     await db.insert(schema.orderItems).values(itemsData as any);
     
-    // Update stock
-    for (const item of items) {
-      await this.updateProductStock(item.productId, -item.quantity);
-    }
+    // Create stock reservations instead of immediately decrementing
+    await this.createReservation(created.id, items);
     
     return created;
   }
@@ -401,6 +418,131 @@ export class DbStorage implements IStorage {
       .values(message)
       .returning();
     return newMessage;
+  }
+  
+  // Stock Reservation Methods
+  async createReservation(orderId: string, items: InsertOrderItem[]): Promise<void> {
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    for (const item of items) {
+      await db.insert(schema.stockReservations).values({
+        orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        status: 'reserved',
+        expiresAt,
+      });
+    }
+  }
+  
+  async commitReservation(orderId: string, paymentId: string): Promise<void> {
+    // Get all reservations for this order
+    const reservations = await this.getReservations(orderId);
+    
+    // Update stock levels atomically
+    for (const reservation of reservations) {
+      if (reservation.status === 'reserved') {
+        // Decrement actual stock
+        await this.updateProductStock(reservation.productId, -reservation.quantity);
+        
+        // Mark reservation as committed
+        await db.update(schema.stockReservations)
+          .set({
+            status: 'committed',
+            releasedAt: new Date(),
+            releaseReason: 'payment_success',
+          })
+          .where(eq(schema.stockReservations.id, reservation.id));
+      }
+    }
+    
+    // Update order payment status
+    await db.update(schema.orders)
+      .set({
+        paymentStatus: 'completed',
+        paymentId,
+        status: 'processing',
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.orders.id, orderId));
+  }
+  
+  async releaseReservation(orderId: string, reason: string): Promise<void> {
+    // Mark all reservations as released
+    await db.update(schema.stockReservations)
+      .set({
+        status: 'released',
+        releasedAt: new Date(),
+        releaseReason: reason,
+      })
+      .where(
+        and(
+          eq(schema.stockReservations.orderId, orderId),
+          eq(schema.stockReservations.status, 'reserved')
+        )
+      );
+    
+    // Update order status
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+    
+    if (reason === 'payment_failed') {
+      updateData.paymentStatus = 'failed';
+      updateData.status = 'cancelled';
+    }
+    
+    await db.update(schema.orders)
+      .set(updateData)
+      .where(eq(schema.orders.id, orderId));
+  }
+  
+  async expireOldReservations(): Promise<number> {
+    const now = new Date();
+    
+    // Find expired reservations
+    const expired = await db.select()
+      .from(schema.stockReservations)
+      .where(
+        and(
+          eq(schema.stockReservations.status, 'reserved'),
+          sql`${schema.stockReservations.expiresAt} < ${now}`
+        )
+      );
+    
+    // Release them
+    for (const reservation of expired) {
+      await this.releaseReservation(reservation.orderId, 'timeout');
+    }
+    
+    return expired.length;
+  }
+  
+  async getReservations(orderId: string): Promise<StockReservation[]> {
+    return db.select()
+      .from(schema.stockReservations)
+      .where(eq(schema.stockReservations.orderId, orderId));
+  }
+  
+  // Payment Event Methods (for idempotency)
+  async recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null> {
+    // Check if already processed
+    const exists = await this.isPaymentEventProcessed(event.providerEventId);
+    if (exists) {
+      return null; // Already processed
+    }
+    
+    const [created] = await db.insert(schema.paymentEvents)
+      .values(event)
+      .returning();
+    return created;
+  }
+  
+  async isPaymentEventProcessed(providerEventId: string): Promise<boolean> {
+    const [event] = await db.select()
+      .from(schema.paymentEvents)
+      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
+    return !!event;
   }
 }
 
