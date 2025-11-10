@@ -63,52 +63,55 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
         console.warn(`[PAYMENT] Event ${data.eventId} is stale (${Math.round(eventAge/1000)}s old), forcing retry`);
         // Continue processing below
       } else {
-        // Event is recent and unprocessed - another worker is processing it
-        console.log(`[PAYMENT] Event ${data.eventId} is being processed by another worker (${Math.round(eventAge/1000)}s old)`);
+        // Event is recent and unprocessed - another worker might be processing it
+        // Return error to ensure provider retries (don't acknowledge with 200 OK)
+        console.log(`[PAYMENT] Event ${data.eventId} is being processed by another worker (${Math.round(eventAge/1000)}s old) - returning error for retry`);
         return {
-          success: true,
-          message: 'Event is being processed (concurrent request)',
+          success: false,
+          message: 'Event is being processed (concurrent request - retry later)',
         };
       }
     }
 
-    // Step 2: We successfully claimed this event - now we're the only worker processing it
-
-    // Step 3: Get the order
+    // Step 2: We successfully claimed this event - now process it
     const order = await storage.getOrder(data.orderId);
     if (!order) {
       throw new Error(`Order ${data.orderId} not found`);
     }
 
-    // Step 4: Handle based on payment status
+    // Step 3: Handle based on payment status (uses ATOMIC transaction methods)
     if (data.status === 'success') {
       console.log(`[PAYMENT] Payment success for order ${order.orderNumber}`);
       
-      // Commit stock reservations and update order
-      await storage.commitReservation(data.orderId, data.paymentId || data.eventId);
-      
-      // Mark event as processed (CRITICAL: only after success)
-      await storage.markPaymentEventProcessed(data.eventId);
+      // ATOMIC: Commit stock + mark processed in single transaction
+      await storage.commitReservationWithEvent(
+        data.orderId,
+        data.paymentId || data.eventId,
+        data.eventId
+      );
 
+      const updatedOrder = await storage.getOrder(data.orderId);
       return {
         success: true,
         message: 'Payment confirmed and stock committed',
-        order: await storage.getOrder(data.orderId),
+        order: updatedOrder,
       };
       
     } else if (data.status === 'failed') {
       console.log(`[PAYMENT] Payment failed for order ${order.orderNumber}`);
       
-      // Release stock reservations
-      await storage.releaseReservation(data.orderId, 'payment_failed');
+      // ATOMIC: Release stock + mark processed in single transaction
+      await storage.releaseReservationWithEvent(
+        data.orderId,
+        'payment_failed',
+        data.eventId
+      );
       
-      // Mark event as processed
-      await storage.markPaymentEventProcessed(data.eventId);
-      
+      const updatedOrder = await storage.getOrder(data.orderId);
       return {
         success: true,
         message: 'Payment failed, stock released',
-        order: await storage.getOrder(data.orderId),
+        order: updatedOrder,
       };
       
     } else {

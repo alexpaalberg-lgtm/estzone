@@ -213,7 +213,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/webhooks/payment", async (req, res) => {
     try {
       const result = await handlePaymentWebhook(req.body);
-      res.json(result);
+      if (!result.success) {
+        // Return 503 (Service Unavailable) to trigger provider retry
+        res.status(503).json(result);
+      } else {
+        res.json(result);
+      }
     } catch (error: any) {
       console.error('Webhook error:', error);
       res.status(500).json({ error: error.message });

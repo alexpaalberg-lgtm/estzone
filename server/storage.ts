@@ -58,7 +58,9 @@ export interface IStorage {
   // Stock Reservations
   createReservation(orderId: string, items: InsertOrderItem[]): Promise<void>;
   commitReservation(orderId: string, paymentId: string): Promise<void>;
+  commitReservationWithEvent(orderId: string, paymentId: string, eventId: string): Promise<void>;
   releaseReservation(orderId: string, reason: string): Promise<void>;
+  releaseReservationWithEvent(orderId: string, reason: string, eventId: string): Promise<void>;
   expireOldReservations(): Promise<number>;
   getReservations(orderId: string): Promise<StockReservation[]>;
   
@@ -437,17 +439,65 @@ export class DbStorage implements IStorage {
     }
   }
   
+  async commitReservationWithEvent(orderId: string, paymentId: string, eventId: string): Promise<void> {
+    // ATOMIC: Entire flow in single transaction
+    await db.transaction(async (tx) => {
+      // Get all reservations for this order
+      const reservations = await tx.select()
+        .from(schema.stockReservations)
+        .where(eq(schema.stockReservations.orderId, orderId));
+      
+      // Update stock levels atomically
+      for (const reservation of reservations) {
+        if (reservation.status === 'reserved') {
+          // Decrement actual stock
+          await tx.update(schema.products)
+            .set({
+              stock: sql`${schema.products.stock} - ${reservation.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.products.id, reservation.productId));
+          
+          // Mark reservation as committed
+          await tx.update(schema.stockReservations)
+            .set({
+              status: 'committed',
+              releasedAt: new Date(),
+              releaseReason: 'payment_success',
+            })
+            .where(eq(schema.stockReservations.id, reservation.id));
+        }
+      }
+      
+      // Update order payment status
+      await tx.update(schema.orders)
+        .set({
+          paymentStatus: 'completed',
+          paymentId,
+          status: 'processing',
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.orders.id, orderId));
+      
+      // Mark payment event as processed
+      await tx.update(schema.paymentEvents)
+        .set({
+          processed: true,
+          processedAt: new Date(),
+        })
+        .where(eq(schema.paymentEvents.providerEventId, eventId));
+    });
+  }
+  
   async commitReservation(orderId: string, paymentId: string): Promise<void> {
-    // Get all reservations for this order
+    // Legacy method - kept for backward compatibility
+    // Use commitReservationWithEvent for webhook processing
     const reservations = await this.getReservations(orderId);
     
-    // Update stock levels atomically
     for (const reservation of reservations) {
       if (reservation.status === 'reserved') {
-        // Decrement actual stock
         await this.updateProductStock(reservation.productId, -reservation.quantity);
         
-        // Mark reservation as committed
         await db.update(schema.stockReservations)
           .set({
             status: 'committed',
@@ -458,7 +508,6 @@ export class DbStorage implements IStorage {
       }
     }
     
-    // Update order payment status
     await db.update(schema.orders)
       .set({
         paymentStatus: 'completed',
@@ -469,8 +518,49 @@ export class DbStorage implements IStorage {
       .where(eq(schema.orders.id, orderId));
   }
   
+  async releaseReservationWithEvent(orderId: string, reason: string, eventId: string): Promise<void> {
+    // ATOMIC: Entire flow in single transaction
+    await db.transaction(async (tx) => {
+      // Mark all reservations as released
+      await tx.update(schema.stockReservations)
+        .set({
+          status: 'released',
+          releasedAt: new Date(),
+          releaseReason: reason,
+        })
+        .where(
+          and(
+            eq(schema.stockReservations.orderId, orderId),
+            eq(schema.stockReservations.status, 'reserved')
+          )
+        );
+      
+      // Update order status
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+      
+      if (reason === 'payment_failed') {
+        updateData.paymentStatus = 'failed';
+        updateData.status = 'cancelled';
+      }
+      
+      await tx.update(schema.orders)
+        .set(updateData)
+        .where(eq(schema.orders.id, orderId));
+      
+      // Mark payment event as processed
+      await tx.update(schema.paymentEvents)
+        .set({
+          processed: true,
+          processedAt: new Date(),
+        })
+        .where(eq(schema.paymentEvents.providerEventId, eventId));
+    });
+  }
+  
   async releaseReservation(orderId: string, reason: string): Promise<void> {
-    // Mark all reservations as released
+    // Legacy method - kept for backward compatibility
     await db.update(schema.stockReservations)
       .set({
         status: 'released',
@@ -484,7 +574,6 @@ export class DbStorage implements IStorage {
         )
       );
     
-    // Update order status
     const updateData: any = {
       updatedAt: new Date(),
     };
