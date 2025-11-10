@@ -38,34 +38,42 @@ export default function Header() {
     setSearchInput(searchParam || '');
   }, [location]);
   
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const currentPath = location.split('?')[0];
-      const params = new URLSearchParams(window.location.search);
+  const handleSearch = (closeSheet = false) => {
+    const currentPath = location.split('?')[0];
+    const params = new URLSearchParams(window.location.search);
+    
+    if (searchInput.trim()) {
+      params.set('search', searchInput.trim());
+      const isProductsPage = currentPath.startsWith('/products');
+      const targetPath = isProductsPage ? currentPath : '/products';
+      const newUrl = `${targetPath}?${params.toString()}`;
       
-      if (searchInput.trim()) {
-        params.set('search', searchInput.trim());
-        const isProductsPage = currentPath.startsWith('/products');
-        const targetPath = isProductsPage ? currentPath : '/products';
-        const newUrl = `${targetPath}?${params.toString()}`;
-        
-        if (location !== newUrl) {
-          setLocation(newUrl);
+      if (location !== newUrl) {
+        setLocation(newUrl);
+        if (closeSheet) {
           setMobileSearchOpen(false);
         }
-      } else {
-        params.delete('search');
-        const newSearch = params.toString();
-        const newUrl = newSearch ? `${currentPath}?${newSearch}` : currentPath;
-        
-        if (location !== newUrl) {
-          setLocation(newUrl);
-        }
       }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchInput, location, setLocation]);
+    } else {
+      params.delete('search');
+      const newSearch = params.toString();
+      const newUrl = newSearch ? `${currentPath}?${newSearch}` : currentPath;
+      
+      if (location !== newUrl) {
+        setLocation(newUrl);
+      }
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch(true);
+    }
+  };
+  
+  const handleBlur = () => {
+    handleSearch(false);
+  };
   
   const { parentCategories, subcategoriesByParent } = useMemo(() => {
     if (!categories) return { parentCategories: [], subcategoriesByParent: {} };
@@ -92,7 +100,7 @@ export default function Header() {
         <div className="grid grid-cols-[auto_1fr_auto] h-20 sm:h-24 items-center gap-4">
           {/* Logo with EstZone text */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-2 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+            <div className="flex items-center gap-3 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-10 sm:h-12 w-auto" />
               <span className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
                 <span className="text-foreground">Est</span>
@@ -111,6 +119,8 @@ export default function Header() {
               data-testid="input-search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
             />
           </div>
 
@@ -318,6 +328,8 @@ export default function Header() {
                 data-testid="input-search-mobile"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
                 autoFocus
               />
             </div>
