@@ -198,7 +198,17 @@ Preferred communication style: Simple, everyday language.
 - **Montonio:** Production-ready JWT-based payment gateway for Baltic markets with full security implementation
 - **PayPal:** Production-ready PayPal SDK integration with optional credentials
 
+### Product Catalog
+- **30 Gaming Products:** Fully populated database with 10 products per category (PlayStation, Xbox, Nintendo)
+- **Bilingual Content:** All products have English and Estonian names/descriptions
+- **Realistic Pricing:** European market pricing (€44.99-€79.99) with sale prices on selected items
+- **Inventory Management:** Stock levels (15-50 units) tracked per product
+- **Featured Products:** 9 featured items (3 per category) for homepage promotion
+- **New Arrivals:** 6 new products marked for "New Arrivals" section
+
 ### Bug Fixes & Improvements
+- **CRITICAL FIX:** Resolved Neon database WebSocket connection failure by configuring `neonConfig.webSocketConstructor = ws` in `server/db.ts`
 - Fixed critical product API bug where queryKey objects were incorrectly stringified as `[object Object]`
 - Updated CartContext to support adding items with specific quantities
 - All LSP errors resolved in recent implementations
+- All API endpoints now returning 200 OK responses (products, categories, individual products)
