@@ -59,7 +59,7 @@ export default function Header() {
             </div>
           </Link>
           
-          <div className="justify-self-center -ml-8 sm:-ml-12">
+          <div className="justify-self-center md:-ml-8 lg:-ml-12">
             <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight whitespace-nowrap">
               <span className="text-foreground">Est</span>
               <span className="text-primary">Zone</span>
