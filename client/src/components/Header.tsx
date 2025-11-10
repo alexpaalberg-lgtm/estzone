@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { ShoppingCart, Search, User, Menu, Gamepad2 } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
@@ -27,8 +28,7 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <Gamepad2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-xl text-foreground">EstZone</span>
+              <img src={logoImage} alt="EstZone" className="h-8 w-auto" />
             </div>
           </Link>
 
