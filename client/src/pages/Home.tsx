@@ -9,7 +9,7 @@ import type { Product } from '@shared/schema';
 
 export default function Home() {
   const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/products', { featured: true }],
+    queryKey: ['/api/products?featured=true'],
   });
 
   return (

@@ -22,9 +22,10 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   
   // Guard: only fetch product if we have a valid route match and ID
+  const productId = params?.id;
   const { data: product, isLoading } = useQuery<Product>({
-    queryKey: ['/api/products', params?.id],
-    enabled: match && !!params?.id, // Only run query if route matches and ID exists
+    queryKey: productId ? [`/api/products/${productId}`] : ['/api/products/null'],
+    enabled: match && !!productId, // Only run query if route matches and ID exists
   });
   
   const { data: categories } = useQuery<Category[]>({
