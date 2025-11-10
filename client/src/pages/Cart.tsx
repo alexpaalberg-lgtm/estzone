@@ -14,6 +14,8 @@ export default function Cart() {
   const { language } = useLanguage();
   const { formatPrice } = useCurrency();
   
+  // Calculate VAT on base EUR amount
+  // Keep in EUR - formatPrice() will handle conversion to display currency
   const vatBreakdown = calculateVatBreakdown(totalPrice);
   
   if (items.length === 0) {

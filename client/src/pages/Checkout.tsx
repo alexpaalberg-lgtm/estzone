@@ -15,8 +15,10 @@ import { Separator } from "@/components/ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { calculateVatBreakdown } from "@/lib/vat";
 import { ShoppingBag, Package, CreditCard } from "lucide-react";
 import { Link } from "wouter";
 
@@ -30,7 +32,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
   shippingMethod: z.enum(["omniva", "dpd"]),
-  paymentMethod: z.enum(["stripe", "paysera"]),
+  paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -38,9 +40,20 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { language } = useLanguage();
+  const { currency, formatPrice, toDisplay } = useCurrency();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [shippingCost, setShippingCost] = useState(4.99);
+  
+  // All cart amounts are in EUR (base currency)
+  const baseShippingCost = 4.99;
+  const baseTotalPrice = totalPrice;  // Cart total is in EUR
+  const baseGrandTotal = baseTotalPrice + baseShippingCost;
+  
+  // Calculate VAT breakdown on base EUR amounts
+  // Keep values in EUR - formatPrice() will handle conversion to display currency
+  const itemsVat = calculateVatBreakdown(baseTotalPrice);
+  const shippingVat = calculateVatBreakdown(baseShippingCost);
+  const totalVat = calculateVatBreakdown(baseGrandTotal);
   
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -60,7 +73,8 @@ export default function Checkout() {
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
-      // Create order
+      // Use VAT breakdown (already in EUR) for storage
+      // This ensures consistency between displayed and stored amounts
       const orderData = {
         customerEmail: data.email,
         customerName: `${data.firstName} ${data.lastName}`,
@@ -80,11 +94,13 @@ export default function Checkout() {
         items: items.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.price.toString(),
+          price: item.price.toFixed(2), // Already in EUR
         })),
-        subtotal: totalPrice.toString(),
-        shipping: shippingCost.toString(),
-        total: (totalPrice + shippingCost).toString(),
+        subtotal: itemsVat.subtotalExVat.toFixed(2),
+        shipping: shippingVat.subtotalExVat.toFixed(2),
+        vatAmount: totalVat.vatAmount.toFixed(2),
+        total: totalVat.total.toFixed(2),
+        currency: 'EUR', // Always store in base currency
         shippingMethod: data.shippingMethod,
         paymentMethod: data.paymentMethod,
         paymentStatus: 'pending' as const,
@@ -286,7 +302,7 @@ export default function Checkout() {
                                     <span className="text-sm text-muted-foreground">2-3 {language === 'et' ? 'tööpäeva' : 'business days'}</span>
                                   </Label>
                                 </div>
-                                <span className="font-semibold">€4.99</span>
+                                <span className="font-semibold">{formatPrice(4.99)}</span>
                               </div>
                               <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-dpd">
                                 <div className="flex items-center gap-3">
@@ -296,7 +312,7 @@ export default function Checkout() {
                                     <span className="text-sm text-muted-foreground">1-2 {language === 'et' ? 'tööpäeva' : 'business days'}</span>
                                   </Label>
                                 </div>
-                                <span className="font-semibold">€5.99</span>
+                                <span className="font-semibold">{formatPrice(5.99)}</span>
                               </div>
                             </RadioGroup>
                           </FormControl>
@@ -332,12 +348,30 @@ export default function Checkout() {
                                   </Label>
                                 </div>
                               </div>
+                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paypal">
+                                <div className="flex items-center gap-3">
+                                  <RadioGroupItem value="paypal" id="paypal" />
+                                  <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
+                                    <span className="font-semibold">PayPal</span>
+                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
+                                  </Label>
+                                </div>
+                              </div>
                               <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paysera">
                                 <div className="flex items-center gap-3">
                                   <RadioGroupItem value="paysera" id="paysera" />
                                   <Label htmlFor="paysera" className="cursor-pointer flex flex-col">
                                     <span className="font-semibold">Paysera</span>
                                     <span className="text-sm text-muted-foreground">{language === 'et' ? 'Pangalink' : 'Bank Link'}</span>
+                                  </Label>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-montonio">
+                                <div className="flex items-center gap-3">
+                                  <RadioGroupItem value="montonio" id="montonio" />
+                                  <Label htmlFor="montonio" className="cursor-pointer flex flex-col">
+                                    <span className="font-semibold">Montonio</span>
+                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Baltikumi pangad' : 'Baltic Banks'}</span>
                                   </Label>
                                 </div>
                               </div>
@@ -369,7 +403,7 @@ export default function Checkout() {
                               {language === 'et' ? 'Kogus' : 'Qty'}: {item.quantity}
                             </p>
                           </div>
-                          <p className="font-semibold">€{(item.price * item.quantity).toFixed(2)}</p>
+                          <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
                         </div>
                       ))}
                     </div>
@@ -377,18 +411,38 @@ export default function Checkout() {
                     <Separator className="my-4" />
                     
                     <div className="space-y-3">
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{language === 'et' ? 'Vahesumma' : 'Subtotal'}</span>
-                        <span data-testid="text-subtotal">€{totalPrice.toFixed(2)}</span>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{language === 'et' ? 'Tooted (ilma KM-ta)' : 'Products (ex VAT)'}</span>
+                        <span data-testid="text-subtotal-ex-vat">{formatPrice(itemsVat.subtotalExVat)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{language === 'et' ? 'KM 24%' : 'VAT 24%'}</span>
+                        <span data-testid="text-vat-items">{formatPrice(itemsVat.vatAmount)}</span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
-                        <span>{language === 'et' ? 'Kohaletoimetamine' : 'Shipping'}</span>
-                        <span data-testid="text-shipping">€{shippingCost.toFixed(2)}</span>
+                        <span>{language === 'et' ? 'Vahesumma (koos KM-ga)' : 'Subtotal (incl VAT)'}</span>
+                        <span data-testid="text-subtotal">{formatPrice(totalPrice)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{language === 'et' ? 'Kohaletoimetamine (ilma KM-ta)' : 'Shipping (ex VAT)'}</span>
+                        <span>{formatPrice(shippingVat.subtotalExVat)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{language === 'et' ? 'Tarne KM 24%' : 'Shipping VAT 24%'}</span>
+                        <span>{formatPrice(shippingVat.vatAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{language === 'et' ? 'Kohaletoimetamine (koos KM-ga)' : 'Shipping (incl VAT)'}</span>
+                        <span data-testid="text-shipping">{formatPrice(shippingCost)}</span>
                       </div>
                       <Separator />
+                      <div className="flex justify-between font-semibold">
+                        <span>{language === 'et' ? 'Kokku KM 24%' : 'Total VAT 24%'}</span>
+                        <span data-testid="text-total-vat">{formatPrice(totalVat.vatAmount)}</span>
+                      </div>
                       <div className="flex justify-between text-xl font-bold">
-                        <span>{language === 'et' ? 'Kokku' : 'Total'}</span>
-                        <span data-testid="text-total">€{(totalPrice + shippingCost).toFixed(2)}</span>
+                        <span>{language === 'et' ? 'Kokku (koos KM-ga)' : 'Total (incl VAT)'}</span>
+                        <span data-testid="text-total">{formatPrice(grandTotal)}</span>
                       </div>
                     </div>
                     

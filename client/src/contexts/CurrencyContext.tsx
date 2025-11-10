@@ -7,10 +7,15 @@ interface CurrencyContextType {
   setCurrency: (currency: Currency) => void;
   exchangeRate: number;
   formatPrice: (price: number | string) => string;
-  convertPrice: (price: number | string, fromCurrency?: Currency) => number;
+  convertCurrency: (amount: number, from: Currency, to: Currency) => number;
+  toDisplay: (amountInEur: number) => number;
+  fromDisplay: (amountInDisplayCurrency: number) => number;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+
+// Base currency for all storage and calculations
+export const BASE_CURRENCY: Currency = 'EUR';
 
 // Exchange rate: 1 EUR = 1.09 USD (configurable)
 const EUR_TO_USD_RATE = 1.09;
@@ -31,32 +36,59 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newCurrency);
   };
 
-  const convertPrice = (price: number | string, fromCurrency: Currency = 'EUR'): number => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  /**
+   * Convert amount between any two currencies
+   * @param amount - Amount to convert
+   * @param from - Source currency
+   * @param to - Target currency
+   * @returns Converted amount
+   */
+  const convertCurrency = (amount: number, from: Currency, to: Currency): number => {
+    if (from === to) return amount;
     
-    if (fromCurrency === currency) {
-      return numPrice;
+    if (from === 'EUR' && to === 'USD') {
+      return amount * exchangeRate;
     }
     
-    if (fromCurrency === 'EUR' && currency === 'USD') {
-      return numPrice * exchangeRate;
+    if (from === 'USD' && to === 'EUR') {
+      return amount / exchangeRate;
     }
     
-    if (fromCurrency === 'USD' && currency === 'EUR') {
-      return numPrice / exchangeRate;
-    }
-    
-    return numPrice;
+    return amount;
   };
 
+  /**
+   * Convert amount from base currency (EUR) to current display currency
+   * @param amountInEur - Amount in EUR (base currency)
+   * @returns Amount in current display currency
+   */
+  const toDisplay = (amountInEur: number): number => {
+    return convertCurrency(amountInEur, 'EUR', currency);
+  };
+
+  /**
+   * Convert amount from current display currency back to base currency (EUR)
+   * Use this when persisting displayed amounts to the database
+   * @param amountInDisplayCurrency - Amount in current display currency
+   * @returns Amount in EUR (base currency)
+   */
+  const fromDisplay = (amountInDisplayCurrency: number): number => {
+    return convertCurrency(amountInDisplayCurrency, currency, 'EUR');
+  };
+
+  /**
+   * Format a price in EUR for display in current currency
+   * @param price - Price in EUR (base currency)
+   * @returns Formatted price string with currency symbol
+   */
   const formatPrice = (price: number | string): string => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    const converted = convertPrice(numPrice, 'EUR');
+    const displayAmount = toDisplay(numPrice);
     
     if (currency === 'EUR') {
-      return `€${converted.toFixed(2)}`;
+      return `€${displayAmount.toFixed(2)}`;
     } else {
-      return `$${converted.toFixed(2)}`;
+      return `$${displayAmount.toFixed(2)}`;
     }
   };
 
@@ -66,7 +98,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       setCurrency, 
       exchangeRate,
       formatPrice,
-      convertPrice
+      convertCurrency,
+      toDisplay,
+      fromDisplay
     }}>
       {children}
     </CurrencyContext.Provider>

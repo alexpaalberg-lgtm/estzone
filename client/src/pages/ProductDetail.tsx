@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Minus, Plus, ShoppingCart, ChevronRight } from "lucide-react";
@@ -15,6 +16,7 @@ import type { Product, Category } from "@shared/schema";
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { addItem } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
@@ -80,12 +82,11 @@ export default function ProductDetail() {
     if (!inStock) return;
     
     addItem({
-      productId: product.id,
+      id: product.id,
       name: productName,
       price: salePrice || price,
-      quantity,
       image: product.images?.[0] || '',
-    });
+    }, quantity);
     
     toast({
       title: language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart',
@@ -139,10 +140,10 @@ export default function ProductDetail() {
                   {salePrice ? (
                     <>
                       <span className="text-4xl font-bold text-primary" data-testid="text-sale-price">
-                        €{salePrice.toFixed(2)}
+                        {formatPrice(salePrice)}
                       </span>
                       <span className="text-2xl text-muted-foreground line-through" data-testid="text-original-price">
-                        €{price.toFixed(2)}
+                        {formatPrice(price)}
                       </span>
                       <Badge variant="destructive" data-testid="badge-sale">
                         {language === 'et' ? 'Soodustus' : 'Sale'}
@@ -150,7 +151,7 @@ export default function ProductDetail() {
                     </>
                   ) : (
                     <span className="text-4xl font-bold text-primary" data-testid="text-price">
-                      €{price.toFixed(2)}
+                      {formatPrice(price)}
                     </span>
                   )}
                 </div>
