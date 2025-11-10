@@ -110,9 +110,9 @@ export default function Header() {
         <div className="grid grid-cols-[auto_1fr_auto] h-20 sm:h-24 items-center gap-4">
           {/* Logo with EstZone text */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-4 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+            <div className="flex items-center gap-2 sm:gap-4 hover-elevate px-0 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-10 sm:h-12 w-auto" />
-              <span className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
+              <span className="text-lg sm:text-2xl font-bold tracking-tight whitespace-nowrap">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
