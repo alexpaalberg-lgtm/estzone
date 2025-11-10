@@ -217,6 +217,18 @@ Preferred communication style: Simple, everyday language.
 ### Branding & UI Updates
 - **EstZone Logo:** Integrated actual EstZone logo image into header component replacing generic icon
 - **Hero Banner:** Professional gaming setup hero image for enhanced visual appeal
+- **Header Refinements:** Optimized logo and search layout for mobile responsiveness
+  - Increased logo-to-text spacing (gap-4) on desktop for better visual separation
+  - Mobile-optimized spacing (gap-2, px-0, text-lg) for compact header layout
+  - Search functionality: Enter key or blur triggers navigation, no auto-close on mobile sheet
+
+### Navigation & Category Improvements
+- **Logical Category Ordering:** Implemented consistent category sorting across all views
+  - Order: Consoles → Controllers → Headsets → VR & AR → Accessories → Games
+  - Applied to header navigation, mobile menu, and product filters
+- **Category Name Cleanup:** Removed "+" symbols from game categories (PS5, Switch, Series X)
+- **Shortened English Category Names:** Improved layout with concise names (e.g., "Consoles" vs "Gaming Consoles")
+- **Bilingual Category Consistency:** Uniform font sizes and styling across English/Estonian variants
 
 ### Bug Fixes & Improvements
 - **CRITICAL FIX:** Resolved Neon database WebSocket connection failure by configuring `neonConfig.webSocketConstructor = ws` in `server/db.ts`
