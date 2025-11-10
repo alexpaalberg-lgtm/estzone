@@ -59,8 +59,8 @@ export default function Header() {
             </div>
           </Link>
           
-          <div className="justify-self-center md:-ml-8 lg:-ml-12">
-            <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight whitespace-nowrap">
+          <div className="justify-self-center -ml-16 sm:-ml-20 md:-ml-8 lg:-ml-12">
+            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight whitespace-nowrap">
               <span className="text-foreground">Est</span>
               <span className="text-primary">Zone</span>
             </span>
