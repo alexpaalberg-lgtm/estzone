@@ -85,7 +85,7 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
       }
 
       // Call unified payment handler
-      await handlePaymentWebhook({
+      const result = await handlePaymentWebhook({
         provider: 'stripe',
         eventId: event.id,
         eventType: 'checkout.session.completed',
@@ -97,13 +97,19 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
         rawPayload: event,
       });
 
+      // Return 503 if concurrent processing detected to trigger Stripe retry
+      if (!result.success) {
+        res.status(503).json({ error: result.message });
+        return;
+      }
+
       res.json({ received: true });
     } else if (event.type === 'checkout.session.expired') {
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;
       
       if (orderId) {
-        await handlePaymentWebhook({
+        const result = await handlePaymentWebhook({
           provider: 'stripe',
           eventId: event.id,
           eventType: 'checkout.session.expired',
@@ -111,6 +117,12 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
           status: 'failed',
           rawPayload: event,
         });
+
+        // Return 503 if concurrent processing detected
+        if (!result.success) {
+          res.status(503).json({ error: result.message });
+          return;
+        }
       }
       
       res.json({ received: true });

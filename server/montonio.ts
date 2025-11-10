@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { Request, Response } from "express";
+import { handlePaymentWebhook } from './utils/paymentOrchestrator';
 
 /* Montonio Payment Gateway Integration */
 
@@ -286,9 +287,31 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
       console.log(`[MONTONIO] Nonce consumed for order ${merchant_reference}`);
     }
 
-    // TODO: Update order status in database based on webhook data
-    // This should integrate with your storage layer
-    // Example: await storage.updateOrderPaymentStatus(merchant_reference, status);
+    // Map Montonio status to our payment status
+    let paymentStatus: 'success' | 'failed' | 'pending';
+    if (status === 'finalized') {
+      paymentStatus = 'success';
+    } else if (status === 'abandoned' || status === 'voided') {
+      paymentStatus = 'failed';
+    } else {
+      paymentStatus = 'pending';
+    }
+
+    // Call unified payment handler
+    const result = await handlePaymentWebhook({
+      provider: 'montonio',
+      eventId: `montonio-${merchant_reference}-${Date.now()}`, // Generate unique event ID
+      eventType: `webhook.${status}`,
+      orderId: merchant_reference,
+      status: paymentStatus,
+      rawPayload: webhookData,
+    });
+
+    // Return ERROR if concurrent processing detected to trigger Montonio retry
+    if (!result.success) {
+      console.warn(`[MONTONIO] Concurrent processing detected: ${result.message}`);
+      return res.status(503).send("ERROR");
+    }
 
     // Montonio requires "OK" response for successful webhook processing
     return res.status(200).send("OK");
