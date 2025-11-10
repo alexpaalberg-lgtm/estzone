@@ -1,17 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X } from "lucide-react";
 import ChatPanel from "@/components/ChatPanel";
 
 export default function ChatLauncher() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 100) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, isOpen]);
 
   return (
     <>
       {!isOpen && (
         <Button
           size="icon"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 transition-transform duration-300 ${
+            isVisible ? 'translate-y-0' : 'translate-y-24'
+          }`}
           onClick={() => setIsOpen(true)}
           data-testid="button-chat-launcher"
         >
