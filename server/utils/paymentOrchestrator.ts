@@ -25,18 +25,9 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
   order?: Order;
 }> {
   try {
-    // Step 1: Check idempotency - have we processed this event before?
-    const alreadyProcessed = await storage.isPaymentEventProcessed(data.eventId);
-    if (alreadyProcessed) {
-      console.log(`[PAYMENT] Event ${data.eventId} already processed, skipping`);
-      return {
-        success: true,
-        message: 'Event already processed',
-      };
-    }
-
-    // Step 2: Record the event
-    await storage.recordPaymentEvent({
+    // Step 1: ATOMIC - Try to record event (acts as distributed lock)
+    // If event already exists (duplicate webhook), this returns null
+    const eventRecord = await storage.recordPaymentEvent({
       orderId: data.orderId,
       provider: data.provider,
       providerEventId: data.eventId,
@@ -44,6 +35,44 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
       payload: data.rawPayload,
       processed: false,
     });
+
+    if (!eventRecord) {
+      // Event already exists - check its state
+      const existing = await storage.getPaymentEvent(data.eventId);
+      
+      if (!existing) {
+        throw new Error('Unexpected: event insert failed but event not found');
+      }
+      
+      if (existing.processed) {
+        console.log(`[PAYMENT] Event ${data.eventId} already processed completely`);
+        const order = await storage.getOrder(data.orderId);
+        return {
+          success: true,
+          message: 'Event already processed (idempotent retry)',
+          order: order || undefined,
+        };
+      }
+      
+      // Event exists but not yet processed - check if it's stale
+      const eventAge = Date.now() - existing.createdAt.getTime();
+      const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+      
+      if (eventAge > STALE_THRESHOLD) {
+        // Event is stale (worker likely crashed) - force retry
+        console.warn(`[PAYMENT] Event ${data.eventId} is stale (${Math.round(eventAge/1000)}s old), forcing retry`);
+        // Continue processing below
+      } else {
+        // Event is recent and unprocessed - another worker is processing it
+        console.log(`[PAYMENT] Event ${data.eventId} is being processed by another worker (${Math.round(eventAge/1000)}s old)`);
+        return {
+          success: true,
+          message: 'Event is being processed (concurrent request)',
+        };
+      }
+    }
+
+    // Step 2: We successfully claimed this event - now we're the only worker processing it
 
     // Step 3: Get the order
     const order = await storage.getOrder(data.orderId);
@@ -58,15 +87,8 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
       // Commit stock reservations and update order
       await storage.commitReservation(data.orderId, data.paymentId || data.eventId);
       
-      // Mark event as processed
-      const eventRecord = await storage.recordPaymentEvent({
-        orderId: data.orderId,
-        provider: data.provider,
-        providerEventId: data.eventId,
-        eventType: data.eventType,
-        payload: data.rawPayload,
-        processed: true,
-      });
+      // Mark event as processed (CRITICAL: only after success)
+      await storage.markPaymentEventProcessed(data.eventId);
 
       return {
         success: true,
@@ -80,6 +102,9 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
       // Release stock reservations
       await storage.releaseReservation(data.orderId, 'payment_failed');
       
+      // Mark event as processed
+      await storage.markPaymentEventProcessed(data.eventId);
+      
       return {
         success: true,
         message: 'Payment failed, stock released',
@@ -90,15 +115,17 @@ export async function handlePaymentWebhook(data: PaymentWebhookData): Promise<{
       // Pending status - do nothing, wait for final status
       console.log(`[PAYMENT] Payment pending for order ${order.orderNumber}`);
       
+      // Don't mark as processed - waiting for final status
       return {
         success: true,
-        message: 'Payment pending',
+        message: 'Payment pending (waiting for final status)',
         order,
       };
     }
     
   } catch (error: any) {
     console.error('[PAYMENT] Webhook processing error:', error);
+    // Don't mark as processed on error - allow retry
     return {
       success: false,
       message: error.message || 'Payment processing failed',
@@ -121,7 +148,7 @@ export async function getOrderPaymentStatus(orderId: string): Promise<{
   }
 
   const now = new Date();
-  const reservationExpired = order.reservationExpiresAt && now > order.reservationExpiresAt;
+  const reservationExpired = order.reservationExpiresAt ? now > order.reservationExpiresAt : undefined;
 
   return {
     orderNumber: order.orderNumber,

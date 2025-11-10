@@ -64,7 +64,9 @@ export interface IStorage {
   
   // Payment Events (for idempotency)
   recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null>;
+  markPaymentEventProcessed(providerEventId: string): Promise<void>;
   isPaymentEventProcessed(providerEventId: string): Promise<boolean>;
+  getPaymentEvent(providerEventId: string): Promise<PaymentEvent | undefined>;
   
   // Blog
   getBlogPosts(published?: boolean): Promise<BlogPost[]>;
@@ -526,23 +528,52 @@ export class DbStorage implements IStorage {
   
   // Payment Event Methods (for idempotency)
   async recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null> {
-    // Check if already processed
-    const exists = await this.isPaymentEventProcessed(event.providerEventId);
-    if (exists) {
-      return null; // Already processed
+    // ATOMIC: Try to insert new event; if duplicate (unique constraint), return null
+    try {
+      const [created] = await db.insert(schema.paymentEvents)
+        .values({
+          ...event,
+          processed: false, // Always start unprocessed
+        })
+        .onConflictDoNothing({ target: schema.paymentEvents.providerEventId })
+        .returning();
+      
+      // If no row returned, it means this event already exists (idempotent retry)
+      if (!created) {
+        return null;
+      }
+      
+      return created;
+    } catch (error: any) {
+      // If unique constraint violation somehow still happens, treat as idempotent retry
+      if (error.code === '23505') { // PostgreSQL unique violation
+        return null;
+      }
+      throw error;
     }
-    
-    const [created] = await db.insert(schema.paymentEvents)
-      .values(event)
-      .returning();
-    return created;
+  }
+  
+  async markPaymentEventProcessed(providerEventId: string): Promise<void> {
+    await db.update(schema.paymentEvents)
+      .set({
+        processed: true,
+        processedAt: new Date(),
+      })
+      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
   }
   
   async isPaymentEventProcessed(providerEventId: string): Promise<boolean> {
     const [event] = await db.select()
       .from(schema.paymentEvents)
       .where(eq(schema.paymentEvents.providerEventId, providerEventId));
-    return !!event;
+    return !!event?.processed;
+  }
+  
+  async getPaymentEvent(providerEventId: string): Promise<PaymentEvent | undefined> {
+    const [event] = await db.select()
+      .from(schema.paymentEvents)
+      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
+    return event;
   }
 }
 

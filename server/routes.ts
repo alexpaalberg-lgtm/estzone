@@ -115,20 +115,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(rates);
   });
   
-  // Checkout
+  // Checkout (legacy - deprecated, use provider-specific endpoints)
   app.post("/api/checkout/create-payment-intent", async (req, res) => {
     try {
-      const { amount, currency = 'EUR', provider = 'stripe' } = req.body;
+      const { amount, currency = 'EUR', provider = 'paysera' } = req.body;
       
-      if (provider === 'stripe') {
-        const intent = await createStripePayment(amount, currency);
-        res.json({ clientSecret: intent.id, provider: 'stripe' });
-      } else if (provider === 'paysera') {
+      if (provider === 'paysera') {
         const orderId = `temp-${Date.now()}`;
         const paymentUrl = await createPayseraPayment(amount, orderId, currency);
         res.json({ paymentUrl, provider: 'paysera' });
       } else {
-        res.status(400).json({ error: "Invalid payment provider" });
+        res.status(400).json({ error: "Use provider-specific payment endpoints: /api/payments/stripe/checkout, /paypal/order, /api/payments/montonio" });
       }
     } catch (error: any) {
       console.error('Error creating payment:', error);
