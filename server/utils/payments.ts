@@ -131,7 +131,15 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
     }
   } catch (err: any) {
     console.error('[STRIPE] Webhook error:', err.message);
-    res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    
+    // Signature verification failures should return 400 (bad request)
+    // Processing errors should return 500 (retry)
+    if (err.type === 'StripeSignatureVerificationError') {
+      res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+    } else {
+      // Processing error - return 500 to trigger Stripe retry
+      res.status(500).json({ error: `Webhook processing error: ${err.message}` });
+    }
   }
 }
 

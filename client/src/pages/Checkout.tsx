@@ -75,8 +75,6 @@ export default function Checkout() {
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
-      // Use VAT breakdown (already in EUR) for storage
-      // This ensures consistency between displayed and stored amounts
       const orderData = {
         customerEmail: data.email,
         customerName: `${data.firstName} ${data.lastName}`,
@@ -96,28 +94,53 @@ export default function Checkout() {
         items: items.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.price.toFixed(2), // Already in EUR
+          price: item.price.toFixed(2),
         })),
         subtotal: itemsVat.subtotalExVat.toFixed(2),
         shipping: shippingVat.subtotalExVat.toFixed(2),
         vatAmount: totalVat.vatAmount.toFixed(2),
         total: grandTotal.toFixed(2),
-        currency: 'EUR', // Always store in base currency
+        currency: 'EUR',
         shippingMethod: data.shippingMethod,
         paymentMethod: data.paymentMethod,
-        paymentStatus: 'pending' as const,
-        orderStatus: 'processing' as const,
       };
       
-      return await apiRequest('POST', '/api/orders', orderData);
+      const order = await apiRequest('POST', '/api/orders', orderData) as any;
+      
+      // Create payment session based on selected provider
+      let paymentUrl: string;
+      
+      if (data.paymentMethod === 'stripe') {
+        const payment = await apiRequest('POST', '/api/payments/stripe', {
+          orderId: order.id,
+          amount: grandTotal,
+          currency: 'EUR',
+        }) as any;
+        paymentUrl = payment.url;
+      } else if (data.paymentMethod === 'montonio') {
+        const payment = await apiRequest('POST', '/api/payments/montonio', {
+          orderId: order.id,
+          amount: grandTotal,
+          currency: 'EUR',
+        }) as any;
+        paymentUrl = payment.paymentUrl;
+      } else if (data.paymentMethod === 'paysera') {
+        const payment = await apiRequest('POST', '/api/payments/paysera', {
+          orderId: order.id,
+          amount: grandTotal,
+          currency: 'EUR',
+        }) as any;
+        paymentUrl = payment.paymentUrl;
+      } else {
+        throw new Error('Unsupported payment method');
+      }
+      
+      return { order, paymentUrl };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       clearCart();
-      toast({
-        title: language === 'et' ? 'Tellimus edastatud!' : 'Order placed!',
-        description: language === 'et' ? 'Saadame teile kinnituskirja' : 'We will send you a confirmation email',
-      });
-      setLocation('/');
+      // Redirect to payment provider
+      window.location.href = data.paymentUrl;
     },
     onError: (error: any) => {
       toast({
