@@ -11,16 +11,22 @@ export default function Products() {
   const [, params] = useRoute("/products/:categorySlug?");
   const { language } = useLanguage();
   
-  const { data: categories } = useQuery<Category[]>({
+  const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
   
   const category = categories?.find(c => c.slug === params?.categorySlug);
   
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/products', category?.id],
-    enabled: !params?.categorySlug || !!category,
+  const queryKey = params?.categorySlug && category?.id 
+    ? `/api/products?categoryId=${category.id}`
+    : '/api/products';
+    
+  const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: [queryKey],
+    enabled: !params?.categorySlug || (!!category && !categoriesLoading),
   });
+  
+  const isLoading = categoriesLoading || productsLoading;
   
   const categoryName = category 
     ? (language === 'et' ? category.nameEt : category.nameEn)
