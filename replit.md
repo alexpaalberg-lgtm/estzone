@@ -114,7 +114,10 @@ Preferred communication style: Simple, everyday language.
 - Omniva parcel terminals and courier (Estonian/Baltic shipping)
 - DPD pickup points and home delivery
 
-**Email Service:** Placeholder email service (MockEmailService) ready for SendGrid or Resend integration for order confirmations and newsletter management
+**Email Service:** Resend email service for transactional emails (order confirmations, newsletter)
+  - Falls back to MockEmailService if RESEND_API_KEY not configured
+  - Bilingual HTML email templates (English/Estonian)
+  - Professional branding with EstZone OÜ details
 
 ### Build & Deployment
 
@@ -134,6 +137,11 @@ Preferred communication style: Simple, everyday language.
   - `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` - PayPal payments (sandbox or production)
   - `MONTONIO_ACCESS_KEY`, `MONTONIO_SECRET_KEY` - Montonio Baltic payments
   - Paysera credentials (to be implemented)
+- Optional email service credentials:
+  - `RESEND_API_KEY` - For order confirmation and newsletter emails via Resend
+  - `FROM_EMAIL` - Custom sender email (default: EstZone <orders@estzone.com>)
+- Optional analytics:
+  - `VITE_GA_MEASUREMENT_ID` - Google Analytics 4 tracking ID
 - `BASE_URL` - Base URL for payment callbacks (optional, auto-detected from REPLIT_DOMAINS)
 
 ### External Dependencies
@@ -178,3 +186,19 @@ Preferred communication style: Simple, everyday language.
 - ESBuild for server bundling
 - PostCSS with Autoprefixer
 - Replit-specific Vite plugins for development experience
+
+## Recent Changes (November 10, 2025)
+
+### New Integrations
+- **Google Analytics 4:** Complete GA4 integration with automatic page view tracking and custom event tracking (checkout, add_to_cart, etc.)
+- **SEO Optimization:** Comprehensive SEO implementation with meta tags, Open Graph tags, Twitter Cards, and structured data (schema.org) across all pages
+- **Email Service:** Production-ready Resend email service for transactional emails with bilingual HTML templates
+
+### Payment Systems
+- **Montonio:** Production-ready JWT-based payment gateway for Baltic markets with full security implementation
+- **PayPal:** Production-ready PayPal SDK integration with optional credentials
+
+### Bug Fixes & Improvements
+- Fixed critical product API bug where queryKey objects were incorrectly stringified as `[object Object]`
+- Updated CartContext to support adding items with specific quantities
+- All LSP errors resolved in recent implementations

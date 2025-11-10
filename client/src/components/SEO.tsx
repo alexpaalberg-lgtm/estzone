@@ -34,6 +34,9 @@ export default function SEO({
   useEffect(() => {
     // Update document title
     document.title = fullTitle;
+    
+    // Store reference to the script we create
+    let structuredDataScript: HTMLScriptElement | null = null;
 
     // Helper function to set or update meta tag
     const setMetaTag = (name: string, content: string, property = false) => {
@@ -48,6 +51,54 @@ export default function SEO({
       
       element.setAttribute('content', content);
     };
+
+    // Add structured data (JSON-LD)
+    const structuredData: Record<string, any> = {
+      "@context": "https://schema.org",
+    };
+
+    if (ogType === 'product' && product) {
+      structuredData["@type"] = "Product";
+      structuredData["name"] = title;
+      structuredData["description"] = description;
+      structuredData["image"] = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+      structuredData["offers"] = {
+        "@type": "Offer",
+        "priceCurrency": product.currency || "EUR",
+        "price": product.price,
+        "availability": product.availability === 'in stock' 
+          ? "https://schema.org/InStock" 
+          : "https://schema.org/OutOfStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "EstZone OÜ"
+        }
+      };
+    } else if (ogType === 'article' && article) {
+      structuredData["@type"] = "Article";
+      structuredData["headline"] = title;
+      structuredData["description"] = description;
+      structuredData["image"] = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+      if (article.publishedTime) {
+        structuredData["datePublished"] = article.publishedTime;
+      }
+      structuredData["author"] = {
+        "@type": "Person",
+        "name": article.author || "EstZone"
+      };
+    } else {
+      structuredData["@type"] = "WebSite";
+      structuredData["name"] = "EstZone";
+      structuredData["description"] = description;
+      structuredData["url"] = siteUrl;
+    }
+
+    // Add new structured data script
+    structuredDataScript = document.createElement('script');
+    structuredDataScript.type = 'application/ld+json';
+    structuredDataScript.text = JSON.stringify(structuredData);
+    structuredDataScript.setAttribute('data-seo-component', 'true'); // Mark our script for cleanup
+    document.head.appendChild(structuredDataScript);
 
     // Basic meta tags
     setMetaTag('description', description);
@@ -92,7 +143,14 @@ export default function SEO({
         setMetaTag('product:availability', product.availability, true);
       }
     }
-  }, [fullTitle, description, keywords, ogImage, ogType, currentUrl, siteUrl, article, product]);
+
+    // Cleanup function to remove only our structured data when component unmounts or re-renders
+    return () => {
+      if (structuredDataScript && structuredDataScript.parentNode) {
+        structuredDataScript.parentNode.removeChild(structuredDataScript);
+      }
+    };
+  }, [fullTitle, description, keywords, ogImage, ogType, currentUrl, siteUrl, article, product, title]);
 
   return null; // This component doesn't render anything
 }
