@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@shared/schema';
 
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { language, t } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { addItem } = useCart();
   const { toast } = useToast();
   
@@ -100,15 +102,15 @@ export default function ProductCard({ product }: ProductCardProps) {
             {salePrice ? (
               <>
                 <span className="text-xl font-bold text-primary" data-testid={`text-sale-price-${product.id}`}>
-                  €{salePrice.toFixed(2)}
+                  {formatPrice(salePrice)}
                 </span>
                 <span className="text-sm text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
-                  €{price.toFixed(2)}
+                  {formatPrice(price)}
                 </span>
               </>
             ) : (
               <span className="text-xl font-bold text-foreground" data-testid={`text-price-${product.id}`}>
-                €{price.toFixed(2)}
+                {formatPrice(price)}
               </span>
             )}
           </div>

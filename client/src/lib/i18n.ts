@@ -9,6 +9,10 @@ export const translations = {
       cart: 'Cart',
       account: 'Account',
     },
+    currency: {
+      eur: 'EUR (€)',
+      usd: 'USD ($)',
+    },
     hero: {
       title: 'Level Up Your Gaming',
       subtitle: 'Premium consoles and accessories with exclusive deals',
@@ -43,6 +47,10 @@ export const translations = {
       blog: 'Blogi',
       cart: 'Ostukorv',
       account: 'Konto',
+    },
+    currency: {
+      eur: 'EUR (€)',
+      usd: 'USD ($)',
     },
     hero: {
       title: 'Vii Oma Mängimine Uuele Tasemele',

@@ -5,11 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateVatBreakdown } from "@/lib/vat";
 import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
   const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
+  
+  const vatBreakdown = calculateVatBreakdown(totalPrice);
   
   if (items.length === 0) {
     return (
@@ -67,7 +72,7 @@ export default function Cart() {
                         {item.name}
                       </h3>
                       <p className="text-xl font-bold text-primary mb-3" data-testid={`text-cart-item-price-${item.id}`}>
-                        €{item.price.toFixed(2)}
+                        {formatPrice(item.price)}
                       </p>
                       
                       <div className="flex items-center gap-4">
@@ -106,7 +111,7 @@ export default function Cart() {
                     
                     <div className="text-right">
                       <p className="text-xl font-bold" data-testid={`text-cart-item-total-${item.id}`}>
-                        €{(item.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -133,8 +138,16 @@ export default function Cart() {
                 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>{language === 'et' ? 'Vahesumma' : 'Subtotal'}</span>
-                    <span data-testid="text-subtotal">€{totalPrice.toFixed(2)}</span>
+                    <span>{language === 'et' ? 'Vahesumma (ilma KM-ta)' : 'Subtotal (ex VAT)'}</span>
+                    <span data-testid="text-subtotal-ex-vat">{formatPrice(vatBreakdown.subtotalExVat)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{language === 'et' ? 'KM 24%' : 'VAT 24%'}</span>
+                    <span data-testid="text-vat">{formatPrice(vatBreakdown.vatAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{language === 'et' ? 'Vahesumma (koos KM-ga)' : 'Subtotal (incl VAT)'}</span>
+                    <span data-testid="text-subtotal-incl-vat">{formatPrice(totalPrice)}</span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>{language === 'et' ? 'Kohaletoimetamine' : 'Shipping'}</span>
@@ -143,7 +156,7 @@ export default function Cart() {
                   <div className="border-t border-border pt-4">
                     <div className="flex justify-between text-xl font-bold">
                       <span>{language === 'et' ? 'Kokku' : 'Total'}</span>
-                      <span data-testid="text-total">€{totalPrice.toFixed(2)}</span>
+                      <span data-testid="text-total">{formatPrice(totalPrice)}</span>
                     </div>
                   </div>
                 </div>

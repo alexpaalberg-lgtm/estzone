@@ -68,7 +68,9 @@ export const orders = pgTable("orders", {
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).default('0'),
+  vatAmount: decimal("vat_amount", { precision: 10, scale: 2 }).notNull().default('0'),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default('EUR'), // EUR or USD
   
   // Shipping info
   shippingMethod: text("shipping_method").notNull(), // omniva, dpd
@@ -82,7 +84,7 @@ export const orders = pgTable("orders", {
   trackingNumber: text("tracking_number"),
   
   // Payment info
-  paymentMethod: text("payment_method").notNull(), // stripe, paysera
+  paymentMethod: text("payment_method").notNull(), // stripe, paypal, paysera, montonio
   paymentStatus: text("payment_status").notNull().default('pending'), // pending, completed, failed
   paymentId: text("payment_id"),
   

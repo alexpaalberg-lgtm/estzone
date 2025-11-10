@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
+  const { currency, setCurrency } = useCurrency();
   const { totalItems, setIsOpen } = useCart();
 
   const navItems = [
@@ -56,8 +58,19 @@ export default function Header() {
               size="icon"
               onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
               data-testid="button-language-toggle"
+              title={language === 'en' ? 'Switch to Estonian' : 'Lülitu inglise keelele'}
             >
               <span className="text-xs font-bold">{language.toUpperCase()}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
+              data-testid="button-currency-toggle"
+              title={currency === 'EUR' ? 'Switch to USD' : 'Switch to EUR'}
+            >
+              <span className="text-xs font-bold">{currency}</span>
             </Button>
 
             <Button variant="ghost" size="icon" data-testid="button-account">
