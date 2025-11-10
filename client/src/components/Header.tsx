@@ -26,6 +26,7 @@ export default function Header() {
   const { totalItems, setIsOpen } = useCart();
   const [location, setLocation] = useLocation();
   const [searchInput, setSearchInput] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   
   const { data: categories, isLoading, isError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
@@ -186,6 +187,17 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
+              className="sm:hidden"
+              onClick={() => setMobileSearchOpen(true)}
+              data-testid="button-search-mobile"
+              title={language === 'et' ? 'Otsi' : 'Search'}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
               data-testid="button-language-toggle"
               title={language === 'en' ? 'Switch to Estonian' : 'Lülitu inglise keelele'}
@@ -277,6 +289,28 @@ export default function Header() {
                     </Button>
                   </Link>
                 </nav>
+              </SheetContent>
+            </Sheet>
+
+            <Sheet open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+              <SheetContent side="top" className="h-auto">
+                <div className="py-4">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {language === 'et' ? 'Otsi tooteid' : 'Search Products'}
+                  </h3>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
+                      className="pl-9"
+                      data-testid="input-search-mobile"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
