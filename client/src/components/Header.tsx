@@ -55,7 +55,7 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-8 w-auto" />
+              <img src={logoImage} alt="EstZone" className="h-12 sm:h-14 w-auto" />
             </div>
           </Link>
 
