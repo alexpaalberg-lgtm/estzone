@@ -52,21 +52,25 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex h-24 sm:h-28 items-center justify-between gap-4">
-          <Link href="/">
-            <div className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-16 sm:h-20 w-auto" />
-              <span className="text-2xl sm:text-3xl font-bold tracking-tight">
-                <span className="text-foreground">Est</span>
-                <span className="text-primary">Zone</span>
-              </span>
+        <div className="grid grid-cols-3 h-24 sm:h-28 items-center gap-4">
+          <Link href="/" className="justify-self-start">
+            <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-12 sm:h-14 w-auto" />
             </div>
           </Link>
+          
+          <div className="justify-self-center">
+            <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight whitespace-nowrap">
+              <span className="text-foreground">Est</span>
+              <span className="text-primary">Zone</span>
+            </span>
+          </div>
 
-          <nav className="hidden md:flex items-center gap-1">
-            <NavigationMenu>
-              <NavigationMenuList>
-                {parentCategories.map((parent) => {
+          <div className="flex items-center justify-end gap-2">
+            <nav className="hidden md:flex items-center gap-1">
+              <NavigationMenu>
+                <NavigationMenuList>
+                  {parentCategories.map((parent) => {
                   const subcats = subcategoriesByParent[parent.id] || [];
                   const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
                   
@@ -137,7 +141,6 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2">
             <div className="hidden sm:flex relative max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
