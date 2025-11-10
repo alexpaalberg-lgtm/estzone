@@ -90,11 +90,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Row 1: Logo | Large Search Bar | Action Buttons */}
         <div className="grid grid-cols-[auto_1fr_auto] h-20 sm:h-24 items-center gap-4">
-          {/* Logo with EstZone text (show text only on lg+) */}
+          {/* Logo with EstZone text */}
           <Link href="/" className="flex-shrink-0">
             <div className="flex items-center gap-2 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-10 sm:h-12 w-auto" />
-              <span className="hidden lg:inline-block text-2xl font-bold tracking-tight whitespace-nowrap">
+              <span className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
