@@ -7,6 +7,7 @@ import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
 import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Categories
@@ -131,6 +132,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error creating payment:', error);
       res.status(500).json({ error: error.message || "Failed to create payment intent" });
     }
+  });
+  
+  // PayPal Integration (from blueprint:javascript_paypal)
+  app.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+  
+  app.post("/paypal/order", async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+  
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
   });
   
   // Orders
