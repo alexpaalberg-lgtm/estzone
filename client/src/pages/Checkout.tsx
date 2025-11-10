@@ -44,16 +44,18 @@ export default function Checkout() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
+  // Track shipping cost based on selected method (Omniva: 4.99, DPD: 5.99)
+  const [shippingCost, setShippingCost] = useState(4.99);
+  
   // All cart amounts are in EUR (base currency)
-  const baseShippingCost = 4.99;
   const baseTotalPrice = totalPrice;  // Cart total is in EUR
-  const baseGrandTotal = baseTotalPrice + baseShippingCost;
+  const grandTotal = baseTotalPrice + shippingCost;
   
   // Calculate VAT breakdown on base EUR amounts
   // Keep values in EUR - formatPrice() will handle conversion to display currency
   const itemsVat = calculateVatBreakdown(baseTotalPrice);
-  const shippingVat = calculateVatBreakdown(baseShippingCost);
-  const totalVat = calculateVatBreakdown(baseGrandTotal);
+  const shippingVat = calculateVatBreakdown(shippingCost);
+  const totalVat = calculateVatBreakdown(grandTotal);
   
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -99,7 +101,7 @@ export default function Checkout() {
         subtotal: itemsVat.subtotalExVat.toFixed(2),
         shipping: shippingVat.subtotalExVat.toFixed(2),
         vatAmount: totalVat.vatAmount.toFixed(2),
-        total: totalVat.total.toFixed(2),
+        total: grandTotal.toFixed(2),
         currency: 'EUR', // Always store in base currency
         shippingMethod: data.shippingMethod,
         paymentMethod: data.paymentMethod,

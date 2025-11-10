@@ -8,6 +8,7 @@ import { getShippingRates } from "./utils/shipping";
 import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Categories
@@ -145,6 +146,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/paypal/order/:orderID/capture", async (req, res) => {
     await capturePaypalOrder(req, res);
+  });
+  
+  // Montonio Integration (JWT-based Baltic payment gateway)
+  app.post("/api/payments/montonio", async (req, res) => {
+    await createMontonioPayment(req, res);
+  });
+  
+  // Montonio webhook - raw body already captured by global express.json middleware
+  app.post("/api/payments/montonio/webhook", async (req, res) => {
+    await handleMontonioWebhook(req, res);
+  });
+  
+  app.get("/api/payments/montonio/return", async (req, res) => {
+    await handleMontonioReturn(req, res);
   });
   
   // Orders

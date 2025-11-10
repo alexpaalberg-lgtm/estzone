@@ -100,7 +100,14 @@ Preferred communication style: Simple, everyday language.
 **AI/Chat:** OpenAI GPT-5 API for customer support chatbot with streaming responses and language detection
 
 **Payment Processors:**
-- Stripe integration via `@stripe/stripe-js` and `@stripe/react-stripe-js`
+- Stripe integration via `@stripe/stripe-js` and `@stripe/react-stripe-js` (primary card payments)
+- PayPal integration via Replit blueprint (`@paypal/paypal-server-sdk`) with optional credentials (ready for production)
+- Montonio JWT-based payment gateway for Baltic market (Estonia, Latvia, Lithuania) with full security implementation
+  - Replay protection via nonce tracking
+  - HMAC webhook signature verification
+  - 10-minute JWT token expiration
+  - Host-header injection protection
+  - Optional credentials - requires MONTONIO_ACCESS_KEY and MONTONIO_SECRET_KEY
 - Paysera payment gateway support (stub implementation for Estonian market)
 
 **Shipping Providers:**
@@ -121,7 +128,13 @@ Preferred communication style: Simple, everyday language.
 **Environment Variables Required:**
 - `DATABASE_URL` - PostgreSQL connection string
 - `OPENAI_API_KEY` - For AI chat functionality
-- Payment provider credentials (Stripe, Paysera)
+- `SESSION_SECRET` - Session encryption key
+- Optional payment provider credentials:
+  - `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLIC_KEY` - Stripe payments
+  - `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` - PayPal payments (sandbox or production)
+  - `MONTONIO_ACCESS_KEY`, `MONTONIO_SECRET_KEY` - Montonio Baltic payments
+  - Paysera credentials (to be implemented)
+- `BASE_URL` - Base URL for payment callbacks (optional, auto-detected from REPLIT_DOMAINS)
 
 ### External Dependencies
 
