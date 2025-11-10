@@ -63,6 +63,17 @@ export default function ProductFilters({
     }
     return acc;
   }, {} as Record<string, Category[]>);
+  
+  // Sort parent categories in logical order
+  const categoryOrder = ['consoles', 'controllers', 'headsets', 'vr-headsets', 'accessories', 'playstation-games', 'nintendo-games', 'xbox-games'];
+  const sortedParentCategories = [...parentCategories].sort((a, b) => {
+    const indexA = categoryOrder.indexOf(a.slug);
+    const indexB = categoryOrder.indexOf(b.slug);
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
 
   const hasActiveFilters = 
     priceRange[0] > 0 || 
@@ -96,7 +107,7 @@ export default function ProductFilters({
             {t.categories}
           </h3>
           <div className="space-y-2">
-            {parentCategories.map(parent => {
+            {sortedParentCategories.map(parent => {
               const subcats = subcategoriesByParent?.[parent.id] || [];
               const categoryName = language === 'et' ? parent.nameEt : parent.nameEn;
               

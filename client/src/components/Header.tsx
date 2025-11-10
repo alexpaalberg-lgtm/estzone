@@ -90,7 +90,17 @@ export default function Header() {
       }
     });
     
-    return { parentCategories: parents, subcategoriesByParent: subMap };
+    const categoryOrder = ['consoles', 'controllers', 'headsets', 'vr-headsets', 'accessories', 'playstation-games', 'nintendo-games', 'xbox-games'];
+    const sortedParents = parents.sort((a, b) => {
+      const indexA = categoryOrder.indexOf(a.slug);
+      const indexB = categoryOrder.indexOf(b.slug);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+    
+    return { parentCategories: sortedParents, subcategoriesByParent: subMap };
   }, [categories]);
 
   return (
@@ -100,7 +110,7 @@ export default function Header() {
         <div className="grid grid-cols-[auto_1fr_auto] h-20 sm:h-24 items-center gap-4">
           {/* Logo with EstZone text */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-3 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+            <div className="flex items-center gap-4 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-10 sm:h-12 w-auto" />
               <span className="text-xl sm:text-2xl font-bold tracking-tight whitespace-nowrap">
                 <span className="text-foreground">Est</span>
