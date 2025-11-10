@@ -11,7 +11,8 @@ export default function ChatLauncher() {
       {!isOpen && (
         <Button
           size="icon"
-          className="fixed bottom-6 right-6 left-auto h-14 w-14 rounded-full shadow-lg z-50"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          style={{ left: 'auto' }}
           onClick={() => setIsOpen(true)}
           data-testid="button-chat-launcher"
         >
