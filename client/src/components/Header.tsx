@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Search, User, Menu, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
@@ -28,9 +27,9 @@ export default function Header() {
   const [searchInput, setSearchInput] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   
-  const { data: categories, isLoading, isError } = useQuery<Category[]>({
+  const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    staleTime: 5 * 60 * 1000, // Categories are static, cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
   
   useEffect(() => {
@@ -41,27 +40,33 @@ export default function Header() {
   
   useEffect(() => {
     const timer = setTimeout(() => {
+      const currentPath = location.split('?')[0];
       const params = new URLSearchParams(window.location.search);
       
       if (searchInput.trim()) {
         params.set('search', searchInput.trim());
+        const isProductsPage = currentPath.startsWith('/products');
+        const targetPath = isProductsPage ? currentPath : '/products';
+        const newUrl = `${targetPath}?${params.toString()}`;
+        
+        if (location !== newUrl) {
+          setLocation(newUrl);
+          setMobileSearchOpen(false);
+        }
       } else {
         params.delete('search');
-      }
-      
-      const newSearch = params.toString();
-      const currentPath = location.split('?')[0];
-      const newUrl = newSearch ? `${currentPath}?${newSearch}` : currentPath;
-      
-      if (location !== newUrl) {
-        setLocation(newUrl);
+        const newSearch = params.toString();
+        const newUrl = newSearch ? `${currentPath}?${newSearch}` : currentPath;
+        
+        if (location !== newUrl) {
+          setLocation(newUrl);
+        }
       }
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, location, setLocation]);
   
-  // Group categories by parent
   const { parentCategories, subcategoriesByParent } = useMemo(() => {
     if (!categories) return { parentCategories: [], subcategoriesByParent: {} };
     
@@ -83,111 +88,38 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-3 h-24 sm:h-28 items-center gap-4">
-          <Link href="/" className="justify-self-start">
-            <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-12 sm:h-14 w-auto" />
+        {/* Row 1: Logo | Large Search Bar | Action Buttons */}
+        <div className="grid grid-cols-[auto_1fr_auto] h-20 sm:h-24 items-center gap-4">
+          {/* Logo with EstZone text (show text only on lg+) */}
+          <Link href="/" className="flex-shrink-0">
+            <div className="flex items-center gap-2 hover-elevate px-2 sm:px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-10 sm:h-12 w-auto" />
+              <span className="hidden lg:inline-block text-2xl font-bold tracking-tight whitespace-nowrap">
+                <span className="text-foreground">Est</span>
+                <span className="text-primary">Zone</span>
+              </span>
             </div>
           </Link>
           
-          <div className="justify-self-center -ml-16 sm:-ml-20 md:-ml-8 lg:-ml-12">
-            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight whitespace-nowrap">
-              <span className="text-foreground">Est</span>
-              <span className="text-primary">Zone</span>
-            </span>
+          {/* Large Search Bar (hidden on mobile, shown md+) */}
+          <div className="hidden md:flex relative max-w-2xl mx-auto w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
+              className="pl-12 pr-4 h-12 text-base w-full bg-muted/50"
+              data-testid="input-search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
           </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <nav className="hidden md:flex items-center gap-1">
-              <NavigationMenu>
-                <NavigationMenuList>
-                  {parentCategories.map((parent) => {
-                  const subcats = subcategoriesByParent[parent.id] || [];
-                  const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
-                  
-                  if (subcats.length === 0) {
-                    return (
-                      <NavigationMenuItem key={parent.id}>
-                        <Link href={`/products/${parent.slug}`}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            data-testid={`link-category-${parent.slug}`}
-                          >
-                            {parentName}
-                          </Button>
-                        </Link>
-                      </NavigationMenuItem>
-                    );
-                  }
-                  
-                  return (
-                    <NavigationMenuItem key={parent.id}>
-                      <NavigationMenuTrigger 
-                        className="h-9 px-3 text-sm"
-                        data-testid={`dropdown-category-${parent.slug}`}
-                      >
-                        {parentName}
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <div className="grid w-[400px] gap-2 p-4">
-                          <Link href={`/products/${parent.slug}`}>
-                            <div 
-                              className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 font-medium"
-                              data-testid={`link-all-${parent.slug}`}
-                            >
-                              {language === 'et' ? `Kõik ${parentName}` : `All ${parentName}`}
-                            </div>
-                          </Link>
-                          <div className="h-px bg-border" />
-                          <div className="grid grid-cols-2 gap-1">
-                            {subcats.map((sub) => {
-                              const subName = language === 'et' ? sub.nameEt : sub.nameEn;
-                              return (
-                                <Link key={sub.id} href={`/products/${sub.slug}`}>
-                                  <div
-                                    className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 text-sm text-muted-foreground"
-                                    data-testid={`link-subcategory-${sub.slug}`}
-                                  >
-                                    {subName}
-                                  </div>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  );
-                })}
-                
-                <NavigationMenuItem>
-                  <Link href="/blog">
-                    <Button variant="ghost" size="sm" data-testid="link-blog">
-                      {t.nav.blog}
-                    </Button>
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </nav>
-
-            <div className="hidden sm:flex relative max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
-                className="pl-9 w-64"
-                data-testid="input-search"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
-
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
-              className="sm:hidden"
+              className="md:hidden"
               onClick={() => setMobileSearchOpen(true)}
               data-testid="button-search-mobile"
               title={language === 'et' ? 'Otsi' : 'Search'}
@@ -291,31 +223,107 @@ export default function Header() {
                 </nav>
               </SheetContent>
             </Sheet>
-
-            <Sheet open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
-              <SheetContent side="top" className="h-auto">
-                <div className="py-4">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {language === 'et' ? 'Otsi tooteid' : 'Search Products'}
-                  </h3>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
-                      className="pl-9"
-                      data-testid="input-search-mobile"
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
+
+        {/* Row 2: Desktop Navigation Menu (hidden on mobile) */}
+        <nav className="hidden md:flex border-t py-2">
+          <NavigationMenu>
+            <NavigationMenuList>
+              {parentCategories.map((parent) => {
+                const subcats = subcategoriesByParent[parent.id] || [];
+                const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
+                
+                if (subcats.length === 0) {
+                  return (
+                    <NavigationMenuItem key={parent.id}>
+                      <Link href={`/products/${parent.slug}`}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          data-testid={`link-category-${parent.slug}`}
+                        >
+                          {parentName}
+                        </Button>
+                      </Link>
+                    </NavigationMenuItem>
+                  );
+                }
+                
+                return (
+                  <NavigationMenuItem key={parent.id}>
+                    <NavigationMenuTrigger 
+                      className="h-9 px-3 text-sm"
+                      data-testid={`dropdown-category-${parent.slug}`}
+                    >
+                      {parentName}
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid w-[400px] gap-2 p-4">
+                        <Link href={`/products/${parent.slug}`}>
+                          <div 
+                            className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 font-medium"
+                            data-testid={`link-all-${parent.slug}`}
+                          >
+                            {language === 'et' ? `Kõik ${parentName}` : `All ${parentName}`}
+                          </div>
+                        </Link>
+                        <div className="h-px bg-border" />
+                        <div className="grid grid-cols-2 gap-1">
+                          {subcats.map((sub) => {
+                            const subName = language === 'et' ? sub.nameEt : sub.nameEn;
+                            return (
+                              <Link key={sub.id} href={`/products/${sub.slug}`}>
+                                <div
+                                  className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 text-sm text-muted-foreground"
+                                  data-testid={`link-subcategory-${sub.slug}`}
+                                >
+                                  {subName}
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                );
+              })}
+              
+              <NavigationMenuItem>
+                <Link href="/blog">
+                  <Button variant="ghost" size="sm" data-testid="link-blog">
+                    {t.nav.blog}
+                  </Button>
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </nav>
       </div>
+
+      {/* Mobile Search Sheet */}
+      <Sheet open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+        <SheetContent side="top" className="h-auto">
+          <div className="py-4">
+            <h3 className="text-lg font-semibold mb-4">
+              {language === 'et' ? 'Otsi tooteid' : 'Search Products'}
+            </h3>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
+                className="pl-9"
+                data-testid="input-search-mobile"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </header>
   );
 }
