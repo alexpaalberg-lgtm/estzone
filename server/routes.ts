@@ -5,10 +5,11 @@ import { insertProductSchema, insertOrderSchema, insertAddressSchema, insertBlog
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
-import { createStripePayment, createPayseraPayment } from "./utils/payments";
+import { createStripeCheckoutSession, handleStripeWebhook, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
+import { handlePaymentWebhook, getOrderPaymentStatus } from "./utils/paymentOrchestrator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Categories
@@ -170,10 +171,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate order data
       const validatedOrder = insertOrderSchema.parse(order);
       
-      // Create order
+      // Create order with stock reservation (not immediate deduction)
       const createdOrder = await storage.createOrder(validatedOrder, items);
       
-      // Send confirmation email
+      // Send order pending email (waiting for payment)
       const orderItems = await storage.getOrderItems(createdOrder.id);
       await emailService.sendOrderConfirmation(createdOrder, orderItems, language);
       
@@ -181,6 +182,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error creating order:', error);
       res.status(400).json({ error: error.message || "Failed to create order" });
+    }
+  });
+  
+  // Get order payment status (for polling from frontend)
+  app.get("/api/orders/:id/status", async (req, res) => {
+    try {
+      const status = await getOrderPaymentStatus(req.params.id);
+      res.json(status);
+    } catch (error: any) {
+      res.status(404).json({ error: error.message || "Order not found" });
+    }
+  });
+  
+  // Payment initiation endpoints
+  app.post("/api/payments/stripe/checkout", async (req, res) => {
+    try {
+      const { orderId, amount, currency } = req.body;
+      const session = await createStripeCheckoutSession(orderId, amount, currency);
+      res.json(session);
+    } catch (error: any) {
+      console.error('[STRIPE] Checkout error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Stripe webhook (requires raw body for signature verification)
+  app.post("/api/webhooks/stripe", async (req, res) => {
+    await handleStripeWebhook(req, res);
+  });
+  
+  // Unified webhook handler (generic endpoint for testing)
+  app.post("/api/webhooks/payment", async (req, res) => {
+    try {
+      const result = await handlePaymentWebhook(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Webhook error:', error);
+      res.status(500).json({ error: error.message });
     }
   });
   
