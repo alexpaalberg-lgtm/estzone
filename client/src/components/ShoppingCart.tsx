@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Separator } from '@/components/ui/separator';
+import { Link } from 'wouter';
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
@@ -100,9 +101,16 @@ export default function ShoppingCart() {
                     €{totalPrice.toFixed(2)}
                   </span>
                 </div>
-                <Button className="w-full" size="lg" data-testid="button-checkout">
-                  Proceed to Checkout
-                </Button>
+                <Link href="/checkout">
+                  <Button 
+                    className="w-full" 
+                    size="lg" 
+                    data-testid="button-checkout"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Proceed to Checkout
+                  </Button>
+                </Link>
                 <Button
                   variant="outline"
                   className="w-full"
