@@ -5,11 +5,11 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import backgroundImage from "@assets/stock_images/gaming_controller_vi_e755ad7a.jpg";
-import missionOption1 from "@assets/stock_images/team_gaming_friends__f8aa2ef9.jpg";
-import missionOption2 from "@assets/stock_images/gaming_success_victo_2f3282b0.jpg";
-import missionOption3 from "@assets/stock_images/futuristic_gaming_te_6a65e262.jpg";
-import missionOption4 from "@assets/stock_images/gaming_community_mul_6362474b.jpg";
-import missionOption5 from "@assets/stock_images/gaming_passion_excit_dd63bb3f.jpg";
+import missionOption1 from "@assets/stock_images/video_game_console_p_6dba4ae9.jpg";
+import missionOption2 from "@assets/stock_images/gaming_pc_computer_p_0bb35f9b.jpg";
+import missionOption3 from "@assets/stock_images/retro_video_game_arc_3b083ffe.jpg";
+import missionOption4 from "@assets/stock_images/modern_gaming_monito_b0fcc77e.jpg";
+import missionOption5 from "@assets/stock_images/video_game_collectio_f9b21f92.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -94,23 +94,23 @@ export default function About() {
               <h3 className="text-xl font-bold mb-4 text-primary">Vali Our Mission pilt telefoni jaoks (1-5):</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <p className="font-bold text-primary">1. Team Gaming (Friends)</p>
+                  <p className="font-bold text-primary">1. Video Game Consoles</p>
                   <img src={missionOption1} alt="Option 1" className="w-full h-48 object-cover rounded-md" />
                 </div>
                 <div className="space-y-2">
-                  <p className="font-bold text-primary">2. Victory Celebration</p>
+                  <p className="font-bold text-primary">2. Gaming PC Setup</p>
                   <img src={missionOption2} alt="Option 2" className="w-full h-48 object-cover rounded-md" />
                 </div>
                 <div className="space-y-2">
-                  <p className="font-bold text-primary">3. Futuristic Gaming Tech</p>
+                  <p className="font-bold text-primary">3. Retro Arcade Games</p>
                   <img src={missionOption3} alt="Option 3" className="w-full h-48 object-cover rounded-md" />
                 </div>
                 <div className="space-y-2">
-                  <p className="font-bold text-primary">4. Gaming Community</p>
+                  <p className="font-bold text-primary">4. Gaming Monitor/Screen</p>
                   <img src={missionOption4} alt="Option 4" className="w-full h-48 object-cover rounded-md" />
                 </div>
                 <div className="space-y-2">
-                  <p className="font-bold text-primary">5. Gaming Passion/Action</p>
+                  <p className="font-bold text-primary">5. Video Game Collection</p>
                   <img src={missionOption5} alt="Option 5" className="w-full h-48 object-cover rounded-md" />
                 </div>
               </div>
