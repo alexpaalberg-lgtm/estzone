@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import backgroundImage from "@assets/stock_images/gaming_controller_vi_e755ad7a.jpg";
+import missionBackgroundMobile from "@assets/stock_images/gaming_trophy_achiev_0e920f7a.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -98,14 +99,27 @@ export default function About() {
                   </div>
                 </section>
                 
-                {/* Mission - No background on mobile */}
-                <section>
-                  <h2 className="text-3xl font-bold mb-4 text-foreground md:text-white" data-testid="text-mission">
-                    {t.about.mission}
-                  </h2>
-                  <p className="text-muted-foreground md:text-white/90 text-lg leading-relaxed" data-testid="text-mission-content">
-                    {t.about.missionText}
-                  </p>
+                {/* Mission - Mobile has own background, desktop uses wrapper background */}
+                <section className="relative rounded-md overflow-hidden md:rounded-none md:overflow-visible">
+                  {/* Mobile background image - hidden on desktop */}
+                  <div 
+                    className="absolute inset-0 md:hidden"
+                    style={{
+                      backgroundImage: `url(${missionBackgroundMobile})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  ></div>
+                  {/* Mobile overlay */}
+                  <div className="absolute inset-0 bg-black/70 md:hidden"></div>
+                  <div className="relative z-10 p-8 md:p-0">
+                    <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-mission">
+                      {t.about.mission}
+                    </h2>
+                    <p className="text-white/90 text-lg leading-relaxed" data-testid="text-mission-content">
+                      {t.about.missionText}
+                    </p>
+                  </div>
                 </section>
               </div>
             </div>
