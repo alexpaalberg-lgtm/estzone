@@ -15,6 +15,7 @@ import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
+import About from "@/pages/About";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/about" component={About} />
       <Route component={NotFound} />
     </Switch>
   );
