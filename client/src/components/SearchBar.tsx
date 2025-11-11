@@ -87,12 +87,11 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
       <Input
         ref={inputRef}
         type="search"
         placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
-        className="pl-9 w-full"
+        className="w-full"
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
