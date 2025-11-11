@@ -47,8 +47,10 @@ export default function Header() {
       }
     });
     
-    const prioritySlugs = ['consoles', 'controllers', 'headsets', 'vr-headsets'];
-    const visible = parents.filter(c => prioritySlugs.includes(c.slug));
+    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories'];
+    const visible = parents
+      .filter(c => prioritySlugs.includes(c.slug))
+      .sort((a, b) => prioritySlugs.indexOf(a.slug) - prioritySlugs.indexOf(b.slug));
     const more = parents.filter(c => !prioritySlugs.includes(c.slug));
     
     return { parentCategories: parents, subcategoriesByParent: subMap, visibleCategories: visible, moreCategories: more };
@@ -252,7 +254,7 @@ export default function Header() {
                   />
                 </div>
                 <nav className="flex flex-col gap-2">
-                  {parentCategories.map((parent) => {
+                  {visibleCategories.map((parent) => {
                     const subcats = subcategoriesByParent[parent.id] || [];
                     const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
                     
