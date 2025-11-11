@@ -29,6 +29,7 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
   const { currency, exchangeRate } = useCurrency();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,6 +46,10 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
   });
 
   useLocationChange(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     setIsOpen(false);
     setQuery('');
     onNavigate?.();
@@ -77,7 +82,8 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
     return `€${numPrice}`;
   };
 
-  const showResults = isOpen && debouncedQuery.length >= 2 && (results.length > 0 || !isLoading);
+  const showDesktopResults = !isMobile && isOpen && debouncedQuery.length >= 2 && (results.length > 0 || !isLoading);
+  const showMobileResults = isMobile && debouncedQuery.length >= 2 && (results.length > 0 || !isLoading);
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -90,17 +96,66 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
-          setIsOpen(true);
+          if (!isMobile) setIsOpen(true);
         }}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => {
+          if (!isMobile) setIsOpen(true);
+        }}
+        autoFocus={isMobile}
         data-testid="input-search"
       />
       {isLoading && query.length >= 2 && (
         <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
       )}
 
-      {showResults && (
+      {showDesktopResults && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-md shadow-lg max-h-96 overflow-y-auto z-50">
+          {results.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground" data-testid="text-no-results">
+              {language === 'et' ? 'Tooteid ei leitud' : 'No products found'}
+            </div>
+          ) : (
+            <div className="py-2">
+              {results.map((product) => {
+                const name = language === 'et' ? product.nameEt : product.nameEn;
+                const price = product.salePrice || product.price;
+                
+                return (
+                  <button
+                    key={product.id}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover-elevate active-elevate-2 text-left"
+                    onClick={() => handleResultClick(product.id)}
+                    data-testid={`search-result-${product.id}`}
+                  >
+                    <div className="w-12 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                      {product.images && product.images[0] && (
+                        <img
+                          src={product.images[0]}
+                          alt={name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/placeholder.svg';
+                          }}
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{name}</div>
+                      <div className="text-sm text-muted-foreground truncate">{product.sku}</div>
+                    </div>
+                    <div className="text-sm font-medium text-primary flex-shrink-0">
+                      {formatPrice(price)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showMobileResults && (
+        <div className="mt-4 bg-card border rounded-md shadow-lg max-h-96 overflow-y-auto">
           {results.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground" data-testid="text-no-results">
               {language === 'et' ? 'Tooteid ei leitud' : 'No products found'}
