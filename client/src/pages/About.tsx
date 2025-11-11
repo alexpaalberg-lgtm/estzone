@@ -4,13 +4,14 @@ import SEO from "@/components/SEO";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
+import gamingSetupImage from "@assets/stock_images/professional_gaming__a676e7d2.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
   
   const seoTitle = language === 'et' ? 'Meist - EstZone' : 'About - EstZone';
   const seoDescription = language === 'et'
-    ? 'EstZone on Eesti juhtiv preemium mängutarvikute pood. Pakume PlayStation, Xbox, Nintendo konsoolid, VR-prillesid ja tarvikuid kiire kohaletoimetamisega.'
+    ? 'EstZone on Eesti juhtiv preemium mängutarvikute pood. Pakume PlayStation, Xbox, Nintendo konsoolid, VR-prille ja tarvikuid kiire kohaletoimetamisega.'
     : 'EstZone is Estonia\'s leading premium gaming products store. We offer PlayStation, Xbox, Nintendo consoles, VR headsets and accessories with fast delivery.';
   
   const features = [
@@ -67,6 +68,14 @@ export default function About() {
               <h2 className="text-3xl font-bold mb-4" data-testid="text-who-we-are">
                 {t.about.whoWeAre}
               </h2>
+              <div className="mb-6">
+                <img 
+                  src={gamingSetupImage} 
+                  alt="Professional gaming setup"
+                  className="w-full h-64 md:h-96 object-cover rounded-md"
+                  data-testid="img-gaming-setup"
+                />
+              </div>
               <p className="text-muted-foreground text-lg leading-relaxed" data-testid="text-who-we-are-content">
                 {t.about.whoWeAreText}
               </p>
