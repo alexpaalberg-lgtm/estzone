@@ -15,11 +15,11 @@ export default function Header() {
   const { totalItems, setIsOpen } = useCart();
 
   const navItems = [
-    { label: t.nav.consoles, href: '/consoles' },
-    { label: t.nav.controllers, href: '/controllers' },
-    { label: t.nav.headsets, href: '/headsets' },
-    { label: t.nav.accessories, href: '/accessories' },
-    { label: t.nav.blog, href: '/blog' },
+    { label: t.nav.consoles, href: '/products/consoles', testId: 'consoles' },
+    { label: t.nav.controllers, href: '/products/controllers', testId: 'controllers' },
+    { label: t.nav.headsets, href: '/products/headsets', testId: 'headsets' },
+    { label: t.nav.accessories, href: '/products/accessories', testId: 'accessories' },
+    { label: t.nav.blog, href: '/blog', testId: 'blog' },
   ];
 
   return (
@@ -29,13 +29,14 @@ export default function Header() {
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-8 w-auto" />
+              <span className="font-bold text-xl text-foreground">EstZone</span>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}>
-                <Button variant="ghost" size="sm" data-testid={`link-${item.label.toLowerCase()}`}>
+                <Button variant="ghost" size="sm" data-testid={`link-${item.testId}`}>
                   {item.label}
                 </Button>
               </Link>
@@ -106,15 +107,62 @@ export default function Header() {
                 <SheetHeader>
                   <SheetTitle>{language === 'et' ? 'Menüü' : 'Menu'}</SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col gap-2 mt-4">
-                  {navItems.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        {item.label}
+                
+                <div className="flex flex-col gap-4 mt-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
+                      className="pl-9"
+                      data-testid="input-search-mobile"
+                    />
+                  </div>
+
+                  <nav className="flex flex-col gap-2">
+                    {navItems.map((item) => (
+                      <Link key={item.href} href={item.href}>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start"
+                          data-testid={`link-${item.testId}-mobile`}
+                        >
+                          {item.label}
+                        </Button>
+                      </Link>
+                    ))}
+                  </nav>
+
+                  <div className="flex flex-col gap-2 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {language === 'et' ? 'Keel' : 'Language'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
+                        data-testid="button-language-toggle-mobile"
+                      >
+                        {language.toUpperCase()}
                       </Button>
-                    </Link>
-                  ))}
-                </nav>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {language === 'et' ? 'Valuuta' : 'Currency'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
+                        data-testid="button-currency-toggle-mobile"
+                      >
+                        {currency}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
