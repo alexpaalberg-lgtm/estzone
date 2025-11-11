@@ -108,7 +108,7 @@ export default function Header() {
                               className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 font-medium"
                               data-testid={`link-all-${parent.slug}`}
                             >
-                              {language === 'et' ? `Kõik ${parentName}` : `All ${parentName}`}
+                              {parentName}
                             </div>
                           </Link>
                           <div className="h-px bg-border" />

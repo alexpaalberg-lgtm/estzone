@@ -30,7 +30,7 @@ export default function Products() {
   
   const categoryName = category 
     ? (language === 'et' ? category.nameEt : category.nameEn)
-    : (language === 'et' ? 'Kõik tooted' : 'All Products');
+    : (language === 'et' ? 'Tooted' : 'Products');
     
   const categoryDescription = category
     ? (language === 'et' ? category.descriptionEt : category.descriptionEn)
