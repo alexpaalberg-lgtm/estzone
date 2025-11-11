@@ -55,7 +55,10 @@ export default function Header() {
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-8 w-auto" />
-              <span className="font-bold text-xl text-foreground">EstZone</span>
+              <span className="font-bold text-xl">
+                <span className="text-foreground">Est</span>
+                <span className="text-primary">Zone</span>
+              </span>
             </div>
           </Link>
 
@@ -133,7 +136,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"

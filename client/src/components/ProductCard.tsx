@@ -66,6 +66,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             src={product.images?.[0] || '/images/placeholder.jpg'}
             alt={name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = '/images/placeholder.jpg';
+            }}
             data-testid={`img-product-${product.id}`}
           />
           <div className="absolute top-2 right-2 flex flex-col gap-2">
