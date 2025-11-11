@@ -32,7 +32,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
   shippingMethod: z.enum(["omniva", "dpd"]),
-  paymentMethod: z.enum(["stripe", "paysera", "montonio"]),
+  paymentMethod: z.enum(["demo", "stripe", "paysera", "montonio"]),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -69,7 +69,7 @@ export default function Checkout() {
       postalCode: "",
       country: "Estonia",
       shippingMethod: "omniva",
-      paymentMethod: "stripe",
+      paymentMethod: "demo",
     },
   });
   
@@ -107,7 +107,15 @@ export default function Checkout() {
       // Create payment session based on selected provider
       let paymentUrl: string;
       
-      if (data.paymentMethod === 'stripe') {
+      if (data.paymentMethod === 'demo') {
+        // Demo payment - instant success redirect
+        const payment = await apiRequest('POST', '/api/payments/demo', {
+          orderId: order.id,
+          amount: grandTotal,
+          currency: 'EUR',
+        }) as any;
+        paymentUrl = payment.paymentUrl;
+      } else if (data.paymentMethod === 'stripe') {
         const payment = await apiRequest('POST', '/api/payments/stripe', {
           orderId: order.id,
           amount: grandTotal,
@@ -361,6 +369,15 @@ export default function Checkout() {
                               value={field.value}
                               className="space-y-3"
                             >
+                              <div className="flex items-center justify-between p-4 border-2 border-primary/50 bg-primary/5 rounded-md hover-elevate cursor-pointer" data-testid="option-demo">
+                                <div className="flex items-center gap-3">
+                                  <RadioGroupItem value="demo" id="demo" />
+                                  <Label htmlFor="demo" className="cursor-pointer flex flex-col">
+                                    <span className="font-semibold text-primary">Demo Payment ✓</span>
+                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Testimiseks (ei vaja API võtmeid)' : 'For Testing (no API keys needed)'}</span>
+                                  </Label>
+                                </div>
+                              </div>
                               <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-stripe">
                                 <div className="flex items-center gap-3">
                                   <RadioGroupItem value="stripe" id="stripe" />

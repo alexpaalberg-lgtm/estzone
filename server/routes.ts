@@ -193,6 +193,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Payment initiation endpoints
+  app.post("/api/payments/demo", async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      
+      // Demo payment - simulate instant success
+      const baseUrl = process.env.BASE_URL || 
+        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000');
+      
+      // Simulate payment processing by directly committing the reservation
+      await storage.commitReservation(orderId, `demo-payment-${Date.now()}`);
+      
+      console.log(`[DEMO] Payment simulated for order ${orderId}`);
+      res.json({ paymentUrl: `${baseUrl}/payment/success?order_id=${orderId}` });
+    } catch (error: any) {
+      console.error('[DEMO] Payment error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app.post("/api/payments/stripe", async (req, res) => {
     try {
       const { orderId, amount, currency } = req.body;
