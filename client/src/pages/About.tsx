@@ -5,6 +5,9 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import backgroundImage from "@assets/stock_images/playstation_5_dualse_a7fdeb8d.jpg";
+import option1 from "@assets/stock_images/playstation_controll_32dff664.jpg";
+import option2 from "@assets/stock_images/gaming_controller_vi_e755ad7a.jpg";
+import option3 from "@assets/stock_images/retro_classic_gaming_491fcf6f.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -64,23 +67,33 @@ export default function About() {
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto space-y-12">
             {/* Who We Are */}
-            <section 
-              className="relative rounded-md overflow-hidden"
-              style={{
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              <div className="absolute inset-0 bg-black/70"></div>
-              <div className="relative z-10 p-8 md:p-12">
-                <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-who-we-are">
-                  {t.about.whoWeAre}
-                </h2>
-                <p className="text-white/90 text-lg leading-relaxed" data-testid="text-who-we-are-content">
-                  {t.about.whoWeAreText}
-                </p>
+            <section>
+              <h2 className="text-3xl font-bold mb-4" data-testid="text-who-we-are">
+                {t.about.whoWeAre}
+              </h2>
+              
+              {/* TEMPORARY IMAGE GALLERY - Choose your favorite! */}
+              <div className="mb-8 p-6 bg-card border rounded-md">
+                <h3 className="text-xl font-bold mb-4 text-primary">Vali oma lemmik pilt (1-3) - teravam kvaliteet:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">1. PlayStation Controller (Studio)</p>
+                    <img src={option1} alt="Option 1" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">2. Gaming Controller (Vibrant)</p>
+                    <img src={option2} alt="Option 2" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">3. Retro Classic Controller</p>
+                    <img src={option3} alt="Option 3" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                </div>
               </div>
+              
+              <p className="text-muted-foreground text-lg leading-relaxed" data-testid="text-who-we-are-content">
+                {t.about.whoWeAreText}
+              </p>
             </section>
             
             {/* Mission */}
