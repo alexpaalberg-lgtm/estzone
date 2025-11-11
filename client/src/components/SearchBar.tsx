@@ -125,7 +125,7 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
                           alt={name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.src = '/images/placeholder.jpg';
+                            e.currentTarget.src = '/images/placeholder.svg';
                           }}
                         />
                       )}

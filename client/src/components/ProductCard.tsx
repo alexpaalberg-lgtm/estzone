@@ -61,17 +61,21 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/product/${product.id}`}>
       <Card className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
-        <div className="relative aspect-square overflow-hidden">
-          <img
-            src={product.images?.[0] || '/images/placeholder.jpg'}
-            alt={name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = '/images/placeholder.jpg';
-            }}
-            data-testid={`img-product-${product.id}`}
-          />
+        <div className="relative aspect-square overflow-hidden bg-muted flex items-center justify-center">
+          {product.images?.[0] ? (
+            <img
+              src={product.images[0]}
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/images/placeholder.svg';
+              }}
+              data-testid={`img-product-${product.id}`}
+            />
+          ) : (
+            <div className="text-muted-foreground text-sm">No Image</div>
+          )}
           <div className="absolute top-2 right-2 flex flex-col gap-2">
             {product.isNew && (
               <Badge variant="default" className="text-xs" data-testid={`badge-new-${product.id}`}>

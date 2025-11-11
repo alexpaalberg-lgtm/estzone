@@ -184,7 +184,11 @@ export default function Header() {
                   <Search className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="top" className="h-auto">
+              <SheetContent 
+                side="top" 
+                className="h-auto"
+                onInteractOutside={(e) => e.preventDefault()}
+              >
                 <div className="mt-8">
                   <SearchBar 
                     className="w-full" 
