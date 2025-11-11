@@ -75,41 +75,38 @@ export default function Checkout() {
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
-      // Use VAT breakdown (already in EUR) for storage
-      // This ensures consistency between displayed and stored amounts
       const orderData = {
         customerEmail: data.email,
         customerName: `${data.firstName} ${data.lastName}`,
-        customerPhone: data.phone,
-        shippingAddress: {
-          street: data.address,
-          city: data.city,
-          postalCode: data.postalCode,
-          country: data.country,
-        },
-        billingAddress: {
-          street: data.address,
-          city: data.city,
-          postalCode: data.postalCode,
-          country: data.country,
-        },
-        items: items.map(item => ({
-          productId: item.id,
-          quantity: item.quantity,
-          price: item.price.toFixed(2), // Already in EUR
-        })),
+        shippingMethod: data.shippingMethod,
+        shippingFirstName: data.firstName,
+        shippingLastName: data.lastName,
+        shippingStreet: data.address,
+        shippingCity: data.city,
+        shippingPostalCode: data.postalCode,
+        shippingCountry: data.country,
+        shippingPhone: data.phone,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: 'pending',
         subtotal: itemsVat.subtotalExVat.toFixed(2),
-        shipping: shippingVat.subtotalExVat.toFixed(2),
+        shippingCost: shippingVat.subtotalExVat.toFixed(2),
         vatAmount: totalVat.vatAmount.toFixed(2),
         total: grandTotal.toFixed(2),
-        currency: 'EUR', // Always store in base currency
-        shippingMethod: data.shippingMethod,
-        paymentMethod: data.paymentMethod,
-        paymentStatus: 'pending' as const,
-        orderStatus: 'processing' as const,
+        currency: 'EUR',
+        status: 'pending',
       };
       
-      return await apiRequest('POST', '/api/orders', orderData);
+      const orderItems = items.map(item => ({
+        productId: item.id,
+        productNameEn: item.name,
+        productNameEt: item.name,
+        sku: `SKU-${item.id}`,
+        quantity: item.quantity,
+        price: item.price.toFixed(2),
+        subtotal: (item.price * item.quantity).toFixed(2),
+      }));
+      
+      return await apiRequest('POST', '/api/orders', { order: orderData, items: orderItems, language });
     },
     onSuccess: () => {
       clearCart();

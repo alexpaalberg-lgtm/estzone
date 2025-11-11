@@ -30,8 +30,8 @@ export default function Header() {
     staleTime: 5 * 60 * 1000,
   });
   
-  const { parentCategories, subcategoriesByParent } = useMemo(() => {
-    if (!categories) return { parentCategories: [], subcategoriesByParent: {} };
+  const { parentCategories, subcategoriesByParent, visibleCategories, moreCategories } = useMemo(() => {
+    if (!categories) return { parentCategories: [], subcategoriesByParent: {}, visibleCategories: [], moreCategories: [] };
     
     const parents = categories.filter(c => !c.parentId);
     const subMap: Record<string, Category[]> = {};
@@ -45,7 +45,11 @@ export default function Header() {
       }
     });
     
-    return { parentCategories: parents, subcategoriesByParent: subMap };
+    const prioritySlugs = ['consoles', 'controllers', 'headsets', 'vr-headsets'];
+    const visible = parents.filter(c => prioritySlugs.includes(c.slug));
+    const more = parents.filter(c => !prioritySlugs.includes(c.slug));
+    
+    return { parentCategories: parents, subcategoriesByParent: subMap, visibleCategories: visible, moreCategories: more };
   }, [categories]);
 
   return (
@@ -65,7 +69,7 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-1">
             <NavigationMenu>
               <NavigationMenuList>
-                {parentCategories.map((parent) => {
+                {visibleCategories.map((parent) => {
                   const subcats = subcategoriesByParent[parent.id] || [];
                   const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
                   
@@ -125,6 +129,34 @@ export default function Header() {
                   );
                 })}
                 
+                {moreCategories.length > 0 && (
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger 
+                      className="h-9 px-3 text-sm"
+                      data-testid="dropdown-more-categories"
+                    >
+                      {language === 'et' ? 'Rohkem' : 'More'}
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid w-[300px] gap-1 p-4">
+                        {moreCategories.map((cat) => {
+                          const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                          return (
+                            <Link key={cat.id} href={`/products/${cat.slug}`}>
+                              <div
+                                className="block px-4 py-2 rounded-md hover-elevate active-elevate-2"
+                                data-testid={`link-more-category-${cat.slug}`}
+                              >
+                                {catName}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                )}
+                
                 <NavigationMenuItem>
                   <Link href="/blog">
                     <Button variant="ghost" size="sm" data-testid="link-blog">
@@ -136,11 +168,11 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ml-auto">
             <Button
               variant="ghost"
               size="icon"
-              className="sm:hidden"
+              className="sm:hidden ml-auto"
               data-testid="button-search-mobile"
             >
               <Search className="h-5 w-5" />

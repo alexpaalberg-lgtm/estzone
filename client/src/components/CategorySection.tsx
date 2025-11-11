@@ -38,26 +38,29 @@ export default function CategorySection() {
                 key={category.id} 
                 href={`/products/${category.slug}`}
                 data-testid={`link-category-${category.slug}`}
+                asChild
               >
-                <Card 
-                  className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full"
-                  data-testid={`card-category-${category.slug}`}
-                >
-                  <div className="relative aspect-square overflow-hidden">
-                    <img
-                      src={image}
-                      alt={name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      data-testid={`img-category-${category.slug}`}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-semibold text-lg text-foreground text-center" data-testid={`text-category-${category.slug}`}>
-                        {name}
-                      </h3>
+                <a>
+                  <Card 
+                    className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full"
+                    data-testid={`card-category-${category.slug}`}
+                  >
+                    <div className="relative aspect-square overflow-hidden">
+                      <img
+                        src={image}
+                        alt={name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        data-testid={`img-category-${category.slug}`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h3 className="font-semibold text-lg text-foreground text-center" data-testid={`text-category-${category.slug}`}>
+                          {name}
+                        </h3>
+                      </div>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </a>
               </Link>
             );
           })}
