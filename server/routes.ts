@@ -193,13 +193,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Payment initiation endpoints
-  app.post("/api/payments/stripe/checkout", async (req, res) => {
+  app.post("/api/payments/stripe", async (req, res) => {
     try {
       const { orderId, amount, currency } = req.body;
       const session = await createStripeCheckoutSession(orderId, amount, currency);
       res.json(session);
     } catch (error: any) {
       console.error('[STRIPE] Checkout error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/payments/paysera", async (req, res) => {
+    try {
+      const { orderId, amount, currency } = req.body;
+      const paymentUrl = await createPayseraPayment(amount, orderId, currency);
+      res.json({ paymentUrl });
+    } catch (error: any) {
+      console.error('[PAYSERA] Payment error:', error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import ChatLauncher from "@/components/ChatLauncher";
+import ShoppingCart from "@/components/ShoppingCart";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -60,6 +61,7 @@ function App() {
             <CartProvider>
               <Toaster />
               <Router />
+              <ShoppingCart />
               <ChatLauncher />
             </CartProvider>
           </CurrencyProvider>
