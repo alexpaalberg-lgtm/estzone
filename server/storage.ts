@@ -300,12 +300,32 @@ export class DbStorage implements IStorage {
       .values(orderData as any)
       .returning();
     
-    const itemsData = items.map(item => ({
-      ...item,
-      orderId: created.id,
-      price: typeof item.price === 'number' ? item.price.toString() : item.price,
-      subtotal: typeof item.subtotal === 'number' ? item.subtotal.toString() : item.subtotal,
-    }));
+    // Fetch product details in batch (single query)
+    const productIds = Array.from(new Set(items.map(item => item.productId)));
+    const products = await db.select()
+      .from(schema.products)
+      .where(sql`${schema.products.id} IN (${sql.join(productIds.map(id => sql`${id}`), sql`, `)})`);
+    
+    const productMap = new Map(products.map(p => [p.id, p]));
+    
+    // Enrich items with product details
+    const itemsData = items.map(item => {
+      const product = productMap.get(item.productId);
+      
+      if (!product) {
+        throw new Error(`Product ${item.productId} not found`);
+      }
+      
+      return {
+        ...item,
+        orderId: created.id,
+        productNameEn: product.nameEn,
+        productNameEt: product.nameEt,
+        sku: product.sku,
+        price: typeof item.price === 'number' ? item.price.toString() : item.price,
+        subtotal: typeof item.subtotal === 'number' ? item.subtotal.toString() : item.subtotal,
+      };
+    });
     
     await db.insert(schema.orderItems).values(itemsData as any);
     
