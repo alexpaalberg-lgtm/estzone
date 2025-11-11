@@ -428,15 +428,63 @@ export class DbStorage implements IStorage {
   async createReservation(orderId: string, items: InsertOrderItem[]): Promise<void> {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     
-    for (const item of items) {
-      await db.insert(schema.stockReservations).values({
-        orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        status: 'reserved',
-        expiresAt,
-      });
-    }
+    // ATOMIC: Check stock availability + create reservations in single transaction
+    await db.transaction(async (tx) => {
+      // Aggregate quantities by productId to handle duplicate items in same order
+      const productQuantities = new Map<string, number>();
+      for (const item of items) {
+        const current = productQuantities.get(item.productId) || 0;
+        productQuantities.set(item.productId, current + item.quantity);
+      }
+      
+      // Validate stock availability for each unique product
+      // Must account for existing reservations AND aggregated order quantities
+      const productNames = new Map<string, string>();
+      
+      for (const [productId, totalQuantity] of Array.from(productQuantities.entries())) {
+        // Get product with lock
+        const [product] = await tx.select()
+          .from(schema.products)
+          .where(eq(schema.products.id, productId))
+          .for('update'); // Lock row to prevent race conditions
+        
+        if (!product) {
+          throw new Error(`Product ${productId} not found`);
+        }
+        
+        productNames.set(productId, product.nameEn);
+        
+        // Calculate currently reserved quantity (not yet committed)
+        const [reservedStock] = await tx.select({
+          reserved: sql<number>`COALESCE(SUM(${schema.stockReservations.quantity}), 0)`
+        })
+        .from(schema.stockReservations)
+        .where(
+          and(
+            eq(schema.stockReservations.productId, productId),
+            eq(schema.stockReservations.status, 'reserved')
+          )
+        );
+        
+        // Available stock = actual stock - currently reserved
+        const availableStock = product.stock - (reservedStock.reserved || 0);
+        
+        if (availableStock < totalQuantity) {
+          throw new Error(`Insufficient stock for ${product.nameEn}. Available: ${availableStock}, Requested: ${totalQuantity}`);
+        }
+      }
+      
+      // All stock checks passed - create reservations for original items
+      for (const item of items) {
+        await tx.insert(schema.stockReservations).values({
+          orderId,
+          productId: item.productId,
+          quantity: item.quantity,
+          status: 'reserved',
+          expiresAt,
+        });
+      }
+    });
   }
   
   async commitReservationWithEvent(orderId: string, paymentId: string, eventId: string): Promise<void> {
@@ -446,6 +494,24 @@ export class DbStorage implements IStorage {
       const reservations = await tx.select()
         .from(schema.stockReservations)
         .where(eq(schema.stockReservations.orderId, orderId));
+      
+      // Check if any reservations exist and are committable
+      const hasReservedItems = reservations.some(r => r.status === 'reserved');
+      
+      if (!hasReservedItems) {
+        // All reservations already released/committed - this is a late webhook or duplicate
+        console.warn(`[STOCK] No active reservations found for order ${orderId}. Skipping stock commit.`);
+        
+        // Still mark payment event as processed to prevent retries
+        await tx.update(schema.paymentEvents)
+          .set({
+            processed: true,
+            processedAt: new Date(),
+          })
+          .where(eq(schema.paymentEvents.providerEventId, eventId));
+        
+        return;
+      }
       
       // Update stock levels atomically
       for (const reservation of reservations) {
