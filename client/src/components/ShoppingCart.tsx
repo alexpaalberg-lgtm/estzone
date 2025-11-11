@@ -8,21 +8,34 @@ import {
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
   const { t } = useLanguage();
+  const { currency, setCurrency, formatDualPrice } = useCurrency();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-full sm:max-w-lg" data-testid="sheet-cart">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5" />
-            {t.nav.cart}
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              {t.nav.cart}
+            </SheetTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
+              data-testid="button-currency-toggle-cart"
+              className="h-8"
+            >
+              <span className="text-xs font-bold">{currency}</span>
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="flex flex-col h-full mt-6">
@@ -54,8 +67,8 @@ export default function ShoppingCart() {
                         <h4 className="font-semibold mb-1 line-clamp-2" data-testid="text-item-name">
                           {item.name}
                         </h4>
-                        <p className="text-primary font-bold" data-testid="text-item-price">
-                          €{item.price.toFixed(2)}
+                        <p className="text-primary font-bold text-sm" data-testid="text-item-price">
+                          {formatDualPrice(item.price)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button
@@ -95,10 +108,10 @@ export default function ShoppingCart() {
               </div>
 
               <div className="mt-4 pt-4 border-t space-y-4">
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-base font-bold">
                   <span>Total</span>
                   <span className="text-primary" data-testid="text-total-price">
-                    €{totalPrice.toFixed(2)}
+                    {formatDualPrice(totalPrice)}
                   </span>
                 </div>
                 <Link href="/checkout">
