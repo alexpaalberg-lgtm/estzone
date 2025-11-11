@@ -173,29 +173,28 @@ export default function Header() {
           <div className="flex items-center gap-2 ml-auto">
             <SearchBar className="hidden lg:block w-64" />
 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setSearchSheetOpen(true)}
+              data-testid="button-search-mobile"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
             <Sheet open={searchSheetOpen} onOpenChange={setSearchSheetOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden"
-                  data-testid="button-search-mobile"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
               <SheetContent 
                 side="top" 
-                className="h-auto"
+                className="h-auto pt-16"
                 onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={() => setSearchSheetOpen(false)}
               >
-                <div className="mt-8">
-                  <SearchBar 
-                    className="w-full" 
-                    isMobile 
-                    onNavigate={() => setSearchSheetOpen(false)}
-                  />
-                </div>
+                <SearchBar 
+                  className="w-full" 
+                  isMobile 
+                  onNavigate={() => setSearchSheetOpen(false)}
+                />
               </SheetContent>
             </Sheet>
 
