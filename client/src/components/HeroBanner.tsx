@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'wouter';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -78,16 +79,21 @@ export default function HeroBanner() {
                 {slide.subtitle}
               </p>
               <div className="flex gap-4 justify-center">
-                <Button size="lg" className="backdrop-blur-sm" data-testid="button-shop-now">
-                  {t.hero.cta}
+                <Button asChild size="lg" className="backdrop-blur-sm" data-testid="button-shop-now">
+                  <Link href="/products">
+                    {t.hero.cta}
+                  </Link>
                 </Button>
                 <Button
+                  asChild
                   size="lg"
                   variant="outline"
                   className="backdrop-blur-sm bg-background/20"
                   data-testid="button-learn-more"
                 >
-                  {t.hero.learnMore}
+                  <Link href="/about">
+                    {t.hero.learnMore}
+                  </Link>
                 </Button>
               </div>
             </div>
