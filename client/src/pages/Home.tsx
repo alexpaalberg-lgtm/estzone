@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import HeroBanner from '@/components/HeroBanner';
 import CategorySection from '@/components/CategorySection';
 import ProductGrid from '@/components/ProductGrid';
-import ShoppingCart from '@/components/ShoppingCart';
 import Footer from '@/components/Footer';
 import SEO from '@/components/SEO';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,7 +58,6 @@ export default function Home() {
         </div>
       </main>
       <Footer />
-      <ShoppingCart />
     </div>
   );
 }

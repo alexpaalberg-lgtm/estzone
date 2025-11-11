@@ -54,15 +54,12 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        if (isMobile && query.length === 0) {
-          onNavigate?.();
-        }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobile, query, onNavigate]);
+  }, []);
 
   const handleResultClick = (productId: string) => {
     setIsOpen(false);
