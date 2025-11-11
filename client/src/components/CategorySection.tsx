@@ -34,9 +34,13 @@ export default function CategorySection() {
             const image = categoryImages[category.slug] || '/images/placeholder.jpg';
             
             return (
-              <Link key={category.id} href={`/products/${category.slug}`}>
+              <Link 
+                key={category.id} 
+                href={`/products/${category.slug}`}
+                data-testid={`link-category-${category.slug}`}
+              >
                 <Card 
-                  className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full"
+                  className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full"
                   data-testid={`card-category-${category.slug}`}
                 >
                   <div className="relative aspect-square overflow-hidden">
