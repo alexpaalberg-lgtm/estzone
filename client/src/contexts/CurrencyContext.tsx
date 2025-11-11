@@ -7,6 +7,7 @@ interface CurrencyContextType {
   setCurrency: (currency: Currency) => void;
   exchangeRate: number;
   formatPrice: (price: number | string) => string;
+  formatDualPrice: (price: number | string) => string;
   convertCurrency: (amount: number, from: Currency, to: Currency) => number;
   toDisplay: (amountInEur: number) => number;
   fromDisplay: (amountInDisplayCurrency: number) => number;
@@ -92,12 +93,26 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Format a price showing both EUR and USD for easy comparison
+   * @param price - Price in EUR (base currency)
+   * @returns Formatted price string with both currencies (e.g., "€99.99 / $109.00")
+   */
+  const formatDualPrice = (price: number | string): string => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    const eurAmount = numPrice;
+    const usdAmount = convertCurrency(eurAmount, 'EUR', 'USD');
+    
+    return `€${eurAmount.toFixed(2)} / $${usdAmount.toFixed(2)}`;
+  };
+
   return (
     <CurrencyContext.Provider value={{ 
       currency, 
       setCurrency, 
       exchangeRate,
       formatPrice,
+      formatDualPrice,
       convertCurrency,
       toDisplay,
       fromDisplay

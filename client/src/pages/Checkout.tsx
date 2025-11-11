@@ -40,7 +40,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { language } = useLanguage();
-  const { currency, formatPrice, toDisplay } = useCurrency();
+  const { currency, formatPrice, formatDualPrice, toDisplay } = useCurrency();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
@@ -402,7 +402,7 @@ export default function Checkout() {
                               {language === 'et' ? 'Kogus' : 'Qty'}: {item.quantity}
                             </p>
                           </div>
-                          <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                          <p className="font-semibold text-sm">{formatDualPrice(item.price * item.quantity)}</p>
                         </div>
                       ))}
                     </div>
@@ -412,36 +412,36 @@ export default function Checkout() {
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Tooted (ilma KM-ta)' : 'Products (ex VAT)'}</span>
-                        <span data-testid="text-subtotal-ex-vat">{formatPrice(itemsVat.subtotalExVat)}</span>
+                        <span data-testid="text-subtotal-ex-vat" className="text-xs">{formatDualPrice(itemsVat.subtotalExVat)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'KM 24%' : 'VAT 24%'}</span>
-                        <span data-testid="text-vat-items">{formatPrice(itemsVat.vatAmount)}</span>
+                        <span data-testid="text-vat-items" className="text-xs">{formatDualPrice(itemsVat.vatAmount)}</span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
                         <span>{language === 'et' ? 'Vahesumma (koos KM-ga)' : 'Subtotal (incl VAT)'}</span>
-                        <span data-testid="text-subtotal">{formatPrice(totalPrice)}</span>
+                        <span data-testid="text-subtotal" className="text-sm">{formatDualPrice(totalPrice)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Kohaletoimetamine (ilma KM-ta)' : 'Shipping (ex VAT)'}</span>
-                        <span>{formatPrice(shippingVat.subtotalExVat)}</span>
+                        <span className="text-xs">{formatDualPrice(shippingVat.subtotalExVat)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Tarne KM 24%' : 'Shipping VAT 24%'}</span>
-                        <span>{formatPrice(shippingVat.vatAmount)}</span>
+                        <span className="text-xs">{formatDualPrice(shippingVat.vatAmount)}</span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
                         <span>{language === 'et' ? 'Kohaletoimetamine (koos KM-ga)' : 'Shipping (incl VAT)'}</span>
-                        <span data-testid="text-shipping">{formatPrice(shippingCost)}</span>
+                        <span data-testid="text-shipping" className="text-sm">{formatDualPrice(shippingCost)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
                         <span>{language === 'et' ? 'Kokku KM 24%' : 'Total VAT 24%'}</span>
-                        <span data-testid="text-total-vat">{formatPrice(totalVat.vatAmount)}</span>
+                        <span data-testid="text-total-vat" className="text-sm">{formatDualPrice(totalVat.vatAmount)}</span>
                       </div>
-                      <div className="flex justify-between text-xl font-bold">
+                      <div className="flex justify-between text-lg font-bold">
                         <span>{language === 'et' ? 'Kokku (koos KM-ga)' : 'Total (incl VAT)'}</span>
-                        <span data-testid="text-total">{formatPrice(grandTotal)}</span>
+                        <span data-testid="text-total" className="text-base">{formatDualPrice(grandTotal)}</span>
                       </div>
                     </div>
                     
