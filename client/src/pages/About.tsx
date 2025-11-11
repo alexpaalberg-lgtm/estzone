@@ -64,38 +64,9 @@ export default function About() {
         {/* About Content */}
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto space-y-12">
-            {/* Who We Are */}
-            <section 
-              className="relative rounded-md overflow-hidden"
-              style={{
-                backgroundImage: `url(${backgroundImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              <div className="absolute inset-0 bg-black/70"></div>
-              <div className="relative z-10 p-8 md:p-12">
-                <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-who-we-are">
-                  {t.about.whoWeAre}
-                </h2>
-                <p className="text-white/90 text-lg leading-relaxed" data-testid="text-who-we-are-content">
-                  {t.about.whoWeAreText}
-                </p>
-              </div>
-            </section>
-            
-            {/* Mission - Desktop has controller background, Mobile has Uncharted */}
-            <section className="relative rounded-md overflow-hidden">
-              {/* Mobile Uncharted background */}
-              <div 
-                className="absolute inset-0 md:hidden"
-                style={{
-                  backgroundImage: `url(${missionBackgroundMobile})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              ></div>
-              {/* Desktop controller background */}
+            {/* Desktop: ONE big controller image over both sections, Mobile: Two separate images */}
+            <div className="md:relative md:rounded-md md:overflow-hidden">
+              {/* Desktop: ONE big controller background for BOTH sections */}
               <div 
                 className="hidden md:block md:absolute md:inset-0"
                 style={{
@@ -104,16 +75,51 @@ export default function About() {
                   backgroundPosition: 'center',
                 }}
               ></div>
-              <div className="absolute inset-0 bg-black/70"></div>
-              <div className="relative z-10 p-8 md:p-12">
-                <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-mission">
-                  {t.about.mission}
-                </h2>
-                <p className="text-white/90 text-lg leading-relaxed" data-testid="text-mission-content">
-                  {t.about.missionText}
-                </p>
+              <div className="hidden md:block md:absolute md:inset-0 md:bg-black/70"></div>
+              
+              <div className="md:relative md:z-10 space-y-8 md:space-y-12 md:p-8 md:py-12">
+                {/* Who We Are - Mobile has controller background */}
+                <section 
+                  className="relative rounded-md overflow-hidden md:rounded-none"
+                  style={{
+                    backgroundImage: `url(${backgroundImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black/70 md:hidden"></div>
+                  <div className="relative z-10 p-8 md:p-0">
+                    <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-who-we-are">
+                      {t.about.whoWeAre}
+                    </h2>
+                    <p className="text-white/90 text-lg leading-relaxed" data-testid="text-who-we-are-content">
+                      {t.about.whoWeAreText}
+                    </p>
+                  </div>
+                </section>
+                
+                {/* Mission - Mobile has Uncharted background */}
+                <section className="relative rounded-md overflow-hidden md:rounded-none">
+                  <div 
+                    className="absolute inset-0 md:hidden"
+                    style={{
+                      backgroundImage: `url(${missionBackgroundMobile})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  ></div>
+                  <div className="absolute inset-0 bg-black/70 md:hidden"></div>
+                  <div className="relative z-10 p-8 md:p-0">
+                    <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-mission">
+                      {t.about.mission}
+                    </h2>
+                    <p className="text-white/90 text-lg leading-relaxed" data-testid="text-mission-content">
+                      {t.about.missionText}
+                    </p>
+                  </div>
+                </section>
               </div>
-            </section>
+            </div>
             
             {/* Why Choose Us */}
             <section>
