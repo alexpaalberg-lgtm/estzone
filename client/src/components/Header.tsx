@@ -1,12 +1,12 @@
 import { Link } from 'wouter';
 import { ShoppingCart, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import SearchBar from './SearchBar';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -18,12 +18,14 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import type { Category } from '@shared/schema';
 import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
-import { useMemo } from 'react';
+import gamingHeaderImage from '@assets/generated_images/Gaming_controller_illustration_header_1c4ec04d.png';
+import { useMemo, useState } from 'react';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
   const { currency, setCurrency } = useCurrency();
   const { totalItems, setIsOpen } = useCart();
+  const [searchSheetOpen, setSearchSheetOpen] = useState(false);
   
   const { data: categories, isLoading, isError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
@@ -168,25 +170,30 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-3 ml-auto">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sm:hidden ml-auto"
-              data-testid="button-search-mobile"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-            
-            <div className="hidden sm:flex relative max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder={language === 'et' ? 'Otsi tooteid...' : 'Search products...'}
-                className="pl-9 w-64"
-                data-testid="input-search"
-              />
-            </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <SearchBar className="hidden lg:block w-64" />
+
+            <Sheet open={searchSheetOpen} onOpenChange={setSearchSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden"
+                  data-testid="button-search-mobile"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="top" className="h-auto">
+                <div className="mt-8">
+                  <SearchBar 
+                    className="w-full" 
+                    isMobile 
+                    onNavigate={() => setSearchSheetOpen(false)}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
 
             <Button
               variant="ghost"
@@ -206,10 +213,6 @@ export default function Header() {
               title={currency === 'EUR' ? 'Switch to USD' : 'Switch to EUR'}
             >
               <span className="text-xs font-bold">{currency}</span>
-            </Button>
-
-            <Button variant="ghost" size="icon" data-testid="button-account">
-              <User className="h-5 w-5" />
             </Button>
 
             <Button
@@ -238,7 +241,14 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
-                <nav className="flex flex-col gap-2 mt-8">
+                <div className="mb-6 -mx-6 -mt-6 h-32 overflow-hidden rounded-b-lg">
+                  <img 
+                    src={gamingHeaderImage} 
+                    alt="Gaming" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <nav className="flex flex-col gap-2">
                   {parentCategories.map((parent) => {
                     const subcats = subcategoriesByParent[parent.id] || [];
                     const parentName = language === 'et' ? parent.nameEt : parent.nameEn;

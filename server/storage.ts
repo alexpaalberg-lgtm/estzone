@@ -32,6 +32,7 @@ export interface IStorage {
   getProduct(id: string): Promise<Product | undefined>;
   getProductBySku(sku: string): Promise<Product | undefined>;
   getLowStockProducts(): Promise<Product[]>;
+  searchProducts(query: string, limit?: number): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   updateProductStock(id: string, quantity: number): Promise<void>;
@@ -147,6 +148,17 @@ export class DbStorage implements IStorage {
     return db.select().from(schema.products)
       .where(sql`${schema.products.stock} <= ${schema.products.lowStockThreshold}`)
       .orderBy(schema.products.stock);
+  }
+  
+  async searchProducts(query: string, limit: number = 10): Promise<Product[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    return db.select().from(schema.products)
+      .where(and(
+        eq(schema.products.isActive, true),
+        sql`(LOWER(${schema.products.nameEn}) LIKE ${searchTerm} OR LOWER(${schema.products.nameEt}) LIKE ${searchTerm} OR LOWER(${schema.products.sku}) LIKE ${searchTerm})`
+      ))
+      .limit(limit)
+      .orderBy(desc(schema.products.isFeatured), desc(schema.products.createdAt));
   }
   
   async createProduct(product: InsertProduct): Promise<Product> {
