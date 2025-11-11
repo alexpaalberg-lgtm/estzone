@@ -79,14 +79,15 @@ export default function About() {
               
               <div className="md:relative md:z-10 space-y-8 md:space-y-12 md:p-8 md:py-12">
                 {/* Who We Are - Mobile has controller background */}
-                <section 
-                  className="relative rounded-md overflow-hidden md:rounded-none"
-                  style={{
-                    backgroundImage: `url(${backgroundImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
+                <section className="relative rounded-md overflow-hidden md:rounded-none md:overflow-visible md:bg-transparent">
+                  <div 
+                    className="absolute inset-0 md:hidden"
+                    style={{
+                      backgroundImage: `url(${backgroundImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  ></div>
                   <div className="absolute inset-0 bg-black/70 md:hidden"></div>
                   <div className="relative z-10 p-8 md:p-0">
                     <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-who-we-are">
@@ -99,7 +100,7 @@ export default function About() {
                 </section>
                 
                 {/* Mission - Mobile has Uncharted background */}
-                <section className="relative rounded-md overflow-hidden md:rounded-none">
+                <section className="relative rounded-md overflow-hidden md:rounded-none md:overflow-visible md:bg-transparent">
                   <div 
                     className="absolute inset-0 md:hidden"
                     style={{
