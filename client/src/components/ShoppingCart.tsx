@@ -15,7 +15,7 @@ import { Link } from 'wouter';
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
   const { t } = useLanguage();
-  const { currency, setCurrency, formatDualPrice } = useCurrency();
+  const { currency, setCurrency, formatPrice } = useCurrency();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -31,9 +31,13 @@ export default function ShoppingCart() {
               size="sm"
               onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
               data-testid="button-currency-toggle-cart"
-              className="h-8"
+              className="h-8 px-2"
             >
-              <span className="text-xs font-bold">{currency}</span>
+              <span className="text-xs flex items-center gap-1">
+                <span className={currency === 'EUR' ? 'font-bold text-primary' : 'text-muted-foreground'}>EUR</span>
+                <span className="text-muted-foreground">/</span>
+                <span className={currency === 'USD' ? 'font-bold text-primary' : 'text-muted-foreground'}>USD</span>
+              </span>
             </Button>
           </div>
         </SheetHeader>
@@ -67,8 +71,8 @@ export default function ShoppingCart() {
                         <h4 className="font-semibold mb-1 line-clamp-2" data-testid="text-item-name">
                           {item.name}
                         </h4>
-                        <p className="text-primary font-bold text-sm" data-testid="text-item-price">
-                          {formatDualPrice(item.price)}
+                        <p className="text-primary font-bold" data-testid="text-item-price">
+                          {formatPrice(item.price)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button
@@ -108,10 +112,10 @@ export default function ShoppingCart() {
               </div>
 
               <div className="mt-4 pt-4 border-t space-y-4">
-                <div className="flex justify-between text-base font-bold">
+                <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
                   <span className="text-primary" data-testid="text-total-price">
-                    {formatDualPrice(totalPrice)}
+                    {formatPrice(totalPrice)}
                   </span>
                 </div>
                 <Link href="/checkout">
