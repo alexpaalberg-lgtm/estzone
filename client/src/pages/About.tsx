@@ -5,6 +5,11 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import gamingSetupImage from "@assets/stock_images/professional_gaming__a676e7d2.jpg";
+import option1 from "@assets/stock_images/modern_gaming_room_r_de41a23c.jpg";
+import option2 from "@assets/stock_images/esports_tournament_a_b22ef0ce.jpg";
+import option3 from "@assets/stock_images/gaming_console_contr_1bd97bbd.jpg";
+import option4 from "@assets/stock_images/vr_headset_virtual_r_96c36abc.jpg";
+import option5 from "@assets/stock_images/professional_gamer_p_9f978115.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -68,14 +73,34 @@ export default function About() {
               <h2 className="text-3xl font-bold mb-4" data-testid="text-who-we-are">
                 {t.about.whoWeAre}
               </h2>
-              <div className="mb-6">
-                <img 
-                  src={gamingSetupImage} 
-                  alt="Professional gaming setup"
-                  className="w-full h-64 md:h-96 object-cover rounded-md"
-                  data-testid="img-gaming-setup"
-                />
+              
+              {/* TEMPORARY IMAGE GALLERY - Choose your favorite! */}
+              <div className="mb-8 p-6 bg-card border rounded-md">
+                <h3 className="text-xl font-bold mb-4 text-primary">Vali oma lemmik pilt (1-5):</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">1. Modern Gaming Room</p>
+                    <img src={option1} alt="Option 1" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">2. Esports Tournament</p>
+                    <img src={option2} alt="Option 2" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">3. Gaming Controllers</p>
+                    <img src={option3} alt="Option 3" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">4. VR Headset</p>
+                    <img src={option4} alt="Option 4" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-primary">5. Professional Gamer</p>
+                    <img src={option5} alt="Option 5" className="w-full h-48 object-cover rounded-md" />
+                  </div>
+                </div>
               </div>
+              
               <p className="text-muted-foreground text-lg leading-relaxed" data-testid="text-who-we-are-content">
                 {t.about.whoWeAreText}
               </p>
