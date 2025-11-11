@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
 
 export default function Header() {
@@ -103,7 +103,10 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
-                <nav className="flex flex-col gap-2 mt-8">
+                <SheetHeader>
+                  <SheetTitle>{language === 'et' ? 'Menüü' : 'Menu'}</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-2 mt-4">
                   {navItems.map((item) => (
                     <Link key={item.href} href={item.href}>
                       <Button variant="ghost" className="w-full justify-start">

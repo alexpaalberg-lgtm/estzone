@@ -50,7 +50,7 @@ export default function HeroBanner() {
   };
 
   useEffect(() => {
-    const timer = setInterval(nextSlide, 3000); // Changed to 3 seconds
+    const timer = setInterval(nextSlide, 4000); // Changed to 4 seconds
     return () => clearInterval(timer);
   }, []);
 

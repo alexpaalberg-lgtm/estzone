@@ -5,11 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import type { Category } from '@shared/schema';
 
 const categoryImages: Record<string, string> = {
-  'gaming-consoles': '/images/hero-2.png',
-  'controllers-gamepads': '/images/hero-4.png',
-  'gaming-headsets': '/images/hero-3.png',
-  'vr-ar-headsets': '/images/psvr2.png',
-  'gaming-accessories': '/images/category-accessories.png',
+  'consoles': '/images/category-consoles.png',
+  'controllers': '/images/category-controllers.png',
+  'headsets': '/images/category-headsets.png',
+  'vr-headsets': '/images/category-vr.png',
+  'accessories': '/images/category-accessories.png',
 };
 
 export default function CategorySection() {
