@@ -65,7 +65,7 @@ export default function About() {
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto space-y-12">
             {/* Desktop: ONE big controller image over both sections, Mobile: Two separate images */}
-            <div className="md:relative md:rounded-md md:overflow-hidden">
+            <div className="md:relative md:rounded-md md:overflow-hidden bg-transparent">
               {/* Desktop: ONE big controller background for BOTH sections */}
               <div 
                 className="hidden md:block md:absolute md:inset-0"
