@@ -16,17 +16,17 @@ export default function Footer() {
   ];
 
   const support = [
-    { label: 'FAQ', href: '/faq' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Shipping', href: '/shipping' },
-    { label: 'Returns', href: '/returns' },
+    { label: t.footer.faq, href: '/faq' },
+    { label: t.footer.contact, href: '/contact' },
+    { label: t.footer.shippingInfo, href: '/shipping' },
+    { label: t.footer.returns, href: '/returns' },
   ];
 
   const company = [
-    { label: 'About Us', href: '/about' },
+    { label: t.footer.aboutUs, href: '/about' },
     { label: t.nav.blog, href: '/blog' },
-    { label: 'Careers', href: '/careers' },
-    { label: 'Privacy', href: '/privacy' },
+    { label: t.footer.careers, href: '/careers' },
+    { label: t.footer.privacy, href: '/privacy' },
   ];
 
   return (
@@ -41,7 +41,7 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              EstZone OÜ - Your premium destination for gaming consoles, accessories, and VR technology.
+              {t.footer.description}
             </p>
             <p className="text-sm text-muted-foreground mb-6">
               Pärnu mnt 31, Tallinn, Estonia
@@ -130,7 +130,7 @@ export default function Footer() {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              © 2025 EstZone OÜ. All rights reserved.
+              {t.footer.copyright}
             </div>
           </div>
         </div>
