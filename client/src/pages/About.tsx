@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import backgroundImage from "@assets/stock_images/gaming_controller_vi_e755ad7a.jpg";
-import missionBackgroundMobile from "@assets/stock_images/gaming_trophy_achiev_0e920f7a.jpg";
+import missionOption1 from "@assets/stock_images/team_gaming_friends__f8aa2ef9.jpg";
+import missionOption2 from "@assets/stock_images/gaming_success_victo_2f3282b0.jpg";
+import missionOption3 from "@assets/stock_images/futuristic_gaming_te_6a65e262.jpg";
+import missionOption4 from "@assets/stock_images/gaming_community_mul_6362474b.jpg";
+import missionOption5 from "@assets/stock_images/gaming_passion_excit_dd63bb3f.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -64,65 +68,53 @@ export default function About() {
         {/* About Content */}
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto space-y-12">
-            {/* Desktop: Background over both sections, Mobile: Background only on Who We Are */}
-            <div className="md:relative md:rounded-md md:overflow-hidden">
-              {/* Desktop background image */}
-              <div 
-                className="hidden md:block md:absolute md:inset-0"
-                style={{
-                  backgroundImage: `url(${backgroundImage})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              ></div>
-              <div className="hidden md:block md:absolute md:inset-0 md:bg-black/70"></div>
-              
-              <div className="md:relative md:z-10 space-y-8 md:space-y-12 md:p-8 md:py-12">
-                {/* Who We Are - Mobile has own background */}
-                <section 
-                  className="relative rounded-md overflow-hidden md:rounded-none md:overflow-visible"
-                  style={{
-                    backgroundImage: `url(${backgroundImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
-                  {/* Mobile overlay */}
-                  <div className="absolute inset-0 bg-black/70 md:hidden"></div>
-                  <div className="relative z-10 p-8 md:p-0">
-                    <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-who-we-are">
-                      {t.about.whoWeAre}
-                    </h2>
-                    <p className="text-white/90 text-lg leading-relaxed" data-testid="text-who-we-are-content">
-                      {t.about.whoWeAreText}
-                    </p>
-                  </div>
-                </section>
-                
-                {/* Mission - Mobile has own background, desktop uses wrapper background */}
-                <section className="relative rounded-md overflow-hidden md:rounded-none md:overflow-visible">
-                  {/* Mobile background image - hidden on desktop */}
-                  <div 
-                    className="absolute inset-0 md:hidden"
-                    style={{
-                      backgroundImage: `url(${missionBackgroundMobile})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  ></div>
-                  {/* Mobile overlay */}
-                  <div className="absolute inset-0 bg-black/70 md:hidden"></div>
-                  <div className="relative z-10 p-8 md:p-0">
-                    <h2 className="text-3xl font-bold mb-4 text-white" data-testid="text-mission">
-                      {t.about.mission}
-                    </h2>
-                    <p className="text-white/90 text-lg leading-relaxed" data-testid="text-mission-content">
-                      {t.about.missionText}
-                    </p>
-                  </div>
-                </section>
+            {/* Who We Are - Mobile has background, Desktop plain */}
+            <section 
+              className="relative rounded-md overflow-hidden md:rounded-none"
+              style={{
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
+              {/* Mobile overlay */}
+              <div className="absolute inset-0 bg-black/70 md:hidden"></div>
+              <div className="relative z-10 p-8 md:p-0">
+                <h2 className="text-3xl font-bold mb-4 text-white md:text-foreground" data-testid="text-who-we-are">
+                  {t.about.whoWeAre}
+                </h2>
+                <p className="text-white/90 md:text-muted-foreground text-lg leading-relaxed" data-testid="text-who-we-are-content">
+                  {t.about.whoWeAreText}
+                </p>
               </div>
-            </div>
+            </section>
+            
+            {/* Mission - TEMPORARY GALLERY */}
+            <section className="p-6 bg-card border rounded-md">
+              <h3 className="text-xl font-bold mb-4 text-primary">Vali Our Mission pilt telefoni jaoks (1-5):</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <p className="font-bold text-primary">1. Team Gaming (Friends)</p>
+                  <img src={missionOption1} alt="Option 1" className="w-full h-48 object-cover rounded-md" />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-bold text-primary">2. Victory Celebration</p>
+                  <img src={missionOption2} alt="Option 2" className="w-full h-48 object-cover rounded-md" />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-bold text-primary">3. Futuristic Gaming Tech</p>
+                  <img src={missionOption3} alt="Option 3" className="w-full h-48 object-cover rounded-md" />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-bold text-primary">4. Gaming Community</p>
+                  <img src={missionOption4} alt="Option 4" className="w-full h-48 object-cover rounded-md" />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-bold text-primary">5. Gaming Passion/Action</p>
+                  <img src={missionOption5} alt="Option 5" className="w-full h-48 object-cover rounded-md" />
+                </div>
+              </div>
+            </section>
             
             {/* Why Choose Us */}
             <section>
