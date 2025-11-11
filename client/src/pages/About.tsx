@@ -5,11 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Package, Truck, Shield, Headphones } from "lucide-react";
 import backgroundImage from "@assets/stock_images/gaming_controller_vi_e755ad7a.jpg";
-import missionOption1 from "@assets/stock_images/video_game_console_p_6dba4ae9.jpg";
-import missionOption2 from "@assets/stock_images/gaming_pc_computer_p_0bb35f9b.jpg";
-import missionOption3 from "@assets/stock_images/retro_video_game_arc_3b083ffe.jpg";
-import missionOption4 from "@assets/stock_images/modern_gaming_monito_b0fcc77e.jpg";
-import missionOption5 from "@assets/stock_images/video_game_collectio_f9b21f92.jpg";
+import missionBackgroundMobile from "@assets/stock_images/uncharted_video_game_e46e6a8d.jpg";
 
 export default function About() {
   const { language, t } = useLanguage();
@@ -89,30 +85,26 @@ export default function About() {
               </div>
             </section>
             
-            {/* Mission - TEMPORARY GALLERY */}
-            <section className="p-6 bg-card border rounded-md">
-              <h3 className="text-xl font-bold mb-4 text-primary">Vali Our Mission pilt telefoni jaoks (1-5):</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <p className="font-bold text-primary">1. Video Game Consoles</p>
-                  <img src={missionOption1} alt="Option 1" className="w-full h-48 object-cover rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold text-primary">2. Gaming PC Setup</p>
-                  <img src={missionOption2} alt="Option 2" className="w-full h-48 object-cover rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold text-primary">3. Retro Arcade Games</p>
-                  <img src={missionOption3} alt="Option 3" className="w-full h-48 object-cover rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold text-primary">4. Gaming Monitor/Screen</p>
-                  <img src={missionOption4} alt="Option 4" className="w-full h-48 object-cover rounded-md" />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold text-primary">5. Video Game Collection</p>
-                  <img src={missionOption5} alt="Option 5" className="w-full h-48 object-cover rounded-md" />
-                </div>
+            {/* Mission - Mobile has Uncharted background */}
+            <section className="relative rounded-md overflow-hidden md:rounded-none">
+              {/* Mobile background image - hidden on desktop */}
+              <div 
+                className="absolute inset-0 md:hidden"
+                style={{
+                  backgroundImage: `url(${missionBackgroundMobile})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              ></div>
+              {/* Mobile overlay */}
+              <div className="absolute inset-0 bg-black/70 md:hidden"></div>
+              <div className="relative z-10 p-8 md:p-0">
+                <h2 className="text-3xl font-bold mb-4 text-white md:text-foreground" data-testid="text-mission">
+                  {t.about.mission}
+                </h2>
+                <p className="text-white/90 md:text-muted-foreground text-lg leading-relaxed" data-testid="text-mission-content">
+                  {t.about.missionText}
+                </p>
               </div>
             </section>
             
