@@ -32,7 +32,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
   shippingMethod: z.enum(["omniva", "dpd"]),
-  paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
+  paymentMethod: z.enum(["stripe", "paysera", "montonio"]),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -75,37 +75,34 @@ export default function Checkout() {
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
-      const orderData = {
-        customerEmail: data.email,
-        customerName: `${data.firstName} ${data.lastName}`,
-        customerPhone: data.phone,
-        shippingAddress: {
-          street: data.address,
-          city: data.city,
-          postalCode: data.postalCode,
-          country: data.country,
-        },
-        billingAddress: {
-          street: data.address,
-          city: data.city,
-          postalCode: data.postalCode,
-          country: data.country,
+      const requestBody = {
+        order: {
+          customerEmail: data.email,
+          shippingFirstName: data.firstName,
+          shippingLastName: data.lastName,
+          shippingStreet: data.address,
+          shippingCity: data.city,
+          shippingPostalCode: data.postalCode,
+          shippingCountry: data.country,
+          shippingPhone: data.phone,
+          shippingMethod: data.shippingMethod,
+          paymentMethod: data.paymentMethod,
+          subtotal: itemsVat.subtotalExVat.toFixed(2),
+          shippingCost: shippingVat.subtotalExVat.toFixed(2),
+          vatAmount: totalVat.vatAmount.toFixed(2),
+          total: grandTotal.toFixed(2),
+          currency: 'EUR',
         },
         items: items.map(item => ({
           productId: item.id,
           quantity: item.quantity,
           price: item.price.toFixed(2),
+          subtotal: (item.price * item.quantity).toFixed(2),
         })),
-        subtotal: itemsVat.subtotalExVat.toFixed(2),
-        shipping: shippingVat.subtotalExVat.toFixed(2),
-        vatAmount: totalVat.vatAmount.toFixed(2),
-        total: grandTotal.toFixed(2),
-        currency: 'EUR',
-        shippingMethod: data.shippingMethod,
-        paymentMethod: data.paymentMethod,
+        language,
       };
       
-      const order = await apiRequest('POST', '/api/orders', orderData) as any;
+      const order = await apiRequest('POST', '/api/orders', requestBody) as any;
       
       // Create payment session based on selected provider
       let paymentUrl: string;
@@ -370,15 +367,6 @@ export default function Checkout() {
                                   <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
                                     <span className="font-semibold">Stripe</span>
                                     <span className="text-sm text-muted-foreground">{language === 'et' ? 'Krediitkaart' : 'Credit Card'}</span>
-                                  </Label>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paypal">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="paypal" id="paypal" />
-                                  <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">PayPal</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
                                   </Label>
                                 </div>
                               </div>
