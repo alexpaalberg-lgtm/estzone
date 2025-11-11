@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import heroImage from '@assets/generated_images/Gaming_setup_hero_banner_d3d2ad7b.png';
 
 interface Slide {
   id: number;
@@ -20,7 +19,25 @@ export default function HeroBanner() {
       id: 1,
       title: t.hero.title,
       subtitle: t.hero.subtitle,
-      image: heroImage,
+      image: '/images/hero-1.png',
+    },
+    {
+      id: 2,
+      title: t.hero.title,
+      subtitle: t.hero.subtitle,
+      image: '/images/hero-2.png',
+    },
+    {
+      id: 3,
+      title: t.hero.title,
+      subtitle: t.hero.subtitle,
+      image: '/images/hero-3.png',
+    },
+    {
+      id: 4,
+      title: t.hero.title,
+      subtitle: t.hero.subtitle,
+      image: '/images/hero-4.png',
     },
   ];
 
@@ -33,7 +50,7 @@ export default function HeroBanner() {
   };
 
   useEffect(() => {
-    const timer = setInterval(nextSlide, 5000);
+    const timer = setInterval(nextSlide, 3000); // Changed to 3 seconds
     return () => clearInterval(timer);
   }, []);
 
