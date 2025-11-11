@@ -14,9 +14,14 @@ export default function ProductGrid({ products, showHeader = true }: ProductGrid
     <div className="w-full">
       {showHeader && (
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2" data-testid="text-section-title">
-            {language === 'et' ? 'Tooted' : 'Products'}
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-3xl font-bold" data-testid="text-section-title">
+              {language === 'et' ? 'Tooted' : 'Products'}
+            </h2>
+            <p className="text-muted-foreground" data-testid="text-product-count">
+              {language === 'et' ? `${products.length} toodet` : `${products.length} products`}
+            </p>
+          </div>
           <p className="text-muted-foreground" data-testid="text-section-subtitle">
             {language === 'et' ? 'Avasta meie mängutarvikute valikut' : 'Discover our selection of gaming gear'}
           </p>
