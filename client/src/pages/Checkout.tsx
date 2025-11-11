@@ -32,7 +32,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
   shippingMethod: z.enum(["omniva", "dpd"]),
-  paymentMethod: z.enum(["demo", "stripe", "paysera", "montonio"]),
+  paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -69,83 +69,55 @@ export default function Checkout() {
       postalCode: "",
       country: "Estonia",
       shippingMethod: "omniva",
-      paymentMethod: "demo",
+      paymentMethod: "stripe",
     },
   });
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
-      const requestBody = {
-        order: {
-          customerEmail: data.email,
-          shippingFirstName: data.firstName,
-          shippingLastName: data.lastName,
-          shippingStreet: data.address,
-          shippingCity: data.city,
-          shippingPostalCode: data.postalCode,
-          shippingCountry: data.country,
-          shippingPhone: data.phone,
-          shippingMethod: data.shippingMethod,
-          paymentMethod: data.paymentMethod,
-          subtotal: itemsVat.subtotalExVat.toFixed(2),
-          shippingCost: shippingVat.subtotalExVat.toFixed(2),
-          vatAmount: totalVat.vatAmount.toFixed(2),
-          total: grandTotal.toFixed(2),
-          currency: 'EUR',
+      // Use VAT breakdown (already in EUR) for storage
+      // This ensures consistency between displayed and stored amounts
+      const orderData = {
+        customerEmail: data.email,
+        customerName: `${data.firstName} ${data.lastName}`,
+        customerPhone: data.phone,
+        shippingAddress: {
+          street: data.address,
+          city: data.city,
+          postalCode: data.postalCode,
+          country: data.country,
+        },
+        billingAddress: {
+          street: data.address,
+          city: data.city,
+          postalCode: data.postalCode,
+          country: data.country,
         },
         items: items.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.price.toFixed(2),
-          subtotal: (item.price * item.quantity).toFixed(2),
+          price: item.price.toFixed(2), // Already in EUR
         })),
-        language,
+        subtotal: itemsVat.subtotalExVat.toFixed(2),
+        shipping: shippingVat.subtotalExVat.toFixed(2),
+        vatAmount: totalVat.vatAmount.toFixed(2),
+        total: grandTotal.toFixed(2),
+        currency: 'EUR', // Always store in base currency
+        shippingMethod: data.shippingMethod,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: 'pending' as const,
+        orderStatus: 'processing' as const,
       };
       
-      const order = await apiRequest('POST', '/api/orders', requestBody) as any;
-      
-      // Create payment session based on selected provider
-      let paymentUrl: string;
-      
-      if (data.paymentMethod === 'demo') {
-        // Demo payment - instant success redirect
-        const payment = await apiRequest('POST', '/api/payments/demo', {
-          orderId: order.id,
-          amount: grandTotal,
-          currency: 'EUR',
-        }) as any;
-        paymentUrl = payment.paymentUrl;
-      } else if (data.paymentMethod === 'stripe') {
-        const payment = await apiRequest('POST', '/api/payments/stripe', {
-          orderId: order.id,
-          amount: grandTotal,
-          currency: 'EUR',
-        }) as any;
-        paymentUrl = payment.url;
-      } else if (data.paymentMethod === 'montonio') {
-        const payment = await apiRequest('POST', '/api/payments/montonio', {
-          orderId: order.id,
-          amount: grandTotal,
-          currency: 'EUR',
-        }) as any;
-        paymentUrl = payment.paymentUrl;
-      } else if (data.paymentMethod === 'paysera') {
-        const payment = await apiRequest('POST', '/api/payments/paysera', {
-          orderId: order.id,
-          amount: grandTotal,
-          currency: 'EUR',
-        }) as any;
-        paymentUrl = payment.paymentUrl;
-      } else {
-        throw new Error('Unsupported payment method');
-      }
-      
-      return { order, paymentUrl };
+      return await apiRequest('POST', '/api/orders', orderData);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       clearCart();
-      // Redirect to payment provider
-      window.location.href = data.paymentUrl;
+      toast({
+        title: language === 'et' ? 'Tellimus edastatud!' : 'Order placed!',
+        description: language === 'et' ? 'Saadame teile kinnituskirja' : 'We will send you a confirmation email',
+      });
+      setLocation('/');
     },
     onError: (error: any) => {
       toast({
@@ -369,21 +341,21 @@ export default function Checkout() {
                               value={field.value}
                               className="space-y-3"
                             >
-                              <div className="flex items-center justify-between p-4 border-2 border-primary/50 bg-primary/5 rounded-md hover-elevate cursor-pointer" data-testid="option-demo">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="demo" id="demo" />
-                                  <Label htmlFor="demo" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold text-primary">Demo Payment ✓</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Testimiseks (ei vaja API võtmeid)' : 'For Testing (no API keys needed)'}</span>
-                                  </Label>
-                                </div>
-                              </div>
                               <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-stripe">
                                 <div className="flex items-center gap-3">
                                   <RadioGroupItem value="stripe" id="stripe" />
                                   <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
                                     <span className="font-semibold">Stripe</span>
                                     <span className="text-sm text-muted-foreground">{language === 'et' ? 'Krediitkaart' : 'Credit Card'}</span>
+                                  </Label>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paypal">
+                                <div className="flex items-center gap-3">
+                                  <RadioGroupItem value="paypal" id="paypal" />
+                                  <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
+                                    <span className="font-semibold">PayPal</span>
+                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
                                   </Label>
                                 </div>
                               </div>

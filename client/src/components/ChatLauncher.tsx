@@ -12,7 +12,6 @@ export default function ChatLauncher() {
         <Button
           size="icon"
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-          style={{ left: 'auto' }}
           onClick={() => setIsOpen(true)}
           data-testid="button-chat-launcher"
         >
@@ -21,7 +20,7 @@ export default function ChatLauncher() {
       )}
       
       {isOpen && (
-        <div className="fixed inset-0 md:inset-auto md:bottom-6 md:right-6 md:w-96 w-full h-full md:h-[600px] bg-background border border-border rounded-none md:rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
+        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-background border border-border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border bg-card">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-primary" />

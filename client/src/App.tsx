@@ -7,14 +7,11 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import ChatLauncher from "@/components/ChatLauncher";
-import ShoppingCart from "@/components/ShoppingCart";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import PaymentCancel from "@/pages/PaymentCancel";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/not-found";
@@ -34,8 +31,6 @@ function Router() {
       <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
-      <Route path="/payment/success" component={PaymentSuccess} />
-      <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route component={NotFound} />
@@ -61,7 +56,6 @@ function App() {
             <CartProvider>
               <Toaster />
               <Router />
-              <ShoppingCart />
               <ChatLauncher />
             </CartProvider>
           </CurrencyProvider>

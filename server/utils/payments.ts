@@ -1,146 +1,22 @@
-import Stripe from 'stripe';
-import type { Request, Response } from 'express';
-import { handlePaymentWebhook } from './paymentOrchestrator';
-
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: '2025-10-29.clover',
-}) : null;
-
 // Payment provider interfaces
+
 export interface PaymentIntent {
   id: string;
   status: 'pending' | 'succeeded' | 'failed';
   amount: number;
   currency: string;
-  clientSecret?: string;
 }
 
-// Stripe Checkout Session Creation
-export async function createStripeCheckoutSession(orderId: string, amount: number, currency: string = 'EUR'): Promise<{
-  sessionId: string;
-  url: string;
-}> {
-  if (!stripe) {
-    throw new Error('Stripe not configured - STRIPE_SECRET_KEY missing');
-  }
-
-  const baseUrl = process.env.BASE_URL || 
-    (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000');
-
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [{
-      price_data: {
-        currency: currency.toLowerCase(),
-        product_data: {
-          name: `Order ${orderId}`,
-        },
-        unit_amount: Math.round(amount * 100), // Convert to cents
-      },
-      quantity: 1,
-    }],
-    mode: 'payment',
-    success_url: `${baseUrl}/payment/success?order_id=${orderId}`,
-    cancel_url: `${baseUrl}/payment/cancel?order_id=${orderId}`,
-    metadata: {
-      orderId,
-    },
-  });
-
+// Stripe integration (using existing blueprint)
+export async function createStripePayment(amount: number, currency: string = 'EUR'): Promise<PaymentIntent> {
+  // TODO: Use Stripe integration from blueprint
+  console.log(`[STRIPE] Creating payment for ${amount} ${currency}`);
   return {
-    sessionId: session.id,
-    url: session.url!,
+    id: `pi_stripe_${Date.now()}`,
+    status: 'pending',
+    amount,
+    currency,
   };
-}
-
-// Stripe Webhook Handler
-export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
-  if (!stripe || !stripeWebhookSecret) {
-    res.status(500).json({ error: 'Stripe not configured' });
-    return;
-  }
-
-  const sig = req.headers['stripe-signature'] as string;
-  
-  try {
-    const event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      stripeWebhookSecret
-    );
-
-    console.log(`[STRIPE] Webhook received: ${event.type}`);
-
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.orderId;
-      
-      if (!orderId) {
-        console.error('[STRIPE] No orderId in session metadata');
-        res.status(400).json({ error: 'Missing orderId' });
-        return;
-      }
-
-      // Call unified payment handler
-      const result = await handlePaymentWebhook({
-        provider: 'stripe',
-        eventId: event.id,
-        eventType: 'checkout.session.completed',
-        orderId,
-        paymentId: session.payment_intent as string,
-        status: 'success',
-        amount: session.amount_total ? session.amount_total / 100 : 0,
-        currency: session.currency?.toUpperCase(),
-        rawPayload: event,
-      });
-
-      // Return 503 if concurrent processing detected to trigger Stripe retry
-      if (!result.success) {
-        res.status(503).json({ error: result.message });
-        return;
-      }
-
-      res.json({ received: true });
-    } else if (event.type === 'checkout.session.expired') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.orderId;
-      
-      if (orderId) {
-        const result = await handlePaymentWebhook({
-          provider: 'stripe',
-          eventId: event.id,
-          eventType: 'checkout.session.expired',
-          orderId,
-          status: 'failed',
-          rawPayload: event,
-        });
-
-        // Return 503 if concurrent processing detected
-        if (!result.success) {
-          res.status(503).json({ error: result.message });
-          return;
-        }
-      }
-      
-      res.json({ received: true });
-    } else {
-      res.json({ received: true, ignored: true });
-    }
-  } catch (err: any) {
-    console.error('[STRIPE] Webhook error:', err.message);
-    
-    // Signature verification failures should return 400 (bad request)
-    // Processing errors should return 500 (retry)
-    if (err.type === 'StripeSignatureVerificationError') {
-      res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
-    } else {
-      // Processing error - return 500 to trigger Stripe retry
-      res.status(500).json({ error: `Webhook processing error: ${err.message}` });
-    }
-  }
 }
 
 // Paysera integration
@@ -151,6 +27,12 @@ export async function createPayseraPayment(amount: number, orderId: string, curr
   
   // This would return a payment URL for redirect
   return `https://www.paysera.com/pay?order_id=${orderId}&amount=${amount}`;
+}
+
+export async function verifyStripePayment(paymentId: string): Promise<boolean> {
+  // TODO: Use Stripe integration to verify payment
+  console.log(`[STRIPE] Verifying payment ${paymentId}`);
+  return true;
 }
 
 export async function verifyPayseraCallback(data: any): Promise<boolean> {

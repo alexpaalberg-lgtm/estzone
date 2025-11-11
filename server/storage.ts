@@ -11,10 +11,8 @@ import type {
   NewsletterSubscriber, InsertNewsletterSubscriber,
   SupportSession, InsertSupportSession,
   SupportMessage, InsertSupportMessage,
-  StockReservation, InsertStockReservation,
-  PaymentEvent, InsertPaymentEvent,
 } from '@shared/schema';
-import { eq, desc, and, sql, or, ilike } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 
 export interface IStorage {
   // Users
@@ -54,21 +52,6 @@ export interface IStorage {
   updateOrderStatus(id: string, status: string, paymentStatus?: string): Promise<void>;
   updateOrderTracking(id: string, trackingNumber: string): Promise<void>;
   getOrderItems(orderId: string): Promise<OrderItem[]>;
-  
-  // Stock Reservations
-  createReservation(orderId: string, items: InsertOrderItem[]): Promise<void>;
-  commitReservation(orderId: string, paymentId: string): Promise<void>;
-  commitReservationWithEvent(orderId: string, paymentId: string, eventId: string): Promise<void>;
-  releaseReservation(orderId: string, reason: string): Promise<void>;
-  releaseReservationWithEvent(orderId: string, reason: string, eventId: string): Promise<void>;
-  expireOldReservations(): Promise<number>;
-  getReservations(orderId: string): Promise<StockReservation[]>;
-  
-  // Payment Events (for idempotency)
-  recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null>;
-  markPaymentEventProcessed(providerEventId: string): Promise<void>;
-  isPaymentEventProcessed(providerEventId: string): Promise<boolean>;
-  getPaymentEvent(providerEventId: string): Promise<PaymentEvent | undefined>;
   
   // Blog
   getBlogPosts(published?: boolean): Promise<BlogPost[]>;
@@ -143,17 +126,6 @@ export class DbStorage implements IStorage {
     }
     if (filters?.featured) {
       conditions.push(eq(schema.products.isFeatured, true));
-    }
-    if (filters?.search && filters.search.trim()) {
-      const searchTerm = `%${filters.search.trim()}%`;
-      conditions.push(
-        or(
-          ilike(schema.products.nameEn, searchTerm),
-          ilike(schema.products.nameEt, searchTerm),
-          ilike(schema.products.descriptionEn, searchTerm),
-          ilike(schema.products.descriptionEt, searchTerm)
-        )!
-      );
     }
     
     return db.select().from(schema.products)
@@ -281,15 +253,9 @@ export class DbStorage implements IStorage {
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
     const orderNumber = `EST-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    // Set reservation expiry (15 minutes from now)
-    const reservationExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    
     const orderData = {
       ...order,
       orderNumber,
-      reservationExpiresAt,
-      paymentStatus: 'pending',
-      status: 'pending',
       subtotal: typeof order.subtotal === 'number' ? order.subtotal.toString() : order.subtotal,
       shippingCost: typeof order.shippingCost === 'number' ? order.shippingCost.toString() : order.shippingCost,
       tax: order.tax ? (typeof order.tax === 'number' ? order.tax.toString() : order.tax) : '0',
@@ -300,37 +266,19 @@ export class DbStorage implements IStorage {
       .values(orderData as any)
       .returning();
     
-    // Fetch product details in batch (single query)
-    const productIds = Array.from(new Set(items.map(item => item.productId)));
-    const products = await db.select()
-      .from(schema.products)
-      .where(sql`${schema.products.id} IN (${sql.join(productIds.map(id => sql`${id}`), sql`, `)})`);
-    
-    const productMap = new Map(products.map(p => [p.id, p]));
-    
-    // Enrich items with product details
-    const itemsData = items.map(item => {
-      const product = productMap.get(item.productId);
-      
-      if (!product) {
-        throw new Error(`Product ${item.productId} not found`);
-      }
-      
-      return {
-        ...item,
-        orderId: created.id,
-        productNameEn: product.nameEn,
-        productNameEt: product.nameEt,
-        sku: product.sku,
-        price: typeof item.price === 'number' ? item.price.toString() : item.price,
-        subtotal: typeof item.subtotal === 'number' ? item.subtotal.toString() : item.subtotal,
-      };
-    });
+    const itemsData = items.map(item => ({
+      ...item,
+      orderId: created.id,
+      price: typeof item.price === 'number' ? item.price.toString() : item.price,
+      subtotal: typeof item.subtotal === 'number' ? item.subtotal.toString() : item.subtotal,
+    }));
     
     await db.insert(schema.orderItems).values(itemsData as any);
     
-    // Create stock reservations instead of immediately decrementing
-    await this.createReservation(created.id, items);
+    // Update stock
+    for (const item of items) {
+      await this.updateProductStock(item.productId, -item.quantity);
+    }
     
     return created;
   }
@@ -442,313 +390,6 @@ export class DbStorage implements IStorage {
       .values(message)
       .returning();
     return newMessage;
-  }
-  
-  // Stock Reservation Methods
-  async createReservation(orderId: string, items: InsertOrderItem[]): Promise<void> {
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-    
-    // ATOMIC: Check stock availability + create reservations in single transaction
-    await db.transaction(async (tx) => {
-      // Aggregate quantities by productId to handle duplicate items in same order
-      const productQuantities = new Map<string, number>();
-      for (const item of items) {
-        const current = productQuantities.get(item.productId) || 0;
-        productQuantities.set(item.productId, current + item.quantity);
-      }
-      
-      // Validate stock availability for each unique product
-      // Must account for existing reservations AND aggregated order quantities
-      const productNames = new Map<string, string>();
-      
-      for (const [productId, totalQuantity] of Array.from(productQuantities.entries())) {
-        // Get product with lock
-        const [product] = await tx.select()
-          .from(schema.products)
-          .where(eq(schema.products.id, productId))
-          .for('update'); // Lock row to prevent race conditions
-        
-        if (!product) {
-          throw new Error(`Product ${productId} not found`);
-        }
-        
-        productNames.set(productId, product.nameEn);
-        
-        // Calculate currently reserved quantity (not yet committed)
-        const [reservedStock] = await tx.select({
-          reserved: sql<number>`COALESCE(SUM(${schema.stockReservations.quantity}), 0)`
-        })
-        .from(schema.stockReservations)
-        .where(
-          and(
-            eq(schema.stockReservations.productId, productId),
-            eq(schema.stockReservations.status, 'reserved')
-          )
-        );
-        
-        // Available stock = actual stock - currently reserved
-        const availableStock = product.stock - (reservedStock.reserved || 0);
-        
-        if (availableStock < totalQuantity) {
-          throw new Error(`Insufficient stock for ${product.nameEn}. Available: ${availableStock}, Requested: ${totalQuantity}`);
-        }
-      }
-      
-      // All stock checks passed - create reservations for original items
-      for (const item of items) {
-        await tx.insert(schema.stockReservations).values({
-          orderId,
-          productId: item.productId,
-          quantity: item.quantity,
-          status: 'reserved',
-          expiresAt,
-        });
-      }
-    });
-  }
-  
-  async commitReservationWithEvent(orderId: string, paymentId: string, eventId: string): Promise<void> {
-    // ATOMIC: Entire flow in single transaction
-    await db.transaction(async (tx) => {
-      // Get all reservations for this order
-      const reservations = await tx.select()
-        .from(schema.stockReservations)
-        .where(eq(schema.stockReservations.orderId, orderId));
-      
-      // Check if any reservations exist and are committable
-      const hasReservedItems = reservations.some(r => r.status === 'reserved');
-      
-      if (!hasReservedItems) {
-        // All reservations already released/committed - this is a late webhook or duplicate
-        console.warn(`[STOCK] No active reservations found for order ${orderId}. Skipping stock commit.`);
-        
-        // Still mark payment event as processed to prevent retries
-        await tx.update(schema.paymentEvents)
-          .set({
-            processed: true,
-            processedAt: new Date(),
-          })
-          .where(eq(schema.paymentEvents.providerEventId, eventId));
-        
-        return;
-      }
-      
-      // Update stock levels atomically
-      for (const reservation of reservations) {
-        if (reservation.status === 'reserved') {
-          // Decrement actual stock
-          await tx.update(schema.products)
-            .set({
-              stock: sql`${schema.products.stock} - ${reservation.quantity}`,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.products.id, reservation.productId));
-          
-          // Mark reservation as committed
-          await tx.update(schema.stockReservations)
-            .set({
-              status: 'committed',
-              releasedAt: new Date(),
-              releaseReason: 'payment_success',
-            })
-            .where(eq(schema.stockReservations.id, reservation.id));
-        }
-      }
-      
-      // Update order payment status
-      await tx.update(schema.orders)
-        .set({
-          paymentStatus: 'completed',
-          paymentId,
-          status: 'processing',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.orders.id, orderId));
-      
-      // Mark payment event as processed
-      await tx.update(schema.paymentEvents)
-        .set({
-          processed: true,
-          processedAt: new Date(),
-        })
-        .where(eq(schema.paymentEvents.providerEventId, eventId));
-    });
-  }
-  
-  async commitReservation(orderId: string, paymentId: string): Promise<void> {
-    // Legacy method - kept for backward compatibility
-    // Use commitReservationWithEvent for webhook processing
-    const reservations = await this.getReservations(orderId);
-    
-    for (const reservation of reservations) {
-      if (reservation.status === 'reserved') {
-        await this.updateProductStock(reservation.productId, -reservation.quantity);
-        
-        await db.update(schema.stockReservations)
-          .set({
-            status: 'committed',
-            releasedAt: new Date(),
-            releaseReason: 'payment_success',
-          })
-          .where(eq(schema.stockReservations.id, reservation.id));
-      }
-    }
-    
-    await db.update(schema.orders)
-      .set({
-        paymentStatus: 'completed',
-        paymentId,
-        status: 'processing',
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.orders.id, orderId));
-  }
-  
-  async releaseReservationWithEvent(orderId: string, reason: string, eventId: string): Promise<void> {
-    // ATOMIC: Entire flow in single transaction
-    await db.transaction(async (tx) => {
-      // Mark all reservations as released
-      await tx.update(schema.stockReservations)
-        .set({
-          status: 'released',
-          releasedAt: new Date(),
-          releaseReason: reason,
-        })
-        .where(
-          and(
-            eq(schema.stockReservations.orderId, orderId),
-            eq(schema.stockReservations.status, 'reserved')
-          )
-        );
-      
-      // Update order status
-      const updateData: any = {
-        updatedAt: new Date(),
-      };
-      
-      if (reason === 'payment_failed') {
-        updateData.paymentStatus = 'failed';
-        updateData.status = 'cancelled';
-      }
-      
-      await tx.update(schema.orders)
-        .set(updateData)
-        .where(eq(schema.orders.id, orderId));
-      
-      // Mark payment event as processed
-      await tx.update(schema.paymentEvents)
-        .set({
-          processed: true,
-          processedAt: new Date(),
-        })
-        .where(eq(schema.paymentEvents.providerEventId, eventId));
-    });
-  }
-  
-  async releaseReservation(orderId: string, reason: string): Promise<void> {
-    // Legacy method - kept for backward compatibility
-    await db.update(schema.stockReservations)
-      .set({
-        status: 'released',
-        releasedAt: new Date(),
-        releaseReason: reason,
-      })
-      .where(
-        and(
-          eq(schema.stockReservations.orderId, orderId),
-          eq(schema.stockReservations.status, 'reserved')
-        )
-      );
-    
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
-    
-    if (reason === 'payment_failed') {
-      updateData.paymentStatus = 'failed';
-      updateData.status = 'cancelled';
-    }
-    
-    await db.update(schema.orders)
-      .set(updateData)
-      .where(eq(schema.orders.id, orderId));
-  }
-  
-  async expireOldReservations(): Promise<number> {
-    const now = new Date();
-    
-    // Find expired reservations
-    const expired = await db.select()
-      .from(schema.stockReservations)
-      .where(
-        and(
-          eq(schema.stockReservations.status, 'reserved'),
-          sql`${schema.stockReservations.expiresAt} < ${now}`
-        )
-      );
-    
-    // Release them
-    for (const reservation of expired) {
-      await this.releaseReservation(reservation.orderId, 'timeout');
-    }
-    
-    return expired.length;
-  }
-  
-  async getReservations(orderId: string): Promise<StockReservation[]> {
-    return db.select()
-      .from(schema.stockReservations)
-      .where(eq(schema.stockReservations.orderId, orderId));
-  }
-  
-  // Payment Event Methods (for idempotency)
-  async recordPaymentEvent(event: InsertPaymentEvent): Promise<PaymentEvent | null> {
-    // ATOMIC: Try to insert new event; if duplicate (unique constraint), return null
-    try {
-      const [created] = await db.insert(schema.paymentEvents)
-        .values({
-          ...event,
-          processed: false, // Always start unprocessed
-        })
-        .onConflictDoNothing({ target: schema.paymentEvents.providerEventId })
-        .returning();
-      
-      // If no row returned, it means this event already exists (idempotent retry)
-      if (!created) {
-        return null;
-      }
-      
-      return created;
-    } catch (error: any) {
-      // If unique constraint violation somehow still happens, treat as idempotent retry
-      if (error.code === '23505') { // PostgreSQL unique violation
-        return null;
-      }
-      throw error;
-    }
-  }
-  
-  async markPaymentEventProcessed(providerEventId: string): Promise<void> {
-    await db.update(schema.paymentEvents)
-      .set({
-        processed: true,
-        processedAt: new Date(),
-      })
-      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
-  }
-  
-  async isPaymentEventProcessed(providerEventId: string): Promise<boolean> {
-    const [event] = await db.select()
-      .from(schema.paymentEvents)
-      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
-    return !!event?.processed;
-  }
-  
-  async getPaymentEvent(providerEventId: string): Promise<PaymentEvent | undefined> {
-    const [event] = await db.select()
-      .from(schema.paymentEvents)
-      .where(eq(schema.paymentEvents.providerEventId, providerEventId));
-    return event;
   }
 }
 

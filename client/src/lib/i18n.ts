@@ -27,12 +27,6 @@ export const translations = {
       newArrival: 'New',
       sale: 'Sale',
     },
-    cart: {
-      total: 'Total',
-      checkout: 'Proceed to Checkout',
-      continueShopping: 'Continue Shopping',
-      emptyCart: 'Your cart is empty',
-    },
     footer: {
       newsletter: 'Subscribe to our newsletter',
       emailPlaceholder: 'Enter your email',
@@ -71,12 +65,6 @@ export const translations = {
       outOfStock: 'Otsas',
       newArrival: 'Uus',
       sale: 'Soodustus',
-    },
-    cart: {
-      total: 'Kokku',
-      checkout: 'Mine Kassasse',
-      continueShopping: 'Jätka Ostlemist',
-      emptyCart: 'Teie ostukorv on tühi',
     },
     footer: {
       newsletter: 'Telli meie uudiskiri',

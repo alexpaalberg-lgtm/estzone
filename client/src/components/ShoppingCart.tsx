@@ -8,14 +8,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
 import { Separator } from '@/components/ui/separator';
-import { Link } from 'wouter';
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
   const { t } = useLanguage();
-  const { formatPrice } = useCurrency();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -33,7 +30,7 @@ export default function ShoppingCart() {
               <div className="text-center">
                 <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground" data-testid="text-empty-cart">
-                  {t.cart.emptyCart}
+                  Your cart is empty
                 </p>
               </div>
             </div>
@@ -57,7 +54,7 @@ export default function ShoppingCart() {
                           {item.name}
                         </h4>
                         <p className="text-primary font-bold" data-testid="text-item-price">
-                          {formatPrice(item.price)}
+                          €{item.price.toFixed(2)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button
@@ -98,23 +95,21 @@ export default function ShoppingCart() {
 
               <div className="mt-4 pt-4 border-t space-y-4">
                 <div className="flex justify-between text-lg font-bold">
-                  <span>{t.cart.total}</span>
+                  <span>Total</span>
                   <span className="text-primary" data-testid="text-total-price">
-                    {formatPrice(totalPrice)}
+                    €{totalPrice.toFixed(2)}
                   </span>
                 </div>
-                <Link href="/checkout">
-                  <Button className="w-full" size="lg" data-testid="button-checkout" onClick={() => setIsOpen(false)}>
-                    {t.cart.checkout}
-                  </Button>
-                </Link>
+                <Button className="w-full" size="lg" data-testid="button-checkout">
+                  Proceed to Checkout
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full"
                   onClick={() => setIsOpen(false)}
                   data-testid="button-continue-shopping"
                 >
-                  {t.cart.continueShopping}
+                  Continue Shopping
                 </Button>
               </div>
             </>

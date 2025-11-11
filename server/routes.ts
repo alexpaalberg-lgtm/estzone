@@ -5,11 +5,10 @@ import { insertProductSchema, insertOrderSchema, insertAddressSchema, insertBlog
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
-import { createStripeCheckoutSession, handleStripeWebhook, createPayseraPayment } from "./utils/payments";
+import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
-import { handlePaymentWebhook, getOrderPaymentStatus } from "./utils/paymentOrchestrator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Categories
@@ -115,17 +114,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(rates);
   });
   
-  // Checkout (legacy - deprecated, use provider-specific endpoints)
+  // Checkout
   app.post("/api/checkout/create-payment-intent", async (req, res) => {
     try {
-      const { amount, currency = 'EUR', provider = 'paysera' } = req.body;
+      const { amount, currency = 'EUR', provider = 'stripe' } = req.body;
       
-      if (provider === 'paysera') {
+      if (provider === 'stripe') {
+        const intent = await createStripePayment(amount, currency);
+        res.json({ clientSecret: intent.id, provider: 'stripe' });
+      } else if (provider === 'paysera') {
         const orderId = `temp-${Date.now()}`;
         const paymentUrl = await createPayseraPayment(amount, orderId, currency);
         res.json({ paymentUrl, provider: 'paysera' });
       } else {
-        res.status(400).json({ error: "Use provider-specific payment endpoints: /api/payments/stripe/checkout, /paypal/order, /api/payments/montonio" });
+        res.status(400).json({ error: "Invalid payment provider" });
       }
     } catch (error: any) {
       console.error('Error creating payment:', error);
@@ -168,10 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate order data
       const validatedOrder = insertOrderSchema.parse(order);
       
-      // Create order with stock reservation (not immediate deduction)
+      // Create order
       const createdOrder = await storage.createOrder(validatedOrder, items);
       
-      // Send order pending email (waiting for payment)
+      // Send confirmation email
       const orderItems = await storage.getOrderItems(createdOrder.id);
       await emailService.sendOrderConfirmation(createdOrder, orderItems, language);
       
@@ -179,79 +181,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error creating order:', error);
       res.status(400).json({ error: error.message || "Failed to create order" });
-    }
-  });
-  
-  // Get order payment status (for polling from frontend)
-  app.get("/api/orders/:id/status", async (req, res) => {
-    try {
-      const status = await getOrderPaymentStatus(req.params.id);
-      res.json(status);
-    } catch (error: any) {
-      res.status(404).json({ error: error.message || "Order not found" });
-    }
-  });
-  
-  // Payment initiation endpoints
-  app.post("/api/payments/demo", async (req, res) => {
-    try {
-      const { orderId } = req.body;
-      
-      // Demo payment - simulate instant success
-      const baseUrl = process.env.BASE_URL || 
-        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000');
-      
-      // Simulate payment processing by directly committing the reservation
-      await storage.commitReservation(orderId, `demo-payment-${Date.now()}`);
-      
-      console.log(`[DEMO] Payment simulated for order ${orderId}`);
-      res.json({ paymentUrl: `${baseUrl}/payment/success?order_id=${orderId}` });
-    } catch (error: any) {
-      console.error('[DEMO] Payment error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  
-  app.post("/api/payments/stripe", async (req, res) => {
-    try {
-      const { orderId, amount, currency } = req.body;
-      const session = await createStripeCheckoutSession(orderId, amount, currency);
-      res.json(session);
-    } catch (error: any) {
-      console.error('[STRIPE] Checkout error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  
-  app.post("/api/payments/paysera", async (req, res) => {
-    try {
-      const { orderId, amount, currency } = req.body;
-      const paymentUrl = await createPayseraPayment(amount, orderId, currency);
-      res.json({ paymentUrl });
-    } catch (error: any) {
-      console.error('[PAYSERA] Payment error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  
-  // Stripe webhook (requires raw body for signature verification)
-  app.post("/api/webhooks/stripe", async (req, res) => {
-    await handleStripeWebhook(req, res);
-  });
-  
-  // Unified webhook handler (generic endpoint for testing)
-  app.post("/api/webhooks/payment", async (req, res) => {
-    try {
-      const result = await handlePaymentWebhook(req.body);
-      if (!result.success) {
-        // Return 503 (Service Unavailable) to trigger provider retry
-        res.status(503).json(result);
-      } else {
-        res.json(result);
-      }
-    } catch (error: any) {
-      console.error('Webhook error:', error);
-      res.status(500).json({ error: error.message });
     }
   });
   

@@ -86,9 +86,7 @@ export const orders = pgTable("orders", {
   // Payment info
   paymentMethod: text("payment_method").notNull(), // stripe, paypal, paysera, montonio
   paymentStatus: text("payment_status").notNull().default('pending'), // pending, completed, failed
-  paymentId: text("payment_id"), // Final payment confirmation ID
-  paymentIntentId: text("payment_intent_id"), // Provider-specific intent/session ID
-  reservationExpiresAt: timestamp("reservation_expires_at"), // When stock reservation expires
+  paymentId: text("payment_id"),
   
   // Customer info (for guest checkout)
   customerEmail: text("customer_email").notNull(),
@@ -159,32 +157,6 @@ export const supportMessages = pgTable("support_messages", {
   role: text("role").notNull(), // 'user' or 'assistant'
   content: text("content").notNull(),
   metadata: json("metadata"), // For storing product IDs, order numbers, etc that were referenced
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Stock Reservations - for temporary stock holds during checkout
-export const stockReservations = pgTable("stock_reservations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
-  productId: varchar("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  status: text("status").notNull().default('reserved'), // reserved, committed, released
-  expiresAt: timestamp("expires_at").notNull(), // Auto-release after 15 minutes
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  releasedAt: timestamp("released_at"),
-  releaseReason: text("release_reason"), // timeout, payment_failed, payment_success, cancelled
-});
-
-// Payment Events - for idempotent webhook processing
-export const paymentEvents = pgTable("payment_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").notNull().references(() => orders.id),
-  provider: text("provider").notNull(), // stripe, paypal, montonio, paysera
-  providerEventId: text("provider_event_id").notNull().unique(), // Unique event ID from provider
-  eventType: text("event_type").notNull(), // payment.success, payment.failed, etc
-  payload: json("payload"), // Full webhook payload for debugging
-  processed: boolean("processed").default(false),
-  processedAt: timestamp("processed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -271,19 +243,3 @@ export const insertSupportMessageSchema = createInsertSchema(supportMessages).om
 });
 export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
 export type SupportMessage = typeof supportMessages.$inferSelect;
-
-export const insertStockReservationSchema = createInsertSchema(stockReservations).omit({
-  id: true,
-  createdAt: true,
-  releasedAt: true,
-});
-export type InsertStockReservation = z.infer<typeof insertStockReservationSchema>;
-export type StockReservation = typeof stockReservations.$inferSelect;
-
-export const insertPaymentEventSchema = createInsertSchema(paymentEvents).omit({
-  id: true,
-  createdAt: true,
-  processedAt: true,
-});
-export type InsertPaymentEvent = z.infer<typeof insertPaymentEventSchema>;
-export type PaymentEvent = typeof paymentEvents.$inferSelect;

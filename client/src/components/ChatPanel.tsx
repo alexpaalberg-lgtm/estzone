@@ -69,58 +69,55 @@ export default function ChatPanel() {
       const decoder = new TextDecoder();
       let assistantMessage = '';
       let newSessionId = sessionId;
-      let buffer = '';
       
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           
-          buffer += decoder.decode(value, { stream: true });
-          const events = buffer.split('\n\n');
-          buffer = events.pop() || '';
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
           
-          for (const event of events) {
-            const lines = event.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  
-                  if (data.error) {
-                    throw new Error(data.error);
-                  }
-                  
-                  if (data.sessionId && !newSessionId) {
-                    newSessionId = data.sessionId;
-                    setSessionId(data.sessionId);
-                  }
-                  
-                  if (data.chunk) {
-                    assistantMessage += data.chunk;
-                    setMessages(prev => {
-                      const filtered = prev.filter(m => m.id !== 'temp-assistant');
-                      return [...filtered, {
-                        role: 'assistant',
-                        content: assistantMessage,
-                        id: 'temp-assistant'
-                      }];
-                    });
-                  }
-                  
-                  if (data.done) {
-                    setMessages(prev => {
-                      const filtered = prev.filter(m => m.id !== 'temp-assistant');
-                      return [...filtered, {
-                        role: 'assistant',
-                        content: assistantMessage,
-                        id: Date.now().toString()
-                      }];
-                    });
-                  }
-                } catch (e) {
-                  console.error('Error parsing SSE data:', e, line);
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.error) {
+                  throw new Error(data.error);
                 }
+                
+                if (data.sessionId && !newSessionId) {
+                  newSessionId = data.sessionId;
+                  setSessionId(data.sessionId);
+                }
+                
+                if (data.chunk) {
+                  assistantMessage += data.chunk;
+                  // Update the assistant message in real-time
+                  setMessages(prev => {
+                    const filtered = prev.filter(m => m.id !== 'temp-assistant');
+                    return [...filtered, {
+                      role: 'assistant',
+                      content: assistantMessage,
+                      id: 'temp-assistant'
+                    }];
+                  });
+                }
+                
+                if (data.done) {
+                  // Finalize the assistant message
+                  setMessages(prev => {
+                    const filtered = prev.filter(m => m.id !== 'temp-assistant');
+                    return [...filtered, {
+                      role: 'assistant',
+                      content: assistantMessage,
+                      id: Date.now().toString()
+                    }];
+                  });
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
               }
             }
           }

@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { storage } from "./storage";
 
 const app = express();
 
@@ -49,24 +48,6 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
-
-  // Start stock reservation cleanup job
-  const cleanupReservations = async () => {
-    try {
-      const expired = await storage.expireOldReservations();
-      if (expired > 0) {
-        log(`[STOCK] Released ${expired} expired reservation(s)`);
-      }
-    } catch (error) {
-      console.error('[STOCK] Error expiring old reservations:', error);
-    }
-  };
-  
-  // Run immediately on startup to clear any stale reservations
-  await cleanupReservations();
-  
-  // Then run every 5 minutes
-  setInterval(cleanupReservations, 5 * 60 * 1000);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
