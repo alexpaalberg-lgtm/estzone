@@ -101,7 +101,6 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
         onFocus={() => {
           if (!isMobile) setIsOpen(true);
         }}
-        autoFocus={isMobile}
         data-testid="input-search"
       />
       {isLoading && query.length >= 2 && (
