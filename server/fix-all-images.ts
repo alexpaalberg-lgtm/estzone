@@ -134,6 +134,34 @@ function detectProductType(name: string): string {
   if (n.includes('nintendo switch')) return 'nintendo_switch';
   if (n.includes('steam deck')) return 'steam_deck';
   
+  // Handheld/Retro Consoles
+  if (n.includes('analogue pocket') || n.includes('anbernic') || n.includes('ayaneo') ||
+      n.includes('atari vcs') || n.includes('atari 2600') || 
+      n.includes('handheld') || n.includes('portable console') ||
+      n.includes('retro console') || n.includes('mini console') ||
+      n.includes('rog ally') || n.includes('steam deck')) {
+    return 'handheld_console';
+  }
+  
+  // Arcade Machines
+  if (n.includes('arcade1up') || n.includes('arcade cabinet') || 
+      n.includes('arcade machine') || n.includes('countercade')) {
+    return 'arcade_machine';
+  }
+  
+  // Microphones and Audio Equipment
+  if (n.includes('microphone') || n.includes('mic') || n.includes('yeti') || 
+      n.includes('at2020') || n.includes('boom arm') || n.includes('mic stand') ||
+      n.includes('audio-technica') || n.includes('blue yeti') || n.includes('condenser')) {
+    return 'microphone';
+  }
+  
+  // Premium/Professional Headsets (fallback after specific brands)
+  if (n.includes('astro') || n.includes('audeze') || n.includes('beyerdynamic') ||
+      n.includes('sennheiser') || n.includes('hyperx cloud')) {
+    return 'premium_headset';
+  }
+  
   // Other Accessories
   if (n.includes('charging') && n.includes('cable')) return 'usb_cable';
   if (n.includes('hdmi')) return 'hdmi_cable';
@@ -147,7 +175,7 @@ function detectProductType(name: string): string {
   if (n.includes('cable') || n.includes('charger')) return 'cable';
   if (n.includes('kishi') || n.includes('razer')) return 'razer_kishi';
   
-  // Games
+  // Games - more comprehensive detection
   if (n.includes('simulator') || n.includes('horizon') || n.includes('spider') ||
       n.includes('halo') || n.includes('mario') || n.includes('zelda') ||
       n.includes('god of war') || n.includes('gran turismo') || n.includes('call of duty') ||
@@ -156,8 +184,16 @@ function detectProductType(name: string): string {
       n.includes('resident evil') || n.includes('final fantasy') || n.includes('pokemon') ||
       n.includes('kena') || n.includes('ratchet') || n.includes('returnal') ||
       n.includes('deathloop') || n.includes('demon') || n.includes('baldur') ||
-      n.includes('elden ring') || n.includes('control') || n.includes('game')) {
+      n.includes('elden ring') || n.includes('control') || n.includes('game') ||
+      n.includes('plague tale') || n.includes('age of empires') || n.includes('astral chain') ||
+      n.includes('astro\'s playroom') || n.includes('back 4 blood') || n.includes('battlefield') ||
+      n.includes('bayonetta') || n.includes('cuphead') || n.includes('state of decay')) {
     return 'game';
+  }
+  
+  // Generic accessory fallback (before default)
+  if (n.includes('accessory') || n.includes('gaming gear')) {
+    return 'generic_accessory';
   }
   
   return 'default';
@@ -169,8 +205,10 @@ function getImageForType(type: string): string {
     'playstation_headset': '/generated_images/PlayStation_Pulse_Elite_headset_95773763.png',
     'inzone_headset': '/generated_images/Sony_INZONE_H9_headset_71430daf.png',
     'steelseries_headset': '/generated_images/SteelSeries_Arctis_Nova_Pro_bc771c5b.png',
-    'earbuds': '/generated_images/Gaming_earbuds_wireless_772ea2be.png',
+    'earbuds': '/generated_images/Gaming_earbuds_wireless_c80b387b.png',
     'gaming_headset': '/generated_images/Gaming_headset_with_microphone_166465ab.png',
+    'premium_headset': '/generated_images/Premium_wireless_gaming_headset_f144cefa.png',
+    'microphone': '/generated_images/Professional_USB_microphone_0a0482c2.png',
     
     // DualSense Controllers (all colors)
     'dualsense_charging_station': '/generated_images/DualSense_charging_station_96f0458a.png',
@@ -205,6 +243,8 @@ function getImageForType(type: string): string {
     'xbox_series_s': '/generated_images/Xbox_Series_S_white_86bfef60.png',
     'nintendo_switch': '/generated_images/Nintendo_Switch_OLED_console_c97915d8.png',
     'steam_deck': '/generated_images/Steam_Deck_console_1406776a.png',
+    'handheld_console': '/generated_images/Generic_handheld_gaming_console_7226d611.png',
+    'arcade_machine': '/generated_images/Arcade_cabinet_machine_0406a487.png',
     
     // VR Headsets
     'meta_quest_3': '/generated_images/Meta_Quest_3_VR_headset_3e6dde53.png',
@@ -228,12 +268,13 @@ function getImageForType(type: string): string {
     'headset_stand': '/generated_images/Gaming_headset_stand_RGB_306af9c3.png',
     'cable': '/generated_images/USB-C_charging_cable_f4de5338.png',
     'razer_kishi': '/generated_images/Razer_Kishi_V2_controller_c1e32d46.png',
+    'generic_accessory': '/generated_images/Controller_thumb_grips_cf5c2277.png',
     
     // Games
-    'game': '/generated_images/Generic_PS5_game_box_placeholder_60d2d305.png',
+    'game': '/generated_images/Generic_video_game_box_ab5de035.png',
     
     // Default
-    'default': '/generated_images/PlayStation_5_console_white_background_6a8c2a63.png'
+    'default': '/generated_images/Generic_video_game_box_ab5de035.png'
   };
   
   return imageMap[type] || imageMap['default'];
