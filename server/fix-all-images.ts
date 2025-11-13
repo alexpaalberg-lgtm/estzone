@@ -52,11 +52,31 @@ function detectProductType(name: string): string {
     }
   }
   
-  // Controllers - check specific colors
-  if (n.includes('dualsense')) {
+  // PS5 Accessories - check BEFORE PS5 controllers!
+  if (n.includes('ps5') || n.includes('playstation')) {
+    if (n.includes('thumb grip') || n.includes('thumbstick')) return 'thumb_grips';
+    if (n.includes('trigger extender')) return 'thumb_grips';
+    if (n.includes('silicone cover') && n.includes('controller')) return 'controller_case';
+    if (n.includes('media remote')) return 'cable';
+  }
+  
+  // PS5/DualSense Controllers - check BEFORE console! (with all colors)
+  // Exclude bundles/consoles from controller detection
+  const isNotConsoleBundle = !n.includes('bundle') && !n.includes(' console') && !n.includes('system');
+  
+  if (n.includes('dualsense') || 
+      (n.includes('ps5') && n.includes('controller') && isNotConsoleBundle) ||
+      (n.includes('ps5') && n.includes('wireless controller') && isNotConsoleBundle) ||
+      (n.includes('ps5') && n.includes('limited edition') && isNotConsoleBundle)) {
+    // Color detection
     if (n.includes('red') || n.includes('cosmic red')) return 'dualsense_red';
     if (n.includes('black') || n.includes('midnight black')) return 'dualsense_black';
-    return 'dualsense_white';
+    if (n.includes('gold') || n.includes('golden')) return 'dualsense_gold';
+    if (n.includes('blue') || n.includes('starlight blue')) return 'dualsense_blue';
+    if (n.includes('pink') || n.includes('nova pink')) return 'dualsense_pink';
+    if (n.includes('silver') || n.includes('sterling silver')) return 'dualsense_silver';
+    if (n.includes('purple') || n.includes('galactic purple')) return 'dualsense_purple';
+    return 'dualsense_white'; // Default white
   }
   
   if (n.includes('dualshock')) {
@@ -86,6 +106,7 @@ function detectProductType(name: string): string {
   // Consoles - check AFTER controllers/accessories
   if (n.includes('playstation 5') || n.includes('ps5')) {
     if (n.includes('digital')) return 'ps5_digital';
+    if (n.includes('pro')) return 'ps5_console'; // PS5 Pro
     return 'ps5_console';
   }
   if (n.includes('xbox series x')) return 'xbox_series_x';
@@ -145,11 +166,16 @@ function getImageForType(type: string): string {
     'earbuds': '/generated_images/Gaming_earbuds_wireless_772ea2be.png',
     'gaming_headset': '/generated_images/Gaming_headset_with_microphone_166465ab.png',
     
-    // DualSense Controllers
+    // DualSense Controllers (all colors)
     'dualsense_charging_station': '/generated_images/DualSense_charging_station_96f0458a.png',
     'dualsense_red': '/generated_images/DualSense_controller_red_d471a021.png',
     'dualsense_black': '/generated_images/DualSense_controller_black_aac10d34.png',
     'dualsense_white': '/generated_images/DualSense_PS5_controller_white_3a438492.png',
+    'dualsense_gold': '/generated_images/DualSense_controller_gold_metallic_44112b3f.png',
+    'dualsense_blue': '/generated_images/DualSense_controller_blue_d1161b16.png',
+    'dualsense_pink': '/generated_images/DualSense_controller_pink_00dac8f3.png',
+    'dualsense_silver': '/generated_images/DualSense_controller_silver_50d03ac0.png',
+    'dualsense_purple': '/generated_images/DualSense_controller_purple_a8ada48b.png',
     'dualshock_controller': '/generated_images/Xbox_wireless_controller_black_a8d34e27.png',
     
     // Xbox Controllers
