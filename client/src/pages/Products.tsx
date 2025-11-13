@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductGrid from "@/components/ProductGrid";
@@ -20,14 +20,16 @@ export default function Products() {
   
   const category = categories?.find(c => c.slug === params?.categorySlug);
   
-  const baseQueryKey = params?.categorySlug && category?.id 
-    ? `/api/products?categoryId=${category.id}`
-    : '/api/products';
-  
-  const queryKey = `${baseQueryKey}${baseQueryKey.includes('?') ? '&' : '?'}sort=${sortBy}`;
+  const queryParams = useMemo(() => {
+    const params: Record<string, string> = { sort: sortBy };
+    if (category?.id) {
+      params.categoryId = category.id;
+    }
+    return params;
+  }, [sortBy, category?.id]);
     
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: [queryKey],
+    queryKey: ['/api/products', queryParams],
     enabled: !params?.categorySlug || (!!category && !categoriesLoading),
   });
   

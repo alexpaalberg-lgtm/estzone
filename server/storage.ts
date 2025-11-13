@@ -128,17 +128,23 @@ export class DbStorage implements IStorage {
     if (filters?.featured) {
       conditions.push(eq(schema.products.isFeatured, true));
     }
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      conditions.push(
+        sql`(LOWER(${schema.products.nameEn}) LIKE ${searchTerm} OR LOWER(${schema.products.nameEt}) LIKE ${searchTerm} OR LOWER(${schema.products.sku}) LIKE ${searchTerm})`
+      );
+    }
     
     // Apply sorting
     switch (filters?.sort) {
       case 'price_asc':
         return db.select().from(schema.products)
           .where(and(...conditions))
-          .orderBy(sql`CAST(${schema.products.price} AS DECIMAL)`);
+          .orderBy(sql`CAST(${schema.products.price} AS NUMERIC)`);
       case 'price_desc':
         return db.select().from(schema.products)
           .where(and(...conditions))
-          .orderBy(desc(sql`CAST(${schema.products.price} AS DECIMAL)`));
+          .orderBy(sql`CAST(${schema.products.price} AS NUMERIC) DESC`);
       case 'name_az':
         return db.select().from(schema.products)
           .where(and(...conditions))
