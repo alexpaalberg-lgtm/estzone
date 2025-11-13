@@ -135,16 +135,27 @@ export class DbStorage implements IStorage {
       );
     }
     
-    // Apply sorting
+    // For price sorting, use CTE (derived table) strategy with computed numeric price
+    if (filters?.sort === 'price_asc' || filters?.sort === 'price_desc') {
+      const pricedProducts = db.$with('priced_products').as(
+        db.select({
+          ...schema.products,
+          priceNumeric: sql<number>`CAST(${schema.products.price} AS NUMERIC)`.as('price_numeric')
+        })
+        .from(schema.products)
+        .where(and(...conditions))
+      );
+      
+      const results = await db.with(pricedProducts)
+        .select()
+        .from(pricedProducts)
+        .orderBy(filters.sort === 'price_asc' ? pricedProducts.priceNumeric : desc(pricedProducts.priceNumeric));
+      
+      return results.map(({ priceNumeric, ...product }) => product as Product);
+    }
+    
+    // Standard sorting for non-price fields
     switch (filters?.sort) {
-      case 'price_asc':
-        return db.select().from(schema.products)
-          .where(and(...conditions))
-          .orderBy(sql`CAST(${schema.products.price} AS NUMERIC)`);
-      case 'price_desc':
-        return db.select().from(schema.products)
-          .where(and(...conditions))
-          .orderBy(sql`CAST(${schema.products.price} AS NUMERIC) DESC`);
       case 'name_az':
         return db.select().from(schema.products)
           .where(and(...conditions))
