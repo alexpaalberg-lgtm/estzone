@@ -16,6 +16,14 @@ function detectProductType(name: string): string {
     return 'headset_stand';
   }
   
+  // VR Headsets - check BEFORE generic headset (must include "headset" to avoid controllers)
+  if ((n.includes('meta quest 3') || n.includes('quest 3')) && n.includes('headset')) return 'meta_quest_3';
+  if ((n.includes('meta quest 2') || n.includes('quest 2')) && n.includes('headset')) return 'meta_quest_2';
+  if ((n.includes('playstation vr') || n.includes('psvr2') || n.includes('psvr 2')) && n.includes('headset')) return 'psvr2_headset';
+  if (n.includes('valve index') && n.includes('headset')) return 'valve_index';
+  if (n.includes('htc vive') && n.includes('headset')) return 'htc_vive';
+  if (n.includes('vr headset') || n.includes('virtual reality headset')) return 'generic_vr';
+  
   // Check for specific headsets/earbuds (before checking for "ps5" or "playstation")
   if (n.includes('pulse elite') || n.includes('pulse 3d') || n.includes('pulse wireless')) {
     return 'playstation_headset';
@@ -29,7 +37,7 @@ function detectProductType(name: string): string {
   if (n.includes('arctis') || (n.includes('steelseries') && n.includes('headset'))) {
     return 'steelseries_headset';
   }
-  // Generic headset check - only after specific accessories/headsets
+  // Generic headset check - ONLY after VR and specific headsets
   if (n.includes('headset') || n.includes('headphone')) {
     return 'gaming_headset';
   }
@@ -98,14 +106,6 @@ function detectProductType(name: string): string {
   if (n.includes('vr') && (n.includes('cable') || n.includes('link cable'))) return 'cable';
   if (n.includes('vr') && (n.includes('grip') || n.includes('controller grip'))) return 'vr_accessory';
   if (n.includes('vr') && (n.includes('case') || n.includes('carrying case'))) return 'controller_case';
-  
-  // VR Headsets - NOW check for headsets
-  if (n.includes('meta quest 3') || n.includes('quest 3')) return 'meta_quest_3';
-  if (n.includes('meta quest 2') || n.includes('quest 2')) return 'meta_quest_2';
-  if (n.includes('playstation vr') || n.includes('psvr2')) return 'psvr2_headset';
-  if (n.includes('valve index')) return 'valve_index';
-  if (n.includes('htc vive')) return 'htc_vive';
-  if (n.includes('vr headset') || n.includes('virtual reality headset')) return 'generic_vr';
   
   // Other Accessories
   if (n.includes('charging') && n.includes('cable')) return 'usb_cable';
