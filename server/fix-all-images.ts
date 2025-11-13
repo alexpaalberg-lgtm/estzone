@@ -16,12 +16,18 @@ function detectProductType(name: string): string {
     return 'headset_stand';
   }
   
-  // VR Headsets - check BEFORE generic headset (must include "headset" to avoid controllers)
-  if ((n.includes('meta quest 3') || n.includes('quest 3')) && n.includes('headset')) return 'meta_quest_3';
-  if ((n.includes('meta quest 2') || n.includes('quest 2')) && n.includes('headset')) return 'meta_quest_2';
-  if ((n.includes('playstation vr') || n.includes('psvr2') || n.includes('psvr 2')) && n.includes('headset')) return 'psvr2_headset';
-  if (n.includes('valve index') && n.includes('headset')) return 'valve_index';
-  if (n.includes('htc vive') && n.includes('headset')) return 'htc_vive';
+  // VR Headsets - check BEFORE generic headset
+  // Quest headsets (exclude controllers, straps, cases, grips, docks)
+  const isNotVRAccessory = !n.includes('controller') && !n.includes('strap') && !n.includes('case') && !n.includes('grip') && !n.includes('dock') && !n.includes('cable') && !n.includes('cover');
+  if ((n.includes('meta quest 3') || n.includes('quest 3')) && isNotVRAccessory) return 'meta_quest_3';
+  if ((n.includes('meta quest 2') || n.includes('quest 2')) && isNotVRAccessory) return 'meta_quest_2';
+  if ((n.includes('meta quest pro') || n.includes('quest pro')) && isNotVRAccessory) return 'meta_quest_3';
+  // PSVR headsets
+  if ((n.includes('playstation vr2') || n.includes('psvr2') || n.includes('psvr 2')) && !n.includes('controller')) return 'psvr2_headset';
+  // PC VR headsets
+  if (n.includes('valve index') && !n.includes('controller')) return 'valve_index';
+  if ((n.includes('htc vive') || (n.includes('vive') && (n.includes('headset') || n.includes('xr')))) && !n.includes('tracker')) return 'htc_vive';
+  // Generic VR
   if (n.includes('vr headset') || n.includes('virtual reality headset')) return 'generic_vr';
   
   // Check for specific headsets/earbuds (before checking for "ps5" or "playstation")
@@ -103,6 +109,20 @@ function detectProductType(name: string): string {
     return 'psvr2_controllers';
   }
   
+  // VR Accessories - check BEFORE consoles! (works with or without "vr" keyword)
+  if (n.includes('lens protector') || n.includes('lens protection')) return 'vr_lens_protector';
+  if (n.includes('face cover') || n.includes('silicone cover') || n.includes('facial interface')) return 'vr_accessory';
+  // Quest/PSVR accessories (even without "vr" keyword)
+  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('strap') || n.includes('elite strap') || n.includes('head strap') || n.includes('active strap'))) return 'vr_accessory';
+  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('grip') || n.includes('controller grip'))) return 'vr_accessory';
+  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('cable') || n.includes('link cable'))) return 'cable';
+  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('case') || n.includes('carrying case'))) return 'controller_case';
+  // Generic VR accessories (with "vr" keyword)
+  if (n.includes('vr') && (n.includes('strap') || n.includes('head strap') || n.includes('elite strap'))) return 'vr_accessory';
+  if (n.includes('vr') && (n.includes('cable') || n.includes('link cable'))) return 'cable';
+  if (n.includes('vr') && (n.includes('grip') || n.includes('controller grip'))) return 'vr_accessory';
+  if (n.includes('vr') && (n.includes('case') || n.includes('carrying case'))) return 'controller_case';
+  
   // Consoles - check AFTER controllers/accessories
   if (n.includes('playstation 5') || n.includes('ps5')) {
     if (n.includes('digital')) return 'ps5_digital';
@@ -113,20 +133,6 @@ function detectProductType(name: string): string {
   if (n.includes('xbox series s')) return 'xbox_series_s';
   if (n.includes('nintendo switch')) return 'nintendo_switch';
   if (n.includes('steam deck')) return 'steam_deck';
-  
-  // VR Accessories - CHECK BEFORE VR headsets! (works with or without "vr" keyword)
-  if (n.includes('lens protector') || n.includes('lens protection')) return 'vr_lens_protector';
-  if (n.includes('face cover') || n.includes('silicone cover') || n.includes('facial interface')) return 'vr_accessory';
-  // Quest/PSVR accessories (even without "vr" keyword)
-  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('strap') || n.includes('elite strap') || n.includes('head strap'))) return 'vr_accessory';
-  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('grip') || n.includes('controller grip'))) return 'vr_accessory';
-  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('cable') || n.includes('link cable'))) return 'cable';
-  if ((n.includes('quest') || n.includes('psvr')) && (n.includes('case') || n.includes('carrying case'))) return 'controller_case';
-  // Generic VR accessories (with "vr" keyword)
-  if (n.includes('vr') && (n.includes('strap') || n.includes('head strap') || n.includes('elite strap'))) return 'vr_accessory';
-  if (n.includes('vr') && (n.includes('cable') || n.includes('link cable'))) return 'cable';
-  if (n.includes('vr') && (n.includes('grip') || n.includes('controller grip'))) return 'vr_accessory';
-  if (n.includes('vr') && (n.includes('case') || n.includes('carrying case'))) return 'controller_case';
   
   // Other Accessories
   if (n.includes('charging') && n.includes('cable')) return 'usb_cable';
@@ -208,9 +214,10 @@ function getImageForType(type: string): string {
     'htc_vive': '/generated_images/HTC_Vive_Pro_2_headset_bf275b6a.png',
     'generic_vr': '/generated_images/Meta_Quest_3_VR_headset_3e6dde53.png',
     
-    // Accessories
-    'vr_accessory': '/generated_images/PS5_protective_case_black_bdda1bb5.png',
+    // VR Accessories
+    'vr_accessory': '/generated_images/VR_elite_strap_with_battery_48f64c26.png',
     'vr_lens_protector': '/generated_images/VR_lens_protectors_e6fb2855.png',
+    // Other Accessories
     'usb_cable': '/generated_images/USB-C_cable_black_braided_2247bec7.png',
     'hdmi_cable': '/generated_images/HDMI_2.1_cable_64089b6d.png',
     'ps5_stand': '/generated_images/PS5_vertical_stand_3c29a0d1.png',
