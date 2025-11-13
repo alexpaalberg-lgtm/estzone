@@ -28,7 +28,7 @@ export interface IStorage {
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
   
   // Products
-  getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string }): Promise<Product[]>;
+  getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string; sort?: string }): Promise<Product[]>;
   getProduct(id: string): Promise<Product | undefined>;
   getProductBySku(sku: string): Promise<Product | undefined>;
   getLowStockProducts(): Promise<Product[]>;
@@ -119,7 +119,7 @@ export class DbStorage implements IStorage {
   }
   
   // Products
-  async getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string }): Promise<Product[]> {
+  async getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string; sort?: string }): Promise<Product[]> {
     const conditions = [eq(schema.products.isActive, true)];
     
     if (filters?.categoryId) {
@@ -129,9 +129,34 @@ export class DbStorage implements IStorage {
       conditions.push(eq(schema.products.isFeatured, true));
     }
     
-    return db.select().from(schema.products)
-      .where(and(...conditions))
-      .orderBy(desc(schema.products.createdAt));
+    // Apply sorting
+    switch (filters?.sort) {
+      case 'price_asc':
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(sql`CAST(${schema.products.price} AS DECIMAL)`);
+      case 'price_desc':
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(desc(sql`CAST(${schema.products.price} AS DECIMAL)`));
+      case 'name_az':
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(schema.products.nameEn);
+      case 'name_za':
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(desc(schema.products.nameEn));
+      case 'oldest':
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(schema.products.createdAt);
+      case 'newest':
+      default:
+        return db.select().from(schema.products)
+          .where(and(...conditions))
+          .orderBy(desc(schema.products.createdAt));
+    }
   }
   
   async getProduct(id: string): Promise<Product | undefined> {
