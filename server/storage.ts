@@ -12,7 +12,7 @@ import type {
   SupportSession, InsertSupportSession,
   SupportMessage, InsertSupportMessage,
 } from '@shared/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, inArray } from 'drizzle-orm';
 
 export interface IStorage {
   // Users
@@ -123,7 +123,16 @@ export class DbStorage implements IStorage {
     const conditions = [eq(schema.products.isActive, true)];
     
     if (filters?.categoryId) {
-      conditions.push(eq(schema.products.categoryId, filters.categoryId));
+      const childCategories = await db.select()
+        .from(schema.categories)
+        .where(eq(schema.categories.parentId, filters.categoryId));
+      
+      if (childCategories.length > 0) {
+        const categoryIds = [filters.categoryId, ...childCategories.map(c => c.id)];
+        conditions.push(inArray(schema.products.categoryId, categoryIds));
+      } else {
+        conditions.push(eq(schema.products.categoryId, filters.categoryId));
+      }
     }
     if (filters?.featured) {
       conditions.push(eq(schema.products.isFeatured, true));
