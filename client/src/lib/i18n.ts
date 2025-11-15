@@ -23,8 +23,8 @@ export const translations = {
     product: {
       addToCart: 'Add to Cart',
       inStock: 'In Stock',
-      lowStock: 'Low Stock',
-      outOfStock: 'Out of Stock',
+      lowStock: 'Available In-Store',
+      outOfStock: 'Pre-Order',
       newArrival: 'New',
       sale: 'Sale',
     },
@@ -89,8 +89,8 @@ export const translations = {
     product: {
       addToCart: 'Lisa Ostukorvi',
       inStock: 'Laos',
-      lowStock: 'Vähe Laos',
-      outOfStock: 'Otsas',
+      lowStock: 'Kohapeal',
+      outOfStock: 'Tellimisel',
       newArrival: 'Uus',
       sale: 'Soodustus',
     },
