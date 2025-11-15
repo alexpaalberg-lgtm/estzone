@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema } from "@shared/schema";
@@ -10,7 +10,192 @@ import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
 
+const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.isAdmin) {
+    return res.status(401).json({ error: "Unauthorized - Admin access required" });
+  }
+  next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Admin Authentication Routes
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ error: "Password is required" });
+      }
+      
+      if (password === process.env.SESSION_SECRET) {
+        req.session.isAdmin = true;
+        res.json({ success: true, message: "Admin login successful" });
+      } else {
+        res.status(401).json({ error: "Invalid admin password" });
+      }
+    } catch (error: any) {
+      console.error('Error during admin login:', error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+  
+  app.post("/api/admin/logout", async (req, res) => {
+    try {
+      req.session.isAdmin = false;
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+          return res.status(500).json({ error: "Logout failed" });
+        }
+        res.json({ success: true, message: "Admin logout successful" });
+      });
+    } catch (error: any) {
+      console.error('Error during admin logout:', error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  });
+  
+  app.get("/api/admin/check", async (req, res) => {
+    try {
+      res.json({ isAdmin: req.session.isAdmin || false });
+    } catch (error: any) {
+      console.error('Error checking admin status:', error);
+      res.status(500).json({ error: "Failed to check admin status" });
+    }
+  });
+  
+  // Protected Admin Routes
+  app.get("/api/admin/products", requireAdmin, async (req, res) => {
+    try {
+      const { page = '1', limit = '20', search, sort } = req.query;
+      const products = await storage.getProducts({
+        search: search as string,
+        sort: sort as string,
+      });
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
+      
+      const paginatedProducts = products.slice(startIndex, endIndex);
+      
+      res.json({
+        products: paginatedProducts,
+        total: products.length,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(products.length / limitNum)
+      });
+    } catch (error: any) {
+      console.error('Error fetching admin products:', error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+  
+  app.post("/api/admin/products", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(validated);
+      res.status(201).json(product);
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      res.status(400).json({ error: error.message || "Failed to create product" });
+    }
+  });
+  
+  app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertProductSchema.partial().parse(req.body);
+      const product = await storage.updateProduct(req.params.id, validated);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      res.json(product);
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      res.status(400).json({ error: error.message || "Failed to update product" });
+    }
+  });
+  
+  app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteProduct(req.params.id);
+      res.json({ success: true, message: "Product deleted successfully" });
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+  
+  app.get("/api/admin/orders", requireAdmin, async (req, res) => {
+    try {
+      const { status, page = '1', limit = '20' } = req.query;
+      const orders = await storage.getOrders({
+        status: status as string
+      });
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
+      
+      const paginatedOrders = orders.slice(startIndex, endIndex);
+      
+      res.json({
+        orders: paginatedOrders,
+        total: orders.length,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(orders.length / limitNum)
+      });
+    } catch (error: any) {
+      console.error('Error fetching admin orders:', error);
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+  
+  app.put("/api/admin/orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status, paymentStatus } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+      
+      await storage.updateOrderStatus(req.params.id, status, paymentStatus);
+      const order = await storage.getOrder(req.params.id);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      res.json(order);
+    } catch (error: any) {
+      console.error('Error updating order:', error);
+      res.status(500).json({ error: "Failed to update order" });
+    }
+  });
+  
+  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const allOrders = await storage.getOrders();
+      const lowStockProducts = await storage.getLowStockProducts();
+      
+      res.json({
+        totalProducts: allProducts.length,
+        totalOrders: allOrders.length,
+        lowStockCount: lowStockProducts.length
+      });
+    } catch (error: any) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   // Categories
   app.get("/api/categories", async (req, res) => {
     try {

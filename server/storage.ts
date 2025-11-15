@@ -35,6 +35,7 @@ export interface IStorage {
   searchProducts(query: string, limit?: number): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: string): Promise<void>;
   updateProductStock(id: string, quantity: number): Promise<void>;
   importProducts(products: InsertProduct[]): Promise<void>;
   
@@ -237,6 +238,10 @@ export class DbStorage implements IStorage {
       .where(eq(schema.products.id, id))
       .returning();
     return updated;
+  }
+  
+  async deleteProduct(id: string): Promise<void> {
+    await db.delete(schema.products).where(eq(schema.products.id, id));
   }
   
   async updateProductStock(id: string, quantity: number): Promise<void> {

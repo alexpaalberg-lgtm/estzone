@@ -16,6 +16,8 @@ import Checkout from "@/pages/Checkout";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import About from "@/pages/About";
+import AdminLogin from "@/pages/admin/Login";
+import AdminProducts from "@/pages/admin/Products";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -36,6 +38,8 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/about" component={About} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/products" component={AdminProducts} />
       <Route component={NotFound} />
     </Switch>
   );
