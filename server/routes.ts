@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
@@ -130,6 +130,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin Category Routes
+  app.post("/api/admin/categories", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(validated);
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error('Error creating category:', error);
+      res.status(400).json({ error: error.message || "Failed to create category" });
+    }
+  });
+  
+  app.put("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertCategorySchema.partial().parse(req.body);
+      const category = await storage.updateCategory(req.params.id, validated);
+      
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      res.json(category);
+    } catch (error: any) {
+      console.error('Error updating category:', error);
+      res.status(400).json({ error: error.message || "Failed to update category" });
+    }
+  });
+  
+  app.delete("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const products = await storage.getProducts({ categoryId: req.params.id });
+      
+      if (products.length > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete category with products. Please remove or reassign products first." 
+        });
+      }
+      
+      await storage.deleteCategory(req.params.id);
+      res.json({ success: true, message: "Category deleted successfully" });
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+  
   app.get("/api/admin/orders", requireAdmin, async (req, res) => {
     try {
       const { status, page = '1', limit = '20' } = req.query;
@@ -159,13 +205,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put("/api/admin/orders/:id", requireAdmin, async (req, res) => {
     try {
-      const { status, paymentStatus } = req.body;
+      const { status, paymentStatus, trackingNumber } = req.body;
       
-      if (!status) {
-        return res.status(400).json({ error: "Status is required" });
+      if (!status && !paymentStatus && !trackingNumber) {
+        return res.status(400).json({ error: "At least one field (status, paymentStatus, or trackingNumber) is required" });
       }
       
-      await storage.updateOrderStatus(req.params.id, status, paymentStatus);
+      if (status || paymentStatus) {
+        await storage.updateOrderStatus(req.params.id, status, paymentStatus);
+      }
+      
+      if (trackingNumber !== undefined) {
+        await storage.updateOrderTracking(req.params.id, trackingNumber);
+      }
+      
       const order = await storage.getOrder(req.params.id);
       
       if (!order) {
@@ -179,16 +232,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/admin/orders/:id/items", requireAdmin, async (req, res) => {
+    try {
+      const items = await storage.getOrderItems(req.params.id);
+      res.json(items);
+    } catch (error: any) {
+      console.error('Error fetching order items:', error);
+      res.status(500).json({ error: "Failed to fetch order items" });
+    }
+  });
+  
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
     try {
       const allProducts = await storage.getProducts();
       const allOrders = await storage.getOrders();
       const lowStockProducts = await storage.getLowStockProducts();
       
+      // Calculate total revenue from paid orders
+      const totalRevenue = allOrders
+        .filter(order => order.paymentStatus === 'paid' || order.paymentStatus === 'completed')
+        .reduce((sum, order) => sum + parseFloat(order.total), 0);
+      
+      // Get recent orders (last 10)
+      const recentOrders = allOrders
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10);
+      
       res.json({
         totalProducts: allProducts.length,
         totalOrders: allOrders.length,
-        lowStockCount: lowStockProducts.length
+        lowStockCount: lowStockProducts.length,
+        totalRevenue: totalRevenue.toFixed(2),
+        recentOrders,
+        lowStockProducts
       });
     } catch (error: any) {
       console.error('Error fetching admin stats:', error);

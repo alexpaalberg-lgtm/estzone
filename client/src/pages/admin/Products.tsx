@@ -103,7 +103,7 @@ export default function AdminProducts() {
         ...data,
         images: data.images ? data.images.split(',').map(url => url.trim()) : [],
       };
-      return apiRequest('/api/admin/products', 'POST', payload);
+      return apiRequest('POST', '/api/admin/products', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
@@ -128,7 +128,7 @@ export default function AdminProducts() {
         ...data,
         images: data.images ? data.images.split(',').map(url => url.trim()) : [],
       };
-      return apiRequest(`/api/admin/products/${id}`, 'PUT', payload);
+      return apiRequest('PUT', `/api/admin/products/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
@@ -149,7 +149,7 @@ export default function AdminProducts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/admin/products/${id}`, 'DELETE'),
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/admin/products/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
       toast({

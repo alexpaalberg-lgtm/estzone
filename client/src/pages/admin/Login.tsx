@@ -29,7 +29,7 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      await apiRequest('/api/admin/login', 'POST', { password });
+      await apiRequest('POST', '/api/admin/login', { password });
       toast({
         title: t.admin.loginButton,
         description: 'Welcome back!',

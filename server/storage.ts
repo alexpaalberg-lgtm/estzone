@@ -26,6 +26,7 @@ export interface IStorage {
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<void>;
   
   // Products
   getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string; sort?: string }): Promise<Product[]>;
@@ -117,6 +118,10 @@ export class DbStorage implements IStorage {
       .where(eq(schema.categories.id, id))
       .returning();
     return updated;
+  }
+  
+  async deleteCategory(id: string): Promise<void> {
+    await db.delete(schema.categories).where(eq(schema.categories.id, id));
   }
   
   // Products

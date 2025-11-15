@@ -40,7 +40,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await apiRequest('/api/admin/logout', 'POST');
+      await apiRequest('POST', '/api/admin/logout');
       toast({
         title: t.admin.logout,
         description: 'Logged out successfully',
