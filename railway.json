@@ -5,6 +5,6 @@
     "buildCommand": "npm install && npm run build && cp -r dist/public server/public"
   },
   "deploy": {
-    "startCommand": "NODE_ENV=production npx tsx server/index.ts"
+    "startCommand": "NODE_ENV=production npx tsx server/production.ts"
   }
 }
