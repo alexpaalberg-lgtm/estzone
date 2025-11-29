@@ -46,9 +46,10 @@ async function updateGameImages() {
   console.log('Starting game image update...');
 
   const gameCategoryIds = [
-    '9100e967-8a60-4f64-843b-a31d3dc2f3c1',
-    '8a311dcd-0c58-4e2f-b40d-0d6b7a4e105e',
-    '7924b9aa-b874-4493-83f8-fb876881707c'
+    '9100e967-8a60-4f64-843b-a31d3dc2f3c1',  // PS5 Games
+    '8a311dcd-0c58-4e2f-b40d-0d6b7a4e105e',  // Switch Games
+    '7924b9aa-b874-4493-83f8-fb876881707c',  // Xbox Games
+    'a1b2c3d4-switch2-games-category-01'     // Switch 2 Games
   ];
 
   const gamesWithWrongImages = await db
@@ -63,7 +64,8 @@ async function updateGameImages() {
         or(
           eq(products.categoryId, gameCategoryIds[0]),
           eq(products.categoryId, gameCategoryIds[1]),
-          eq(products.categoryId, gameCategoryIds[2])
+          eq(products.categoryId, gameCategoryIds[2]),
+          eq(products.categoryId, gameCategoryIds[3])
         ),
         like(sql`${products.images}[1]`, '/generated_images/%')
       )
