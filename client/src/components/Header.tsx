@@ -48,7 +48,7 @@ export default function Header() {
       }
     });
     
-    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories'];
+    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories', 'digital-content'];
     const visible = parents
       .filter(c => prioritySlugs.includes(c.slug))
       .sort((a, b) => prioritySlugs.indexOf(a.slug) - prioritySlugs.indexOf(b.slug));
@@ -266,7 +266,10 @@ export default function Header() {
                             variant="ghost" 
                             className="w-full justify-start font-medium"
                             data-testid={`mobile-link-${parent.slug}`}
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
                           >
                             {parentName}
                           </Button>
@@ -281,7 +284,10 @@ export default function Header() {
                                     variant="ghost"
                                     className="w-full justify-start text-sm text-muted-foreground"
                                     data-testid={`mobile-link-${sub.slug}`}
-                                    onClick={() => setMobileMenuOpen(false)}
+                                    onClick={() => {
+                                      setMobileMenuOpen(false);
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
                                   >
                                     {subName}
                                   </Button>
@@ -299,7 +305,10 @@ export default function Header() {
                       variant="ghost" 
                       className="w-full justify-start" 
                       data-testid="mobile-link-blog"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                     >
                       {t.nav.blog}
                     </Button>
