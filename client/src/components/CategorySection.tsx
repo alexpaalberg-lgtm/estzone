@@ -10,7 +10,7 @@ const categoryImages: Record<string, string> = {
   'headsets': '/images/category-headsets.png',
   'vr-headsets': '/images/category-vr.png',
   'accessories': '/images/category-accessories.png',
-  'games': '/images/category-games.jpg',
+  'games': '/images/category-games.png',
 };
 
 export default function CategorySection() {
