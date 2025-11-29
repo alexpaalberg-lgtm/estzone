@@ -6,11 +6,20 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
+
+const platformColors: Record<string, string> = {
+  'PS5': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  'Xbox': 'bg-green-500/20 text-green-400 border-green-500/30',
+  'Switch': 'bg-red-500/20 text-red-400 border-red-500/30',
+  'PC': 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  'Multi': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+};
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
@@ -68,9 +77,19 @@ export default function ShoppingCart() {
                         className="w-20 h-20 object-cover rounded-md"
                       />
                       <div className="flex-1">
-                        <h4 className="font-semibold mb-1 line-clamp-2" data-testid="text-item-name">
-                          {item.name}
-                        </h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold line-clamp-1" data-testid="text-item-name">
+                            {item.name}
+                          </h4>
+                          {item.platform && platformColors[item.platform] && (
+                            <Badge 
+                              className={`text-xs border shrink-0 ${platformColors[item.platform]}`}
+                              data-testid="badge-item-platform"
+                            >
+                              {item.platform}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-primary font-bold" data-testid="text-item-price">
                           {formatPrice(item.price)}
                         </p>

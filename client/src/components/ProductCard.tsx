@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
+import { getPlatformInfo, isGameProduct } from '@/lib/platform';
 import type { Product } from '@shared/schema';
 
 interface ProductCardProps {
@@ -26,6 +27,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const lowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 10);
   
   const stock = !inStock ? 'out_of_stock' : lowStock ? 'low_stock' : 'in_stock';
+  
+  const platformInfo = getPlatformInfo(product.sku, product.nameEn);
+  const isGame = isGameProduct(product.sku);
   
   const stockLabels = {
     in_stock: t.product.inStock,
@@ -50,6 +54,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       name,
       price: salePrice || price,
       image: product.images?.[0] || '',
+      sku: product.sku,
+      platform: platformInfo?.label,
     });
     
     toast({
@@ -77,6 +83,14 @@ export default function ProductCard({ product }: ProductCardProps) {
             <div className="text-muted-foreground text-sm">No Image</div>
           )}
           <div className="absolute top-2 right-2 flex flex-col gap-2">
+            {platformInfo && isGame && (
+              <Badge 
+                className={`text-xs border ${platformInfo.bgColor} ${platformInfo.color}`} 
+                data-testid={`badge-platform-${product.id}`}
+              >
+                {platformInfo.label}
+              </Badge>
+            )}
             {product.isNew && (
               <Badge variant="default" className="text-xs" data-testid={`badge-new-${product.id}`}>
                 {t.product.newArrival}

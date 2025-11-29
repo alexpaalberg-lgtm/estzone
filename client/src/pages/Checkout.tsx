@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { calculateVatBreakdown } from "@/lib/vat";
 import { ShoppingBag, Package, CreditCard } from "lucide-react";
 import { Link } from "wouter";
+
+const platformColors: Record<string, string> = {
+  'PS5': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  'Xbox': 'bg-green-500/20 text-green-400 border-green-500/30',
+  'Switch': 'bg-red-500/20 text-red-400 border-red-500/30',
+  'PC': 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  'Multi': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+};
 
 const checkoutSchema = z.object({
   email: z.string().email(),
@@ -397,7 +406,16 @@ export default function Checkout() {
                             className="w-16 h-16 object-cover rounded-md border border-border"
                           />
                           <div className="flex-1">
-                            <p className="font-medium text-sm line-clamp-2">{item.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm line-clamp-1">{item.name}</p>
+                              {item.platform && platformColors[item.platform] && (
+                                <Badge 
+                                  className={`text-xs border shrink-0 ${platformColors[item.platform]}`}
+                                >
+                                  {item.platform}
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               {language === 'et' ? 'Kogus' : 'Qty'}: {item.quantity}
                             </p>

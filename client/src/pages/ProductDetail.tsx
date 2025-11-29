@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Minus, Plus, ShoppingCart, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { getPlatformInfo, isGameProduct } from "@/lib/platform";
 import type { Product, Category } from "@shared/schema";
 
 export default function ProductDetail() {
@@ -89,6 +90,9 @@ export default function ProductDetail() {
       ? `Osta ${productName} EstZone-st. ${inStock ? 'Laos saadaval' : 'Otsas'}. Kiire kohaletoimetamine Eestis.`
       : `Buy ${productName} from EstZone. ${inStock ? 'In stock' : 'Out of stock'}. Fast delivery in Estonia.`);
   
+  const platformInfo = getPlatformInfo(product.sku, product.nameEn);
+  const isGame = isGameProduct(product.sku);
+  
   const handleAddToCart = () => {
     if (!inStock) return;
     
@@ -97,6 +101,8 @@ export default function ProductDetail() {
       name: productName,
       price: salePrice || price,
       image: product.images?.[0] || '',
+      sku: product.sku,
+      platform: platformInfo?.label,
     }, quantity);
     
     toast({
@@ -155,9 +161,19 @@ export default function ProductDetail() {
             {/* Product Info */}
             <div className="space-y-6">
               <div>
-                <h1 className="text-4xl font-bold mb-4" data-testid="text-product-name">
-                  {productName}
-                </h1>
+                <div className="flex items-center gap-3 mb-4">
+                  <h1 className="text-4xl font-bold" data-testid="text-product-name">
+                    {productName}
+                  </h1>
+                  {platformInfo && isGame && (
+                    <Badge 
+                      className={`text-sm border ${platformInfo.bgColor} ${platformInfo.color}`}
+                      data-testid="badge-platform"
+                    >
+                      {platformInfo.label}
+                    </Badge>
+                  )}
+                </div>
                 
                 <div className="flex items-center gap-4 mb-4">
                   {salePrice ? (
