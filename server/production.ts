@@ -4,6 +4,8 @@ import createMemoryStore from "memorystore";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+
+const BUILD_VERSION = "2025-11-29-v2";
 import { registerRoutes } from "./routes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
