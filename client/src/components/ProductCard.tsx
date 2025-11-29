@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart, Zap, Truck, Shield } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,18 +83,20 @@ export default function ProductCard({ product }: ProductCardProps) {
           ) : (
             <div className="text-muted-foreground text-sm">No Image</div>
           )}
+          
+          {platformInfo && isGame && (
+            <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" data-testid={`badge-platform-${product.id}`} />
+          )}
+          
           <div className="absolute top-2 right-2 flex flex-col gap-2">
-            {platformInfo && isGame && (
-              <PlatformIcon platformInfo={platformInfo} size="sm" data-testid={`badge-platform-${product.id}`} />
-            )}
             {product.isNew && (
               <Badge variant="default" className="text-xs bg-primary text-primary-foreground animate-pulse" data-testid={`badge-new-${product.id}`}>
                 {t.product.newArrival}
               </Badge>
             )}
             {salePrice && (
-              <Badge className="bg-destructive text-destructive-foreground text-xs animate-bounce" data-testid={`badge-sale-${product.id}`}>
-                <Zap className="h-3 w-3 mr-1" />
+              <Badge className="bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-black animate-pulse border-0 shadow-lg" data-testid={`badge-sale-${product.id}`}>
+                <Sparkles className="h-3 w-3 mr-1" />
                 -{Math.round((1 - salePrice / price) * 100)}%
               </Badge>
             )}
@@ -102,7 +104,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Button
             size="icon"
             variant="ghost"
-            className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
+            className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

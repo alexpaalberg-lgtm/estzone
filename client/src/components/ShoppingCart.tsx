@@ -10,6 +10,8 @@ import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Link } from 'wouter';
+import { getPlatformInfo, isGameProduct } from '@/lib/platform';
+import { PlatformIconCompact } from '@/components/PlatformIcon';
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
@@ -55,7 +57,11 @@ export default function ShoppingCart() {
             <>
               <div className="flex-1 overflow-auto">
                 <div className="space-y-4">
-                  {items.map((item) => (
+                  {items.map((item) => {
+                    const platformInfo = item.sku ? getPlatformInfo(item.sku, item.name) : null;
+                    const isGame = item.sku ? isGameProduct(item.sku) : false;
+                    
+                    return (
                     <div
                       key={item.id}
                       className="flex gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
@@ -69,9 +75,16 @@ export default function ShoppingCart() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm line-clamp-2 mb-1" data-testid="text-item-name">
-                          {item.name}
-                        </h4>
+                        <div className="flex items-start gap-2 mb-1">
+                          <h4 className="font-semibold text-sm line-clamp-2 flex-1" data-testid="text-item-name">
+                            {item.name}
+                          </h4>
+                        </div>
+                        {platformInfo && isGame && (
+                          <div className="mb-1">
+                            <PlatformIconCompact platformInfo={platformInfo} />
+                          </div>
+                        )}
                         <p className="text-primary font-bold text-lg" data-testid="text-item-price">
                           {formatPrice(item.price * item.quantity)}
                         </p>
@@ -109,7 +122,8 @@ export default function ShoppingCart() {
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
 

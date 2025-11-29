@@ -6,24 +6,13 @@ interface PlatformIconProps {
   platformInfo: PlatformInfo;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  variant?: 'default' | 'ribbon' | 'solid';
 }
 
 const sizeClasses = {
   sm: 'h-4 w-4',
   md: 'h-5 w-5',
   lg: 'h-6 w-6',
-};
-
-const containerSizeClasses = {
-  sm: 'gap-1.5 px-2.5 py-1',
-  md: 'gap-2 px-3 py-1.5',
-  lg: 'gap-2 px-3 py-2',
-};
-
-const textSizeClasses = {
-  sm: 'text-xs font-semibold',
-  md: 'text-sm font-semibold',
-  lg: 'text-base font-bold',
 };
 
 function XboxIcon({ className }: { className?: string }) {
@@ -34,8 +23,37 @@ function XboxIcon({ className }: { className?: string }) {
   );
 }
 
-export default function PlatformIcon({ platformInfo, size = 'sm', showLabel = true }: PlatformIconProps) {
+const solidColors: Record<string, { bg: string; text: string; border: string }> = {
+  playstation: { 
+    bg: 'bg-[#003791]', 
+    text: 'text-white', 
+    border: 'border-[#00439C]' 
+  },
+  xbox: { 
+    bg: 'bg-[#107C10]', 
+    text: 'text-white', 
+    border: 'border-[#0E6B0E]' 
+  },
+  'nintendo-switch': { 
+    bg: 'bg-[#E60012]', 
+    text: 'text-white', 
+    border: 'border-[#CC0010]' 
+  },
+  steam: { 
+    bg: 'bg-[#1B2838]', 
+    text: 'text-white', 
+    border: 'border-[#2A3F5F]' 
+  },
+  gamepad: { 
+    bg: 'bg-[#6B21A8]', 
+    text: 'text-white', 
+    border: 'border-[#7C3AED]' 
+  },
+};
+
+export default function PlatformIcon({ platformInfo, size = 'sm', showLabel = true, variant = 'solid' }: PlatformIconProps) {
   const iconClass = sizeClasses[size];
+  const colors = solidColors[platformInfo.iconName] || solidColors.gamepad;
   
   const renderIcon = () => {
     switch (platformInfo.iconName) {
@@ -50,15 +68,66 @@ export default function PlatformIcon({ platformInfo, size = 'sm', showLabel = tr
     }
   };
 
+  if (variant === 'ribbon') {
+    return (
+      <div 
+        className={`absolute top-0 left-0 ${colors.bg} ${colors.text} px-2 py-1 text-xs font-bold flex items-center gap-1.5 rounded-br-lg shadow-lg`}
+        data-testid="platform-badge"
+      >
+        {renderIcon()}
+        {showLabel && <span>{platformInfo.label}</span>}
+      </div>
+    );
+  }
+
+  const containerSizes = {
+    sm: 'px-2 py-1 gap-1.5',
+    md: 'px-2.5 py-1.5 gap-2',
+    lg: 'px-3 py-2 gap-2',
+  };
+
+  const textSizes = {
+    sm: 'text-xs font-bold',
+    md: 'text-sm font-bold',
+    lg: 'text-base font-bold',
+  };
+
   return (
     <div 
-      className={`inline-flex items-center rounded-md border font-medium shadow-sm ${containerSizeClasses[size]} ${platformInfo.bgColor} ${platformInfo.color}`}
+      className={`inline-flex items-center rounded-md border-2 shadow-md ${containerSizes[size]} ${colors.bg} ${colors.text} ${colors.border}`}
       data-testid="platform-badge"
     >
       {renderIcon()}
       {showLabel && (
-        <span className={textSizeClasses[size]}>{platformInfo.label}</span>
+        <span className={textSizes[size]}>{platformInfo.label}</span>
       )}
+    </div>
+  );
+}
+
+export function PlatformIconCompact({ platformInfo }: { platformInfo: PlatformInfo }) {
+  const colors = solidColors[platformInfo.iconName] || solidColors.gamepad;
+  
+  const renderIcon = () => {
+    switch (platformInfo.iconName) {
+      case 'playstation':
+        return <SiPlaystation5 className="h-3.5 w-3.5" />;
+      case 'xbox':
+        return <XboxIcon className="h-3.5 w-3.5" />;
+      case 'nintendo-switch':
+        return <SiNintendoswitch className="h-3.5 w-3.5" />;
+      default:
+        return <Gamepad2 className="h-3.5 w-3.5" />;
+    }
+  };
+
+  return (
+    <div 
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${colors.bg} ${colors.text} shadow-sm`}
+      data-testid="platform-badge-compact"
+    >
+      {renderIcon()}
+      <span>{platformInfo.label}</span>
     </div>
   );
 }
