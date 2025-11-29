@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import SearchBar from './SearchBar';
 import {
   NavigationMenu,
@@ -193,6 +193,10 @@ export default function Header() {
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={() => setSearchSheetOpen(false)}
               >
+                <SheetHeader className="sr-only">
+                  <SheetTitle>{language === 'et' ? 'Otsing' : 'Search'}</SheetTitle>
+                  <SheetDescription>{language === 'et' ? 'Otsi tooteid' : 'Search products'}</SheetDescription>
+                </SheetHeader>
                 <SearchBar 
                   className="w-full" 
                   isMobile 
@@ -247,6 +251,10 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>{language === 'et' ? 'Menüü' : 'Menu'}</SheetTitle>
+                  <SheetDescription>{language === 'et' ? 'Navigeeri kategooriate vahel' : 'Navigate categories'}</SheetDescription>
+                </SheetHeader>
                 <div className="mb-6 -mx-6 -mt-6 h-32 overflow-hidden rounded-b-lg">
                   <img 
                     src={gamingHeaderImage} 
