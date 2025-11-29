@@ -10,9 +10,10 @@ import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Minus, Plus, ShoppingCart, ChevronRight } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { getPlatformInfo, isGameProduct } from "@/lib/platform";
+import PlatformIcon from "@/components/PlatformIcon";
 import type { Product, Category } from "@shared/schema";
 
 export default function ProductDetail() {
@@ -161,17 +162,12 @@ export default function ProductDetail() {
             {/* Product Info */}
             <div className="space-y-6">
               <div>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
                   <h1 className="text-4xl font-bold" data-testid="text-product-name">
                     {productName}
                   </h1>
                   {platformInfo && isGame && (
-                    <Badge 
-                      className={`text-sm border ${platformInfo.bgColor} ${platformInfo.color}`}
-                      data-testid="badge-platform"
-                    >
-                      {platformInfo.label}
-                    </Badge>
+                    <PlatformIcon platformInfo={platformInfo} size="md" data-testid="badge-platform" />
                   )}
                 </div>
                 
@@ -266,6 +262,26 @@ export default function ProductDetail() {
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart'}
               </Button>
+              
+              {/* Trust Badges */}
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
+                  <Truck className="h-5 w-5 text-primary shrink-0" />
+                  <span>{language === 'et' ? 'Tasuta transport üle €50' : 'Free shipping over €50'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
+                  <Shield className="h-5 w-5 text-primary shrink-0" />
+                  <span>{language === 'et' ? '24-kuuline garantii' : '24-month warranty'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
+                  <RotateCcw className="h-5 w-5 text-primary shrink-0" />
+                  <span>{language === 'et' ? '14 päeva tagastus' : '14-day returns'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
+                  <CreditCard className="h-5 w-5 text-primary shrink-0" />
+                  <span>{language === 'et' ? 'Turvaline makse' : 'Secure payment'}</span>
+                </div>
+              </div>
               
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>{language === 'et' ? 'SKU:' : 'SKU:'} <span className="text-foreground" data-testid="text-sku">{product.sku}</span></p>

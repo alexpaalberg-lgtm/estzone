@@ -6,6 +6,7 @@ export interface PlatformInfo {
   labelEt: string;
   color: string;
   bgColor: string;
+  iconName: 'playstation' | 'xbox' | 'nintendo-switch' | 'steam' | 'gamepad';
 }
 
 export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
@@ -15,6 +16,7 @@ export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
     labelEt: 'PS5',
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/20 border-blue-500/30',
+    iconName: 'playstation',
   },
   xbox: {
     platform: 'xbox',
@@ -22,6 +24,7 @@ export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
     labelEt: 'Xbox',
     color: 'text-green-400',
     bgColor: 'bg-green-500/20 border-green-500/30',
+    iconName: 'xbox',
   },
   nintendo: {
     platform: 'nintendo',
@@ -29,6 +32,7 @@ export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
     labelEt: 'Switch',
     color: 'text-red-400',
     bgColor: 'bg-red-500/20 border-red-500/30',
+    iconName: 'nintendo-switch',
   },
   pc: {
     platform: 'pc',
@@ -36,6 +40,7 @@ export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
     labelEt: 'PC',
     color: 'text-gray-300',
     bgColor: 'bg-gray-500/20 border-gray-500/30',
+    iconName: 'steam',
   },
   multi: {
     platform: 'multi',
@@ -43,6 +48,7 @@ export const platformStyles: Record<NonNullable<Platform>, PlatformInfo> = {
     labelEt: 'Multi',
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20 border-purple-500/30',
+    iconName: 'gamepad',
   },
 };
 

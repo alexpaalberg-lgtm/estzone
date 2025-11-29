@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, Zap, Truck, Shield } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
 import { getPlatformInfo, isGameProduct } from '@/lib/platform';
+import PlatformIcon from '@/components/PlatformIcon';
 import type { Product } from '@shared/schema';
 
 interface ProductCardProps {
@@ -84,21 +85,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           <div className="absolute top-2 right-2 flex flex-col gap-2">
             {platformInfo && isGame && (
-              <Badge 
-                className={`text-xs border ${platformInfo.bgColor} ${platformInfo.color}`} 
-                data-testid={`badge-platform-${product.id}`}
-              >
-                {platformInfo.label}
-              </Badge>
+              <PlatformIcon platformInfo={platformInfo} size="sm" data-testid={`badge-platform-${product.id}`} />
             )}
             {product.isNew && (
-              <Badge variant="default" className="text-xs" data-testid={`badge-new-${product.id}`}>
+              <Badge variant="default" className="text-xs bg-primary text-primary-foreground animate-pulse" data-testid={`badge-new-${product.id}`}>
                 {t.product.newArrival}
               </Badge>
             )}
             {salePrice && (
-              <Badge className="bg-destructive text-destructive-foreground text-xs" data-testid={`badge-sale-${product.id}`}>
-                {t.product.sale}
+              <Badge className="bg-destructive text-destructive-foreground text-xs animate-bounce" data-testid={`badge-sale-${product.id}`}>
+                <Zap className="h-3 w-3 mr-1" />
+                -{Math.round((1 - salePrice / price) * 100)}%
               </Badge>
             )}
           </div>
@@ -116,14 +113,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           </Button>
         </div>
 
-        <div className="p-4 flex flex-col flex-1">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 flex-1" data-testid={`text-product-name-${product.id}`}>
+        <div className="p-4 flex flex-col flex-1 bg-gradient-to-t from-card via-card to-transparent">
+          <h3 className="font-bold text-lg mb-2 line-clamp-2 flex-1 group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.id}`}>
             {name}
           </h3>
-          <div className="flex items-center gap-2 mb-3">
+          
+          <div className="flex items-baseline gap-2 mb-2">
             {salePrice ? (
               <>
-                <span className="text-xl font-bold text-primary" data-testid={`text-sale-price-${product.id}`}>
+                <span className="text-2xl font-black text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]" data-testid={`text-sale-price-${product.id}`}>
                   {formatPrice(salePrice)}
                 </span>
                 <span className="text-sm text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
@@ -131,22 +129,34 @@ export default function ProductCard({ product }: ProductCardProps) {
                 </span>
               </>
             ) : (
-              <span className="text-xl font-bold text-foreground" data-testid={`text-price-${product.id}`}>
+              <span className="text-2xl font-black text-primary" data-testid={`text-price-${product.id}`}>
                 {formatPrice(price)}
               </span>
             )}
           </div>
-          <Badge className={`mb-3 ${stockColors[stock]}`} data-testid={`badge-stock-${product.id}`}>
-            {stockLabels[stock]}
-          </Badge>
+          
+          <div className="flex items-center gap-2 mb-3">
+            <Badge className={`${stockColors[stock]}`} data-testid={`badge-stock-${product.id}`}>
+              {stockLabels[stock]}
+            </Badge>
+            {inStock && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Truck className="h-3 w-3" />
+                {language === 'et' ? '1-3 päeva' : '1-3 days'}
+              </span>
+            )}
+          </div>
+          
           <Button
-            className="w-full"
+            className="w-full group/btn relative overflow-hidden"
             disabled={!inStock}
             onClick={handleAddToCart}
             data-testid={`button-add-to-cart-${product.id}`}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {t.product.addToCart}
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              {t.product.addToCart}
+            </span>
           </Button>
         </div>
       </Card>

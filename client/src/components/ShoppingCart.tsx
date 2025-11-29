@@ -1,4 +1,4 @@
-import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, Truck, Shield, CreditCard } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -6,24 +6,14 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
-
-const platformColors: Record<string, string> = {
-  'PS5': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  'Xbox': 'bg-green-500/20 text-green-400 border-green-500/30',
-  'Switch': 'bg-red-500/20 text-red-400 border-red-500/30',
-  'PC': 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-  'Multi': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-};
 
 export default function ShoppingCart() {
   const { items, removeItem, updateQuantity, totalPrice, isOpen, setIsOpen } = useCart();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { currency, setCurrency, formatPrice } = useCurrency();
 
   return (
@@ -57,7 +47,7 @@ export default function ShoppingCart() {
               <div className="text-center">
                 <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground" data-testid="text-empty-cart">
-                  Your cart is empty
+                  {language === 'et' ? 'Ostukorv on tühi' : 'Your cart is empty'}
                 </p>
               </div>
             </div>
@@ -68,48 +58,40 @@ export default function ShoppingCart() {
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 p-4 rounded-md border"
+                      className="flex gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
                       data-testid={`cart-item-${item.id}`}
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-20 h-20 object-cover rounded-md"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold line-clamp-1" data-testid="text-item-name">
-                            {item.name}
-                          </h4>
-                          {item.platform && platformColors[item.platform] && (
-                            <Badge 
-                              className={`text-xs border shrink-0 ${platformColors[item.platform]}`}
-                              data-testid="badge-item-platform"
-                            >
-                              {item.platform}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-primary font-bold" data-testid="text-item-price">
-                          {formatPrice(item.price)}
+                      <div className="relative">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-md"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm line-clamp-2 mb-1" data-testid="text-item-name">
+                          {item.name}
+                        </h4>
+                        <p className="text-primary font-bold text-lg" data-testid="text-item-price">
+                          {formatPrice(item.price * item.quantity)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button
                             size="icon"
                             variant="outline"
-                            className="h-8 w-8"
+                            className="h-7 w-7"
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
                             data-testid="button-decrease-quantity"
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center" data-testid="text-quantity">
+                          <span className="w-6 text-center font-medium" data-testid="text-quantity">
                             {item.quantity}
                           </span>
                           <Button
                             size="icon"
                             variant="outline"
-                            className="h-8 w-8"
+                            className="h-7 w-7"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             data-testid="button-increase-quantity"
                           >
@@ -120,6 +102,7 @@ export default function ShoppingCart() {
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="h-6 w-6 shrink-0"
                         onClick={() => removeItem(item.id)}
                         data-testid="button-remove-item"
                       >
@@ -131,8 +114,23 @@ export default function ShoppingCart() {
               </div>
 
               <div className="mt-4 pt-4 border-t space-y-4">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
+                <div className="space-y-2 py-2 px-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Truck className="h-3.5 w-3.5 text-primary" />
+                    <span>{language === 'et' ? 'Tasuta transport üle €50 tellimustele' : 'Free shipping on orders over €50'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Shield className="h-3.5 w-3.5 text-primary" />
+                    <span>{language === 'et' ? '24-kuuline garantii' : '24-month warranty'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CreditCard className="h-3.5 w-3.5 text-primary" />
+                    <span>{language === 'et' ? 'Turvaline makse' : 'Secure payment'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between text-xl font-bold">
+                  <span>{language === 'et' ? 'Kokku' : 'Total'}</span>
                   <span className="text-primary" data-testid="text-total-price">
                     {formatPrice(totalPrice)}
                   </span>
@@ -144,7 +142,7 @@ export default function ShoppingCart() {
                     data-testid="button-checkout"
                     onClick={() => setIsOpen(false)}
                   >
-                    Proceed to Checkout
+                    {language === 'et' ? 'Vormista tellimus' : 'Proceed to Checkout'}
                   </Button>
                 </Link>
                 <Button
@@ -153,7 +151,7 @@ export default function ShoppingCart() {
                   onClick={() => setIsOpen(false)}
                   data-testid="button-continue-shopping"
                 >
-                  Continue Shopping
+                  {language === 'et' ? 'Jätka ostlemist' : 'Continue Shopping'}
                 </Button>
               </div>
             </>
