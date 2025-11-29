@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
-import { getPlatformInfo, isGameProduct } from '@/lib/platform';
+import { getPlatformInfo } from '@/lib/platform';
 import PlatformIcon from '@/components/PlatformIcon';
 import type { Product } from '@shared/schema';
 
@@ -30,7 +30,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const stock = !inStock ? 'out_of_stock' : lowStock ? 'low_stock' : 'in_stock';
   
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
-  const isGame = isGameProduct(product.sku);
   
   const stockLabels = {
     in_stock: t.product.inStock,
@@ -68,8 +67,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/product/${product.id}`}>
       <Card className="group relative hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
-        {platformInfo && isGame && (
-          <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" data-testid={`badge-platform-${product.id}`} />
+        {platformInfo && (
+          <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" />
         )}
         
         <div className="relative aspect-square overflow-hidden bg-muted flex items-center justify-center rounded-t-xl">

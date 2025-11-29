@@ -1,5 +1,5 @@
-import { SiPlaystation5, SiNintendoswitch } from 'react-icons/si';
-import { Gamepad2 } from 'lucide-react';
+import { SiPlaystation5, SiNintendoswitch, SiSteam } from 'react-icons/si';
+import { Gamepad2, Monitor } from 'lucide-react';
 import type { PlatformInfo } from '@/lib/platform';
 
 interface PlatformIconProps {
@@ -44,6 +44,11 @@ const solidColors: Record<string, { bg: string; text: string; border: string }> 
     text: 'text-white', 
     border: 'border-[#2A3F5F]' 
   },
+  pc: { 
+    bg: 'bg-[#374151]', 
+    text: 'text-white', 
+    border: 'border-[#4B5563]' 
+  },
   gamepad: { 
     bg: 'bg-[#6B21A8]', 
     text: 'text-white', 
@@ -63,6 +68,10 @@ export default function PlatformIcon({ platformInfo, size = 'sm', showLabel = tr
         return <XboxIcon className={iconClass} />;
       case 'nintendo-switch':
         return <SiNintendoswitch className={iconClass} />;
+      case 'steam':
+        return <SiSteam className={iconClass} />;
+      case 'pc':
+        return <Monitor className={iconClass} />;
       default:
         return <Gamepad2 className={iconClass} />;
     }
@@ -116,6 +125,10 @@ export function PlatformIconCompact({ platformInfo }: { platformInfo: PlatformIn
         return <XboxIcon className="h-3.5 w-3.5" />;
       case 'nintendo-switch':
         return <SiNintendoswitch className="h-3.5 w-3.5" />;
+      case 'steam':
+        return <SiSteam className="h-3.5 w-3.5" />;
+      case 'pc':
+        return <Monitor className="h-3.5 w-3.5" />;
       default:
         return <Gamepad2 className="h-3.5 w-3.5" />;
     }
