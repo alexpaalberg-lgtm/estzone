@@ -71,12 +71,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" />
         )}
         
-        <div className="relative aspect-square overflow-hidden bg-muted flex items-center justify-center rounded-t-xl">
+        <div className="relative aspect-square overflow-hidden bg-black/40 flex items-center justify-center rounded-t-xl">
           {product.images?.[0] ? (
             <img
               src={product.images[0]}
               alt={name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              className="w-full h-full object-contain p-2"
               loading="lazy"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -115,34 +115,34 @@ export default function ProductCard({ product }: ProductCardProps) {
           </Button>
         </div>
 
-        <div className="p-4 flex flex-col flex-1 bg-gradient-to-t from-card via-card to-transparent">
-          <h3 className="font-bold text-lg mb-2 line-clamp-2 flex-1 group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.id}`}>
+        <div className="p-3 sm:p-4 flex flex-col flex-1 bg-gradient-to-t from-card via-card to-transparent">
+          <h3 className="font-bold text-sm sm:text-base leading-tight mb-2 line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem] group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.id}`}>
             {name}
           </h3>
           
-          <div className="flex items-baseline gap-2 mb-2">
+          <div className="flex items-baseline gap-1.5 sm:gap-2 mb-2">
             {salePrice ? (
               <>
-                <span className="text-2xl font-black text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]" data-testid={`text-sale-price-${product.id}`}>
+                <span className="text-lg sm:text-xl font-black text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]" data-testid={`text-sale-price-${product.id}`}>
                   {formatPrice(salePrice)}
                 </span>
-                <span className="text-sm text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
+                <span className="text-xs text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
                   {formatPrice(price)}
                 </span>
               </>
             ) : (
-              <span className="text-2xl font-black text-primary" data-testid={`text-price-${product.id}`}>
+              <span className="text-lg sm:text-xl font-black text-primary" data-testid={`text-price-${product.id}`}>
                 {formatPrice(price)}
               </span>
             )}
           </div>
           
-          <div className="flex items-center gap-2 mb-3">
-            <Badge className={`${stockColors[stock]}`} data-testid={`badge-stock-${product.id}`}>
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
+            <Badge className={`${stockColors[stock]} text-xs`} data-testid={`badge-stock-${product.id}`}>
               {stockLabels[stock]}
             </Badge>
             {inStock && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                 <Truck className="h-3 w-3" />
                 {language === 'et' ? '1-3 päeva' : '1-3 days'}
               </span>
@@ -150,15 +150,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           
           <Button
-            className="w-full group/btn relative overflow-hidden"
+            className="w-full text-xs sm:text-sm"
+            size="sm"
             disabled={!inStock}
             onClick={handleAddToCart}
             data-testid={`button-add-to-cart-${product.id}`}
           >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              {t.product.addToCart}
-            </span>
+            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
+            {t.product.addToCart}
           </Button>
         </div>
       </Card>
