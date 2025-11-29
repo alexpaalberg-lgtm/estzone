@@ -11,7 +11,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
@@ -42,6 +42,11 @@ export default function ProductDetail() {
   const { addItem } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [params?.id]);
   
   // Guard: only fetch product if we have a valid route match and ID
   const productId = params?.id;
