@@ -77,7 +77,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             <img
               src={product.images[0]}
               alt={name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              loading="lazy"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = '/images/placeholder.svg';

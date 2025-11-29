@@ -23,7 +23,7 @@ export const translations = {
     product: {
       addToCart: 'Add to Cart',
       inStock: 'In Stock',
-      lowStock: 'Available In-Store',
+      lowStock: 'In Store',
       outOfStock: 'Out of Stock',
       newArrival: 'New',
       sale: 'Sale',
