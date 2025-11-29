@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuery } from '@tanstack/react-query';
 import type { Category } from '@shared/schema';
+import digitalContentImage from '@assets/generated_images/digital_gaming_gift_cards_showcase.png';
 
 const categoryImages: Record<string, string> = {
   'consoles': '/images/category-consoles.png',
@@ -11,6 +12,7 @@ const categoryImages: Record<string, string> = {
   'vr-headsets': '/images/category-vr.png',
   'accessories': '/images/category-accessories.png',
   'games': '/images/category-games.png',
+  'digital-content': digitalContentImage,
 };
 
 export default function CategorySection() {
@@ -19,7 +21,10 @@ export default function CategorySection() {
     queryKey: ['/api/categories'],
   });
 
-  const mainCategories = categories?.filter(c => !c.parentId).slice(0, 5) || [];
+  const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories', 'digital-content'];
+  const mainCategories = categories
+    ?.filter(c => !c.parentId && prioritySlugs.includes(c.slug))
+    .sort((a, b) => prioritySlugs.indexOf(a.slug) - prioritySlugs.indexOf(b.slug)) || [];
 
   if (mainCategories.length === 0) return null;
 
@@ -29,7 +34,7 @@ export default function CategorySection() {
         <h2 className="text-3xl font-bold mb-8 text-center" data-testid="text-categories-title">
           {language === 'et' ? 'Kategooriad' : 'Categories'}
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {mainCategories.map((category) => {
             const name = language === 'et' ? category.nameEt : category.nameEn;
             const image = categoryImages[category.slug] || '/images/placeholder.jpg';
