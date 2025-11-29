@@ -187,7 +187,30 @@ Preferred communication style: Simple, everyday language.
 - PostCSS with Autoprefixer
 - Replit-specific Vite plugins for development experience
 
-## Recent Changes (November 28, 2025)
+## Recent Changes (November 29, 2025)
+
+### Major Product Image Overhaul
+- **100+ Custom Generated Images:** Replaced generic/monotonous product photos with unique custom-generated images
+- **RAWG API Integration:** 100 game products updated with official game cover art from RAWG API
+- **YouTube Trailer Support:** Added video_url field to products schema with embedded YouTube player on product pages
+  - Trailer videos added for 30+ popular games (Elden Ring, God of War, Hogwarts Legacy, etc.)
+- **Nintendo Switch 2 Category:** 50 new products including consoles, Mario Kart bundle, games, and accessories
+
+### Image Improvements by Category
+- **PS5 Products:** Fixed 10+ bundle images (Pro, Slim, VR2, Demon Souls, Returnal editions)
+- **Xbox Products:** Fixed 15+ controller/bundle images (Elite Controller, Forza, Halo, Starfield editions)
+- **VR Products:** Fixed 15+ accessories (Omni One Treadmill, Motion Platform, Body Tracking Kit, etc.)
+- **All Games:** RAWG API cover art for PS5, Xbox, and Switch game categories
+
+### Mobile UX Improvements
+- Shortened "Available In-Store" to "In Store" for better mobile display
+- Reduced product image hover scale from 1.05 to 1.02 for stability
+
+### Sale Prices Added
+- Discounts applied across accessories (10-30% range)
+- Select console bundles on sale
+
+## Previous Changes (November 28, 2025)
 
 ### Production Deployment - Railway.app
 - **Successfully deployed to Railway.app** with custom domain www.estzone.eu
