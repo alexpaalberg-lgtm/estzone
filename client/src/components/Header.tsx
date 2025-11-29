@@ -26,6 +26,7 @@ export default function Header() {
   const { currency, setCurrency } = useCurrency();
   const { totalItems, setIsOpen } = useCart();
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const { data: categories, isLoading, isError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
@@ -239,7 +240,7 @@ export default function Header() {
               )}
             </Button>
 
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-menu">
                   <Menu className="h-5 w-5" />
@@ -265,6 +266,7 @@ export default function Header() {
                             variant="ghost" 
                             className="w-full justify-start font-medium"
                             data-testid={`mobile-link-${parent.slug}`}
+                            onClick={() => setMobileMenuOpen(false)}
                           >
                             {parentName}
                           </Button>
@@ -279,6 +281,7 @@ export default function Header() {
                                     variant="ghost"
                                     className="w-full justify-start text-sm text-muted-foreground"
                                     data-testid={`mobile-link-${sub.slug}`}
+                                    onClick={() => setMobileMenuOpen(false)}
                                   >
                                     {subName}
                                   </Button>
@@ -292,7 +295,12 @@ export default function Header() {
                   })}
                   
                   <Link href="/blog">
-                    <Button variant="ghost" className="w-full justify-start" data-testid="mobile-link-blog">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      data-testid="mobile-link-blog"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
                       {t.nav.blog}
                     </Button>
                   </Link>
