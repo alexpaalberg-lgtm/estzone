@@ -71,7 +71,7 @@ export default function PlatformIcon({ platformInfo, size = 'sm', showLabel = tr
   if (variant === 'ribbon') {
     return (
       <div 
-        className={`absolute top-0 left-0 ${colors.bg} ${colors.text} px-2 py-1 text-xs font-bold flex items-center gap-1.5 rounded-br-lg shadow-lg`}
+        className={`absolute top-0 left-0 z-10 ${colors.bg} ${colors.text} px-2 py-1 text-xs font-bold flex items-center gap-1.5 rounded-br-lg shadow-lg`}
         data-testid="platform-badge"
       >
         {renderIcon()}
