@@ -37,6 +37,7 @@ export const products = pgTable("products", {
   stock: integer("stock").notNull().default(0),
   lowStockThreshold: integer("low_stock_threshold").default(10),
   images: text("images").array(),
+  videoUrl: text("video_url"),
   isNew: boolean("is_new").default(false),
   isFeatured: boolean("is_featured").default(false),
   isActive: boolean("is_active").default(true),
@@ -181,6 +182,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
 }).extend({
   price: z.string().or(z.number()),
   salePrice: z.string().or(z.number()).optional(),
+  videoUrl: z.string().optional(),
 });
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;

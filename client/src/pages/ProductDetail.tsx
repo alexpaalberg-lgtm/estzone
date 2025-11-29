@@ -10,8 +10,15 @@ import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play } from "lucide-react";
 import { useState } from "react";
+
+function getYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
 import { getPlatformInfo, isGameProduct } from "@/lib/platform";
 import PlatformIcon from "@/components/PlatformIcon";
 import type { Product, Category } from "@shared/schema";
@@ -149,14 +156,52 @@ export default function ProductDetail() {
           
           {/* Product Details */}
           <div className="grid md:grid-cols-2 gap-12">
-            {/* Product Image */}
-            <div className="rounded-md border border-border overflow-hidden bg-card">
-              <img
-                src={product.images?.[0] || '/images/placeholder.jpg'}
-                alt={productName}
-                className="w-full aspect-square object-cover"
-                data-testid="img-product"
-              />
+            {/* Product Image and Video */}
+            <div className="space-y-4">
+              <div className="rounded-md border border-border overflow-hidden bg-card">
+                <img
+                  src={product.images?.[0] || '/images/placeholder.jpg'}
+                  alt={productName}
+                  className="w-full aspect-square object-cover"
+                  data-testid="img-product"
+                />
+              </div>
+              
+              {/* YouTube Trailer Video */}
+              {product.videoUrl && getYouTubeVideoId(product.videoUrl) && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Play className="h-5 w-5 text-primary" />
+                    {language === 'et' ? 'Treiler' : 'Trailer'}
+                  </h3>
+                  <div className="rounded-md border border-border overflow-hidden bg-card aspect-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYouTubeVideoId(product.videoUrl)}`}
+                      title={`${productName} trailer`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                      data-testid="video-trailer"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Additional Images */}
+              {product.images && product.images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {product.images.slice(1, 5).map((img, idx) => (
+                    <div key={idx} className="rounded-md border border-border overflow-hidden bg-card aspect-square">
+                      <img
+                        src={img}
+                        alt={`${productName} ${idx + 2}`}
+                        className="w-full h-full object-cover"
+                        data-testid={`img-product-${idx + 2}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Product Info */}
