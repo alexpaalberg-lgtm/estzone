@@ -67,8 +67,12 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link href={`/product/${product.id}`}>
-      <Card className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
-        <div className="relative aspect-square overflow-hidden bg-muted flex items-center justify-center">
+      <Card className="group relative hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full flex flex-col" data-testid={`card-product-${product.id}`}>
+        {platformInfo && isGame && (
+          <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" data-testid={`badge-platform-${product.id}`} />
+        )}
+        
+        <div className="relative aspect-square overflow-hidden bg-muted flex items-center justify-center rounded-t-xl">
           {product.images?.[0] ? (
             <img
               src={product.images[0]}
@@ -82,10 +86,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
           ) : (
             <div className="text-muted-foreground text-sm">No Image</div>
-          )}
-          
-          {platformInfo && isGame && (
-            <PlatformIcon platformInfo={platformInfo} size="sm" variant="ribbon" data-testid={`badge-platform-${product.id}`} />
           )}
           
           <div className="absolute top-2 right-2 flex flex-col gap-2">
