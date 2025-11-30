@@ -53,9 +53,13 @@ export default function Footer() {
             <p className="text-muted-foreground mb-6 max-w-sm">
               {t.footer.description}
             </p>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-4">
               Pärnu mnt 31, Tallinn, Estonia
             </p>
+            <div className="text-xs text-muted-foreground mb-6 space-y-1">
+              <p className="font-medium">FOXNORD OÜ</p>
+              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 14876138</p>
+            </div>
             <div className="space-y-3">
               <p className="text-sm font-semibold">{t.footer.newsletter}</p>
               <div className="flex gap-2">
