@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -15,6 +16,10 @@ import { format } from "date-fns";
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
   const { language } = useLanguage();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [params?.slug]);
   
   const { data: post, isLoading } = useQuery<BlogPost>({
     queryKey: ['/api/blog/posts', params?.slug],
