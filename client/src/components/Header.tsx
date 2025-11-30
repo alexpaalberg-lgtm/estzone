@@ -58,9 +58,9 @@ export default function Header() {
   }, [categories]);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="max-w-[100vw] mx-auto px-2 sm:px-4 lg:px-6">
-        <div className="flex h-14 lg:h-16 items-center justify-between gap-2">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 overflow-hidden">
+      <div className="w-full max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="flex h-14 lg:h-16 items-center justify-between gap-2 overflow-hidden">
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-2 py-1.5 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-8 sm:h-8 w-auto" />
@@ -71,7 +71,7 @@ export default function Header() {
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-0.5 flex-shrink min-w-0">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-shrink min-w-0 overflow-hidden">
             <NavigationMenu>
               <NavigationMenuList className="gap-0">
                 {visibleCategories.map((parent) => {
