@@ -8,6 +8,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import FloatingButtons from "@/components/FloatingButtons";
 import ShoppingCart from "@/components/ShoppingCart";
+import CookieConsent from "@/components/CookieConsent";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -22,6 +23,7 @@ import AdminProducts from "@/pages/admin/Products";
 import AdminOrders from "@/pages/admin/Orders";
 import AdminCategories from "@/pages/admin/Categories";
 import AdminInventory from "@/pages/admin/Inventory";
+import Legal from "@/pages/Legal";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -42,6 +44,10 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/about" component={About} />
+      <Route path="/terms" component={() => <Legal type="terms" />} />
+      <Route path="/privacy" component={() => <Legal type="privacy" />} />
+      <Route path="/returns" component={() => <Legal type="returns" />} />
+      <Route path="/shipping-policy" component={() => <Legal type="shipping" />} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
@@ -74,6 +80,7 @@ function App() {
               <Router />
               <ShoppingCart />
               <FloatingButtons />
+              <CookieConsent />
             </CartProvider>
           </CurrencyProvider>
         </LanguageProvider>

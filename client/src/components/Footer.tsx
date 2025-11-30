@@ -18,16 +18,22 @@ export default function Footer() {
   const support = [
     { label: t.footer.faq, href: '/faq' },
     { label: t.footer.contact, href: '/contact' },
-    { label: t.footer.shippingInfo, href: '/shipping' },
+    { label: t.footer.shippingInfo, href: '/shipping-policy' },
     { label: t.footer.returns, href: '/returns' },
   ];
 
   const company = [
     { label: t.footer.aboutUs, href: '/about' },
     { label: t.nav.blog, href: '/blog' },
-    { label: t.footer.careers, href: '/careers' },
+    { label: t.footer.terms, href: '/terms' },
     { label: t.footer.privacy, href: '/privacy' },
   ];
+  
+  const handleCookieSettings = () => {
+    if ((window as any).openCookieSettings) {
+      (window as any).openCookieSettings();
+    }
+  };
 
   return (
     <footer className="border-t bg-card mt-auto">
@@ -105,6 +111,15 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={handleCookieSettings}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer text-left"
+                  data-testid="button-cookie-settings"
+                >
+                  {language === 'et' ? 'Küpsiste seaded' : 'Cookie Settings'}
+                </button>
+              </li>
             </ul>
           </div>
         </div>

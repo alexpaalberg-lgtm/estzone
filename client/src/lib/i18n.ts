@@ -44,7 +44,8 @@ export const translations = {
       returns: 'Returns',
       aboutUs: 'About Us',
       careers: 'Careers',
-      privacy: 'Privacy',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Service',
       copyright: '© 2025 EstZone OÜ. All rights reserved.',
     },
     about: {
@@ -231,7 +232,8 @@ export const translations = {
       returns: 'Tagastused',
       aboutUs: 'Meist',
       careers: 'Karjäär',
-      privacy: 'Privaatsus',
+      privacy: 'Privaatsuspoliitika',
+      terms: 'Kasutustingimused',
       copyright: '© 2025 EstZone OÜ. Kõik õigused kaitstud.',
     },
     about: {
