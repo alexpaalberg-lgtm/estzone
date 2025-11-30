@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
-import ChatLauncher from "@/components/ChatLauncher";
+import FloatingButtons from "@/components/FloatingButtons";
 import ShoppingCart from "@/components/ShoppingCart";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -71,7 +71,7 @@ function App() {
               <Toaster />
               <Router />
               <ShoppingCart />
-              <ChatLauncher />
+              <FloatingButtons />
             </CartProvider>
           </CurrencyProvider>
         </LanguageProvider>
