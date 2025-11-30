@@ -64,7 +64,7 @@ export default function Header() {
           <Link href="/">
             <div className="flex items-center gap-1.5 hover-elevate px-2 py-1.5 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
               <img src={logoImage} alt="EstZone" className="h-6 lg:h-8 w-auto" />
-              <span className="font-bold text-lg lg:text-xl hidden sm:inline">
+              <span className="font-bold text-base sm:text-lg lg:text-xl">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
