@@ -584,30 +584,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Connection', 'keep-alive');
       
       let session;
-      let detectedLang: 'en' | 'et' = userLanguage || 'en';
-      let confidence = 1.0;
+      
+      // ALWAYS detect language from the current message - ignore header language
+      const detection = detectLanguage(message);
+      let detectedLang: 'en' | 'et' = detection.language;
+      let confidence = detection.confidence;
       
       // Get or create session
       if (sessionId) {
         session = await storage.getSupportSession(sessionId);
-        if (session) {
-          detectedLang = session.language as 'en' | 'et';
-        }
       }
       
       if (!session) {
-        // Detect language from first message if not provided
-        if (!userLanguage) {
-          const detection = detectLanguage(message);
-          detectedLang = detection.language;
-          confidence = detection.confidence;
-        }
-        
         session = await storage.createSupportSession({
           language: detectedLang,
           languageConfidence: confidence.toString(),
           isActive: true,
         });
+      } else {
+        // Update session language if user switched languages
+        if (session.language !== detectedLang && confidence > 0.6) {
+          await storage.updateSupportSession(session.id, {
+            language: detectedLang,
+            languageConfidence: confidence.toString(),
+          });
+        }
       }
       
       // Save user message
@@ -650,6 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get persona from session or create new one
       let storedPersonaName: string | null = null;
+      let storedPersonaLang: 'en' | 'et' | null = null;
       try {
         if (session.metadata) {
           const metadata = typeof session.metadata === 'string' ? JSON.parse(session.metadata) : session.metadata;
@@ -660,6 +662,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       let persona = storedPersonaName ? getPersonaByName(storedPersonaName) : undefined;
+      
+      // If user switched language, switch to a persona that speaks that language
+      if (persona && persona.language !== detectedLang) {
+        persona = undefined; // Will get new language-appropriate persona
+        storedPersonaName = null;
+      }
       
       const result = await streamChatResponse(
         message,
@@ -680,8 +688,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         persona
       );
       
-      // Store persona name in session metadata if new
-      if (!storedPersonaName && result.personaName) {
+      // Store persona name in session metadata if new or changed
+      if (result.personaName && result.personaName !== storedPersonaName) {
         await storage.updateSupportSession(session.id, {
           metadata: JSON.stringify({ personaName: result.personaName })
         });
