@@ -53,7 +53,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertProductSchema, type Product, type Category } from '@shared/schema';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const productFormSchema = insertProductSchema.extend({
   images: z.string().optional(),
@@ -229,6 +230,11 @@ export default function AdminProducts() {
   };
 
   const products = productsData?.products || [];
+  
+  const getCategoryName = (categoryId: string) => {
+    const category = categories?.find(c => c.id === categoryId);
+    return category?.nameEn || '-';
+  };
 
   return (
     <AdminLayout title={t.admin.products}>
@@ -250,12 +256,15 @@ export default function AdminProducts() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Image</TableHead>
+                  <TableHead className="w-16">Image</TableHead>
                   <TableHead>{t.admin.nameEn}</TableHead>
-                  <TableHead>{t.admin.nameEt}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t.admin.nameEt}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t.admin.category}</TableHead>
                   <TableHead>{t.admin.sku}</TableHead>
                   <TableHead>{t.admin.price}</TableHead>
+                  <TableHead className="hidden sm:table-cell">Sale</TableHead>
                   <TableHead>{t.admin.stock}</TableHead>
+                  <TableHead className="hidden xl:table-cell">Status</TableHead>
                   <TableHead>{t.admin.actions}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -271,16 +280,70 @@ export default function AdminProducts() {
                           data-testid={`img-product-${product.id}`}
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-muted rounded" />
+                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">
+                          No img
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell data-testid={`text-name-en-${product.id}`}>{product.nameEn}</TableCell>
-                    <TableCell data-testid={`text-name-et-${product.id}`}>{product.nameEt}</TableCell>
-                    <TableCell data-testid={`text-sku-${product.id}`}>{product.sku}</TableCell>
-                    <TableCell data-testid={`text-price-${product.id}`}>€{product.price}</TableCell>
-                    <TableCell data-testid={`text-stock-${product.id}`}>{product.stock}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col">
+                        <span className="font-medium" data-testid={`text-name-en-${product.id}`}>{product.nameEn}</span>
+                        <span className="text-xs text-muted-foreground md:hidden">{product.nameEt}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell" data-testid={`text-name-et-${product.id}`}>
+                      {product.nameEt}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell" data-testid={`text-category-${product.id}`}>
+                      {getCategoryName(product.categoryId)}
+                    </TableCell>
+                    <TableCell data-testid={`text-sku-${product.id}`}>
+                      <span className="font-mono text-xs">{product.sku}</span>
+                    </TableCell>
+                    <TableCell data-testid={`text-price-${product.id}`}>
+                      <span className="font-semibold">€{product.price}</span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell" data-testid={`text-sale-${product.id}`}>
+                      {product.salePrice ? (
+                        <span className="text-green-500 font-medium">€{product.salePrice}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell data-testid={`text-stock-${product.id}`}>
+                      <span className={product.stock <= (product.lowStockThreshold || 10) ? 'text-red-500 font-bold' : ''}>
+                        {product.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {product.isActive ? (
+                          <Badge variant="outline" className="text-green-500 border-green-500">
+                            <Eye className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-red-500 border-red-500">
+                            <EyeOff className="w-3 h-3 mr-1" />
+                            Hidden
+                          </Badge>
+                        )}
+                        {product.isFeatured && (
+                          <Badge variant="outline" className="text-yellow-500 border-yellow-500">
+                            <Star className="w-3 h-3 mr-1" />
+                            Featured
+                          </Badge>
+                        )}
+                        {product.isNew && (
+                          <Badge variant="outline" className="text-blue-500 border-blue-500">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            New
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
