@@ -21,6 +21,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/Products";
 import AdminOrders from "@/pages/admin/Orders";
 import AdminCategories from "@/pages/admin/Categories";
+import AdminInventory from "@/pages/admin/Inventory";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/admin/products" component={AdminProducts} />
       <Route path="/admin/orders" component={AdminOrders} />
       <Route path="/admin/categories" component={AdminCategories} />
+      <Route path="/admin/inventory" component={AdminInventory} />
       <Route component={NotFound} />
     </Switch>
   );

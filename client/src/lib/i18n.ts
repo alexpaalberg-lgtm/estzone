@@ -182,6 +182,8 @@ export const translations = {
       categorySlugPlaceholder: 'category-slug',
       categoryDescPlaceholder: 'Category description (optional)',
       cannotBeOwnParent: 'Category cannot be its own parent',
+      success: 'Success',
+      inventory: 'Inventory',
     },
   },
   et: {
@@ -367,6 +369,8 @@ export const translations = {
       categorySlugPlaceholder: 'kategooria-luhend',
       categoryDescPlaceholder: 'Kategooria kirjeldus (valikuline)',
       cannotBeOwnParent: 'Kategooria ei saa olla iseenda ülakategooria',
+      success: 'Õnnestus',
+      inventory: 'Laohaldus',
     },
   },
 };
