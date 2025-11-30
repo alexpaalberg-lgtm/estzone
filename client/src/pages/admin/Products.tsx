@@ -117,8 +117,8 @@ export default function AdminProducts() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to create product',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToCreate,
       });
     },
   });
@@ -143,8 +143,8 @@ export default function AdminProducts() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to update product',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToUpdate,
       });
     },
   });
@@ -162,8 +162,8 @@ export default function AdminProducts() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to delete product',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToDelete,
       });
     },
   });
@@ -256,15 +256,15 @@ export default function AdminProducts() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Image</TableHead>
+                  <TableHead className="w-16">{t.admin.images}</TableHead>
                   <TableHead>{t.admin.nameEn}</TableHead>
                   <TableHead className="hidden md:table-cell">{t.admin.nameEt}</TableHead>
                   <TableHead className="hidden lg:table-cell">{t.admin.category}</TableHead>
                   <TableHead>{t.admin.sku}</TableHead>
                   <TableHead>{t.admin.price}</TableHead>
-                  <TableHead className="hidden sm:table-cell">Sale</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.admin.salePrice}</TableHead>
                   <TableHead>{t.admin.stock}</TableHead>
-                  <TableHead className="hidden xl:table-cell">Status</TableHead>
+                  <TableHead className="hidden xl:table-cell">{t.admin.status}</TableHead>
                   <TableHead>{t.admin.actions}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -281,7 +281,7 @@ export default function AdminProducts() {
                         />
                       ) : (
                         <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">
-                          No img
+                          {t.admin.noImage}
                         </div>
                       )}
                     </TableCell>
@@ -320,24 +320,24 @@ export default function AdminProducts() {
                         {product.isActive ? (
                           <Badge variant="outline" className="text-green-500 border-green-500">
                             <Eye className="w-3 h-3 mr-1" />
-                            Active
+                            {t.admin.activeStatus}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-red-500 border-red-500">
                             <EyeOff className="w-3 h-3 mr-1" />
-                            Hidden
+                            {t.admin.hiddenStatus}
                           </Badge>
                         )}
                         {product.isFeatured && (
                           <Badge variant="outline" className="text-yellow-500 border-yellow-500">
                             <Star className="w-3 h-3 mr-1" />
-                            Featured
+                            {t.admin.featuredStatus}
                           </Badge>
                         )}
                         {product.isNew && (
                           <Badge variant="outline" className="text-blue-500 border-blue-500">
                             <Sparkles className="w-3 h-3 mr-1" />
-                            New
+                            {t.admin.newStatus}
                           </Badge>
                         )}
                       </div>
@@ -377,7 +377,7 @@ export default function AdminProducts() {
               {editingProduct ? t.admin.editProduct : t.admin.addProduct}
             </DialogTitle>
             <DialogDescription>
-              {editingProduct ? 'Update product information' : 'Add a new product to the store'}
+              {editingProduct ? t.admin.editProduct : t.admin.addProduct}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -554,7 +554,7 @@ export default function AdminProducts() {
                   <FormItem>
                     <FormLabel>{t.admin.images}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg" data-testid="input-images" />
+                      <Input {...field} placeholder={t.admin.imagesPlaceholder} data-testid="input-images" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

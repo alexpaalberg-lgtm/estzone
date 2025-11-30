@@ -104,8 +104,8 @@ export default function AdminCategories() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Viga',
-        description: error.message || 'Kategooria loomine ebaõnnestus',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToCreate,
       });
     },
   });
@@ -130,8 +130,8 @@ export default function AdminCategories() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Viga',
-        description: error.message || 'Kategooria uuendamine ebaõnnestus',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToUpdate,
       });
     },
   });
@@ -149,10 +149,10 @@ export default function AdminCategories() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Viga',
+        title: t.admin.error,
         description: error.message === 'Cannot delete category with products. Please remove or reassign products first.' 
           ? t.admin.categoryHasProducts 
-          : error.message || 'Kategooria kustutamine ebaõnnestus',
+          : error.message || t.admin.failedToDelete,
       });
     },
   });
@@ -195,8 +195,8 @@ export default function AdminCategories() {
       if (data.parentId === editingCategory.id) {
         toast({
           variant: 'destructive',
-          title: 'Viga',
-          description: 'Kategooria ei saa olla iseenda ülakategooria',
+          title: t.admin.error,
+          description: t.admin.cannotBeOwnParent,
         });
         return;
       }
@@ -302,7 +302,7 @@ export default function AdminCategories() {
               {editingCategory ? t.admin.editCategory : t.admin.addCategory}
             </DialogTitle>
             <DialogDescription>
-              {editingCategory ? 'Muuda kategooria detaile' : 'Loo uus kategooria'}
+              {editingCategory ? t.admin.editCategory : t.admin.addCategory}
             </DialogDescription>
           </DialogHeader>
 
@@ -315,7 +315,7 @@ export default function AdminCategories() {
                   <FormItem>
                     <FormLabel>{t.admin.nameEn}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Category Name" data-testid="input-name-en" />
+                      <Input {...field} placeholder={t.admin.categoryNamePlaceholder} data-testid="input-name-en" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -329,7 +329,7 @@ export default function AdminCategories() {
                   <FormItem>
                     <FormLabel>{t.admin.nameEt}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Kategooria nimi" data-testid="input-name-et" />
+                      <Input {...field} placeholder={t.admin.categoryNamePlaceholder} data-testid="input-name-et" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -345,7 +345,7 @@ export default function AdminCategories() {
                     <FormControl>
                       <Input 
                         {...field} 
-                        placeholder="category-slug" 
+                        placeholder={t.admin.categorySlugPlaceholder} 
                         data-testid="input-slug"
                         onChange={(e) => field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                       />
@@ -362,7 +362,7 @@ export default function AdminCategories() {
                   <FormItem>
                     <FormLabel>{t.admin.descriptionEn}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} value={field.value ?? ''} placeholder="Category description (optional)" data-testid="input-description-en" />
+                      <Textarea {...field} value={field.value ?? ''} placeholder={t.admin.categoryDescPlaceholder} data-testid="input-description-en" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -376,7 +376,7 @@ export default function AdminCategories() {
                   <FormItem>
                     <FormLabel>{t.admin.descriptionEt}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} value={field.value ?? ''} placeholder="Kategooria kirjeldus (valikuline)" data-testid="input-description-et" />
+                      <Textarea {...field} value={field.value ?? ''} placeholder={t.admin.categoryDescPlaceholder} data-testid="input-description-et" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -96,8 +96,8 @@ export default function AdminOrders() {
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to update order',
+        title: t.admin.error,
+        description: error.message || t.admin.failedToUpdate,
       });
     },
   });

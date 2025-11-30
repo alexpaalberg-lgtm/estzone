@@ -13,10 +13,17 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut } from 'lucide-react';
+import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -25,7 +32,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [, setLocation] = useLocation();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const { toast } = useToast();
 
   const { data: authData, isLoading } = useQuery<{ isAdmin: boolean }>({
@@ -130,6 +137,32 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <h1 className="text-2xl font-bold" data-testid="text-page-title">{title}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="button-language-selector">
+                    <Globe className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'English' : 'Eesti'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => setLanguage('en')}
+                    data-testid="menu-item-english"
+                    className={language === 'en' ? 'bg-accent' : ''}
+                  >
+                    EN - English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setLanguage('et')}
+                    data-testid="menu-item-estonian"
+                    className={language === 'et' ? 'bg-accent' : ''}
+                  >
+                    ET - Eesti
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">

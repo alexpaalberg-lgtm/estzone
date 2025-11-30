@@ -7,10 +7,17 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest } from '@/lib/queryClient';
+import { Globe } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,14 +39,14 @@ export default function AdminLogin() {
       await apiRequest('POST', '/api/admin/login', { password });
       toast({
         title: t.admin.loginButton,
-        description: 'Welcome back!',
+        description: t.admin.welcomeBack,
       });
       setLocation('/admin/products');
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: t.admin.loginError,
-        description: error.message || 'Login failed',
+        description: error.message || t.admin.loginFailed,
       });
     } finally {
       setIsLoading(false);
@@ -48,11 +55,37 @@ export default function AdminLogin() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" data-testid="button-language-selector">
+              <Globe className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'English' : 'Eesti'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={() => setLanguage('en')}
+              data-testid="menu-item-english"
+              className={language === 'en' ? 'bg-accent' : ''}
+            >
+              EN - English
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setLanguage('et')}
+              data-testid="menu-item-estonian"
+              className={language === 'et' ? 'bg-accent' : ''}
+            >
+              ET - Eesti
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">{t.admin.login}</CardTitle>
           <CardDescription>
-            Enter admin password to access the panel
+            {t.admin.loginDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -64,7 +97,7 @@ export default function AdminLogin() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter admin password"
+                placeholder={t.admin.passwordPlaceholder}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
@@ -77,7 +110,7 @@ export default function AdminLogin() {
               disabled={isLoading}
               data-testid="button-login"
             >
-              {isLoading ? 'Logging in...' : t.admin.loginButton}
+              {isLoading ? t.admin.loggingIn : t.admin.loginButton}
             </Button>
           </form>
         </CardContent>
