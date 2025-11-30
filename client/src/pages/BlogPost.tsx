@@ -17,7 +17,7 @@ export default function BlogPost() {
   const { language } = useLanguage();
   
   const { data: post, isLoading } = useQuery<BlogPost>({
-    queryKey: ['/api/blog', params?.slug],
+    queryKey: ['/api/blog/posts', params?.slug],
   });
   
   if (isLoading) {

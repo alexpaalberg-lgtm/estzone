@@ -15,7 +15,7 @@ export default function Blog() {
   const { language } = useLanguage();
   
   const { data: posts, isLoading } = useQuery<BlogPost[]>({
-    queryKey: ['/api/blog'],
+    queryKey: ['/api/blog/posts'],
   });
 
   const seoTitle = language === 'et' ? 'Blogi - Mänguuudised ja Juhised' : 'Blog - Gaming News & Guides';
