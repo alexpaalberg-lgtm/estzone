@@ -381,8 +381,8 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
       const welcomeMessage: Message = {
         role: 'assistant',
         content: initialLang === 'et'
-          ? 'Tere! Olen EstZone virtuaalne assistent. Kuidas saan aidata? 🎮'
-          : 'Hello! I\'m EstZone\'s virtual assistant. How can I help you today? 🎮',
+          ? 'Tere! Olen EstZone virtuaalne assistent. Kuidas saan aidata?'
+          : 'Hello! I\'m EstZone\'s virtual assistant. How can I help you today?',
         id: 'welcome'
       };
       setMessages([welcomeMessage]);
@@ -408,6 +408,9 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
     setInput("");
     setIsLoading(true);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    
     try {
       const response = await fetch('/api/support/chat', {
         method: 'POST',
@@ -416,7 +419,10 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
           sessionId,
           message: userMessage.content,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error('Failed to send message');
@@ -427,9 +433,28 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
       let assistantMessage = '';
       let newSessionId = sessionId;
       
+      const readWithTimeout = async (reader: ReadableStreamDefaultReader<Uint8Array>, timeout: number) => {
+        let timeoutHandle: ReturnType<typeof setTimeout>;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reader.cancel();
+            reject(new Error('Response timeout'));
+          }, timeout);
+        });
+        
+        try {
+          const result = await Promise.race([reader.read(), timeoutPromise]);
+          clearTimeout(timeoutHandle!);
+          return result;
+        } catch (err) {
+          clearTimeout(timeoutHandle!);
+          throw err;
+        }
+      };
+      
       if (reader) {
         while (true) {
-          const { done, value } = await reader.read();
+          const { done, value } = await readWithTimeout(reader, 30000);
           if (done) break;
           
           const chunk = decoder.decode(value);
@@ -451,7 +476,6 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
                 
                 if (data.chunk) {
                   assistantMessage += data.chunk;
-                  // Update the assistant message in real-time
                   setMessages(prev => {
                     const filtered = prev.filter(m => m.id !== 'temp-assistant');
                     return [...filtered, {
@@ -463,12 +487,10 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
                 }
                 
                 if (data.done) {
-                  // Capture persona name if provided
                   if (data.personaName && !personaName) {
                     setPersonaName(data.personaName);
                   }
                   
-                  // Finalize the assistant message
                   setMessages(prev => {
                     const filtered = prev.filter(m => m.id !== 'temp-assistant');
                     return [...filtered, {
@@ -486,11 +508,19 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
         }
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
+      setMessages(prev => prev.filter(m => m.id !== 'temp-assistant'));
+      
+      const isTimeout = error.name === 'AbortError' || error.message === 'Response timeout';
       const errorMessage: Message = {
         role: 'assistant',
         content: chatLanguage === 'et'
-          ? 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
-          : 'Sorry, an error occurred. Please try again later.',
+          ? isTimeout 
+            ? 'Vabandust, vastamine võttis liiga kaua aega. Palun proovige uuesti.'
+            : 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
+          : isTimeout
+            ? 'Sorry, the response took too long. Please try again.'
+            : 'Sorry, an error occurred. Please try again later.',
         id: Date.now().toString()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -524,6 +554,9 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    
     try {
       const response = await fetch('/api/support/chat', {
         method: 'POST',
@@ -532,7 +565,10 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
           sessionId,
           message: query,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error('Failed to send message');
@@ -543,9 +579,28 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
       let assistantMessage = '';
       let newSessionId = sessionId;
       
+      const readWithTimeout = async (reader: ReadableStreamDefaultReader<Uint8Array>, timeout: number) => {
+        let timeoutHandle: ReturnType<typeof setTimeout>;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reader.cancel();
+            reject(new Error('Response timeout'));
+          }, timeout);
+        });
+        
+        try {
+          const result = await Promise.race([reader.read(), timeoutPromise]);
+          clearTimeout(timeoutHandle!);
+          return result;
+        } catch (err) {
+          clearTimeout(timeoutHandle!);
+          throw err;
+        }
+      };
+      
       if (reader) {
         while (true) {
-          const { done, value } = await reader.read();
+          const { done, value } = await readWithTimeout(reader, 30000);
           if (done) break;
           
           const chunk = decoder.decode(value);
@@ -595,11 +650,19 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
         }
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
+      setMessages(prev => prev.filter(m => m.id !== 'temp-assistant'));
+      
+      const isTimeout = error.name === 'AbortError' || error.message === 'Response timeout';
       const errorMessage: Message = {
         role: 'assistant',
         content: chatLanguage === 'et'
-          ? 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
-          : 'Sorry, an error occurred. Please try again later.',
+          ? isTimeout 
+            ? 'Vabandust, vastamine võttis liiga kaua aega. Palun proovige uuesti.'
+            : 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
+          : isTimeout
+            ? 'Sorry, the response took too long. Please try again.'
+            : 'Sorry, an error occurred. Please try again later.',
         id: Date.now().toString()
       };
       setMessages(prev => [...prev, errorMessage]);

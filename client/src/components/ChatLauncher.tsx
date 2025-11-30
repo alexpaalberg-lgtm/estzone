@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, X } from "lucide-react";
-import ChatPanel from "@/components/ChatPanel";
+import { MessageCircle, X, RotateCcw } from "lucide-react";
+import ChatPanel, { ChatPanelRef } from "@/components/ChatPanel";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ChatLauncher() {
   const [isOpen, setIsOpen] = useState(false);
   const { language } = useLanguage();
+  const chatPanelRef = useRef<ChatPanelRef>(null);
+
+  const handleClearChat = () => {
+    chatPanelRef.current?.clearChat();
+  };
 
   return (
     <>
@@ -30,17 +35,28 @@ export default function ChatLauncher() {
                 {language === 'et' ? 'Tugiassistent' : 'Support Assistant'}
               </h3>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsOpen(false)}
-              data-testid="button-close-chat"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleClearChat}
+                title={language === 'et' ? 'Alusta uuesti' : 'Start new chat'}
+                data-testid="button-clear-chat"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsOpen(false)}
+                data-testid="button-close-chat"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           
-          <ChatPanel />
+          <ChatPanel ref={chatPanelRef} />
         </div>
       )}
     </>
