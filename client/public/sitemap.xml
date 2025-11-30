@@ -59,6 +59,48 @@
     <priority>0.7</priority>
   </url>
   
+  <!-- Blog Posts -->
+  <url>
+    <loc>https://estzone.eu/blog/ps5-pro-worth-upgrade</loc>
+    <xhtml:link rel="alternate" hreflang="et" href="https://estzone.eu/blog/ps5-pro-worth-upgrade?lang=et"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://estzone.eu/blog/ps5-pro-worth-upgrade?lang=en"/>
+    <lastmod>2024-11-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://estzone.eu/blog/christmas-gaming-gift-guide-2024</loc>
+    <xhtml:link rel="alternate" hreflang="et" href="https://estzone.eu/blog/christmas-gaming-gift-guide-2024?lang=et"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://estzone.eu/blog/christmas-gaming-gift-guide-2024?lang=en"/>
+    <lastmod>2024-10-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://estzone.eu/blog/future-vr-gaming-2025</loc>
+    <xhtml:link rel="alternate" hreflang="et" href="https://estzone.eu/blog/future-vr-gaming-2025?lang=et"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://estzone.eu/blog/future-vr-gaming-2025?lang=en"/>
+    <lastmod>2024-08-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://estzone.eu/blog/xbox-vs-playstation-controller-comparison</loc>
+    <xhtml:link rel="alternate" hreflang="et" href="https://estzone.eu/blog/xbox-vs-playstation-controller-comparison?lang=et"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://estzone.eu/blog/xbox-vs-playstation-controller-comparison?lang=en"/>
+    <lastmod>2024-06-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://estzone.eu/blog/gaming-trends-2024</loc>
+    <xhtml:link rel="alternate" hreflang="et" href="https://estzone.eu/blog/gaming-trends-2024?lang=et"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://estzone.eu/blog/gaming-trends-2024?lang=en"/>
+    <lastmod>2024-03-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
   <!-- About -->
   <url>
     <loc>https://estzone.eu/about</loc>
