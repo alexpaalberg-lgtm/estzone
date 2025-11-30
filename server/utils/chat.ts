@@ -2,7 +2,12 @@ import OpenAI from "openai";
 import type { Product, Order, Category } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// This uses Replit's AI Integrations service (no API key needed in development)
+// Falls back to regular OpenAI API key for production deployments
+const openai = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || undefined,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+});
 
 const MODEL = "gpt-5";
 
