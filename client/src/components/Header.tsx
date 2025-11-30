@@ -58,22 +58,22 @@ export default function Header() {
   }, [categories]);
 
   return (
-    <header className="relative z-50 border-b bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="max-w-[100vw] mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="flex h-14 lg:h-16 items-center justify-between gap-2">
           <Link href="/">
-            <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-8 w-auto" />
-              <span className="font-bold text-xl">
+            <div className="flex items-center gap-1.5 hover-elevate px-2 py-1.5 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-6 lg:h-8 w-auto" />
+              <span className="font-bold text-lg lg:text-xl hidden sm:inline">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-shrink min-w-0">
             <NavigationMenu>
-              <NavigationMenuList>
+              <NavigationMenuList className="gap-0">
                 {visibleCategories.map((parent) => {
                   const subcats = subcategoriesByParent[parent.id] || [];
                   const parentName = language === 'et' ? parent.nameEt : parent.nameEn;
@@ -84,7 +84,7 @@ export default function Header() {
                         <Link href={`/products/${parent.slug}`}>
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            className="h-8 px-2 text-xs lg:text-sm"
                             data-testid={`link-category-${parent.slug}`}
                           >
                             {parentName}
@@ -97,7 +97,7 @@ export default function Header() {
                   return (
                     <NavigationMenuItem key={parent.id}>
                       <NavigationMenuTrigger 
-                        className="h-9 px-3 text-sm"
+                        className="h-8 px-2 text-xs lg:text-sm"
                         data-testid={`dropdown-category-${parent.slug}`}
                       >
                         {parentName}
@@ -137,7 +137,7 @@ export default function Header() {
                 {moreCategories.length > 0 && (
                   <NavigationMenuItem>
                     <NavigationMenuTrigger 
-                      className="h-9 px-3 text-sm"
+                      className="h-8 px-2 text-xs lg:text-sm"
                       data-testid="dropdown-more-categories"
                     >
                       {language === 'et' ? 'Rohkem' : 'More'}
@@ -164,7 +164,7 @@ export default function Header() {
                 
                 <NavigationMenuItem>
                   <Link href="/blog">
-                    <Button variant="ghost" size="sm" data-testid="link-blog">
+                    <Button variant="ghost" className="h-8 px-2 text-xs lg:text-sm" data-testid="link-blog">
                       {t.nav.blog}
                     </Button>
                   </Link>
@@ -173,13 +173,13 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <SearchBar className="hidden lg:block w-64" />
+          <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+            <SearchBar className="hidden xl:block w-48" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="xl:hidden"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -246,7 +246,7 @@ export default function Header() {
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-menu">
+                <Button variant="ghost" size="icon" className="lg:hidden" data-testid="button-menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
