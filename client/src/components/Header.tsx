@@ -174,7 +174,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-            <SearchBar className="hidden xl:block w-48" />
+            <SearchBar className="hidden xl:block w-64 2xl:w-80" />
 
             <Button
               variant="ghost"
