@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import { Gamepad2, Mail } from 'lucide-react';
-import { SiStripe, SiVisa, SiMastercard } from 'react-icons/si';
+import { SiStripe, SiVisa, SiMastercard, SiFacebook, SiInstagram, SiX } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -56,10 +56,45 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground mb-4">
               Pärnu mnt 31, Tallinn, Estonia
             </p>
-            <div className="text-xs text-muted-foreground mb-6 space-y-1">
+            <div className="text-xs text-muted-foreground mb-4 space-y-1">
               <p className="font-medium">NORTEX KAUBAD OÜ</p>
               <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16911643</p>
             </div>
+            
+            {/* Social Media Links */}
+            <div className="flex items-center gap-3 mb-6">
+              <a 
+                href="https://facebook.com/estzone" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="Facebook"
+                data-testid="link-facebook"
+              >
+                <SiFacebook className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </a>
+              <a 
+                href="https://instagram.com/estzone" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="Instagram"
+                data-testid="link-instagram"
+              >
+                <SiInstagram className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </a>
+              <a 
+                href="https://x.com/estzone" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="X (Twitter)"
+                data-testid="link-twitter"
+              >
+                <SiX className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </a>
+            </div>
+            
             <div className="space-y-3">
               <p className="text-sm font-semibold">{t.footer.newsletter}</p>
               <div className="flex gap-2">

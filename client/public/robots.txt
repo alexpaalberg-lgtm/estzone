@@ -1,0 +1,22 @@
+# EstZone Gaming Store - Robots.txt
+# https://estzone.eu
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://estzone.eu/sitemap.xml
+
+# Disallow admin and cart pages from indexing
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /cart
+Disallow: /checkout
+
+# Allow all crawlers to index product pages
+Allow: /products
+Allow: /products/*
+
+# Allow blog indexing
+Allow: /blog
+Allow: /blog/*

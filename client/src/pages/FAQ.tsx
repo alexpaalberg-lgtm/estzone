@@ -9,6 +9,7 @@ import {
 import { HelpCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 
 export default function FAQ() {
   const { language } = useLanguage();
@@ -171,6 +172,15 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title={language === 'et' ? 'Korduma Kippuvad Küsimused' : 'Frequently Asked Questions'}
+        description={language === 'et' 
+          ? 'Leia vastused küsimustele tellimise, tarne, tagastuste ja garantii kohta EstZone mängupoes.'
+          : 'Find answers about ordering, shipping, returns and warranty at EstZone gaming store.'}
+        keywords={language === 'et'
+          ? 'KKK, küsimused, vastused, tugi, klienditeenindus, EstZone'
+          : 'FAQ, questions, answers, support, customer service, EstZone'}
+      />
       <Header />
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-12">

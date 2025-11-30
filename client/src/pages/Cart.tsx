@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCart } from "@/contexts/CartContext";
@@ -18,9 +19,15 @@ export default function Cart() {
   // Keep in EUR - formatPrice() will handle conversion to display currency
   const vatBreakdown = calculateVatBreakdown(totalPrice);
   
+  const seoTitle = language === 'et' ? 'Ostukorv' : 'Shopping Cart';
+  const seoDescription = language === 'et' 
+    ? 'Vaata oma ostukorvi ja vormista tellimus EstZone mängupoes.'
+    : 'View your shopping cart and proceed to checkout at EstZone gaming store.';
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        <SEO title={seoTitle} description={seoDescription} />
         <Header />
         <main className="flex-1 container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center">
           <ShoppingBag className="h-24 w-24 text-muted-foreground mb-6" />
@@ -43,6 +50,7 @@ export default function Cart() {
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO title={seoTitle} description={seoDescription} />
       <Header />
       
       <main className="flex-1">

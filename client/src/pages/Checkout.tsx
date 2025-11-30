@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -138,9 +139,15 @@ export default function Checkout() {
     createOrderMutation.mutate(data);
   };
   
+  const seoTitle = language === 'et' ? 'Kassa' : 'Checkout';
+  const seoDescription = language === 'et' 
+    ? 'Vormista tellimus turvaliselt. Aktsepteerime pangalinke, kaardimakseid ja PayPali.'
+    : 'Complete your order securely. We accept bank links, card payments and PayPal.';
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        <SEO title={seoTitle} description={seoDescription} />
         <Header />
         <main className="flex-1 container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center">
           <ShoppingBag className="h-24 w-24 text-muted-foreground mb-6" />
@@ -160,6 +167,7 @@ export default function Checkout() {
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO title={seoTitle} description={seoDescription} />
       <Header />
       
       <main className="flex-1">

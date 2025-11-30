@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductGrid from "@/components/ProductGrid";
+import SEO from "@/components/SEO";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,8 +49,27 @@ export default function Products() {
     ? (language === 'et' ? category.descriptionEt : category.descriptionEn)
     : '';
   
+  const seoTitle = category 
+    ? categoryName
+    : (language === 'et' ? 'Kõik tooted' : 'All Products');
+  
+  const seoDescription = category
+    ? (categoryDescription || (language === 'et' 
+        ? `Osta ${categoryName} EstZone'ist. Kiire tarne Omniva ja DPD-ga.`
+        : `Shop ${categoryName} at EstZone. Fast shipping with Omniva and DPD.`))
+    : (language === 'et' 
+        ? 'Avasta meie täielik mängutoodete valik. Konsoolid, kontrollerid, VR-peakomplektid ja tarvikud.'
+        : 'Discover our complete gaming product selection. Consoles, controllers, VR headsets and accessories.');
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title={seoTitle}
+        description={seoDescription}
+        keywords={language === 'et' 
+          ? 'mängud, konsoolid, PS5, Xbox, Nintendo Switch, VR, kontrollerid, Eesti'
+          : 'games, consoles, PS5, Xbox, Nintendo Switch, VR, controllers, Estonia'}
+      />
       <Header />
       
       <main className="flex-1">

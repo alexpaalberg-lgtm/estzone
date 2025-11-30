@@ -28,7 +28,7 @@ export default function SEO({
   product,
 }: SEOProps) {
   const fullTitle = `${title} | EstZone - Premium Gaming Store`;
-  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://estzone.com';
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://estzone.eu';
   const currentUrl = typeof window !== 'undefined' ? window.location.href : siteUrl;
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function SEO({
           : "https://schema.org/OutOfStock",
         "seller": {
           "@type": "Organization",
-          "name": "EstZone OÜ"
+          "name": "NORTEX KAUBAD OÜ"
         }
       };
     } else if (ogType === 'article' && article) {
