@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, X, ChevronUp } from "lucide-react";
-import ChatPanel from "@/components/ChatPanel";
+import { MessageCircle, X, ChevronUp, RotateCcw } from "lucide-react";
+import ChatPanel, { ChatPanelRef } from "@/components/ChatPanel";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
@@ -63,6 +68,11 @@ function getBrowserLanguage(): 'en' | 'et' {
 
 function ChatWindow({ onClose }: { onClose: () => void }) {
   const [chatLanguage, setChatLanguage] = useState<'en' | 'et'>(() => getBrowserLanguage());
+  const chatPanelRef = useRef<ChatPanelRef>(null);
+
+  const handleClearChat = () => {
+    chatPanelRef.current?.clearChat();
+  };
 
   return (
     <div 
@@ -83,18 +93,36 @@ function ChatWindow({ onClose }: { onClose: () => void }) {
             </p>
           </div>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={onClose}
-          data-testid="button-close-chat"
-        >
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={handleClearChat}
+                data-testid="button-clear-chat"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {chatLanguage === 'et' ? 'Alusta uut vestlust' : 'Start new conversation'}
+            </TooltipContent>
+          </Tooltip>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={onClose}
+            data-testid="button-close-chat"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
       
-      <ChatPanel onLanguageChange={setChatLanguage} />
+      <ChatPanel ref={chatPanelRef} onLanguageChange={setChatLanguage} />
     </div>
   );
 }

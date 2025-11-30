@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -290,7 +290,11 @@ interface ChatPanelProps {
   onLanguageChange?: (language: 'en' | 'et') => void;
 }
 
-export default function ChatPanel({ onLanguageChange }: ChatPanelProps) {
+export interface ChatPanelRef {
+  clearChat: () => void;
+}
+
+const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }, ref) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -304,6 +308,28 @@ export default function ChatPanel({ onLanguageChange }: ChatPanelProps) {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const clearChat = () => {
+    localStorage.removeItem('estzone_chat_session');
+    setSessionId(null);
+    setMessages([]);
+    setPersonaName(null);
+    setInput("");
+    const initialLang = getBrowserLanguage();
+    setChatLanguage(initialLang);
+    const welcomeMessage: Message = {
+      role: 'assistant',
+      content: initialLang === 'et'
+        ? 'Tere! Olen EstZone virtuaalne assistent. Kuidas saan aidata?'
+        : 'Hello! I\'m EstZone\'s virtual assistant. How can I help you today?',
+      id: 'welcome-new'
+    };
+    setMessages([welcomeMessage]);
+  };
+
+  useImperativeHandle(ref, () => ({
+    clearChat
+  }));
   
   useEffect(() => {
     onLanguageChange?.(chatLanguage);
@@ -688,4 +714,8 @@ export default function ChatPanel({ onLanguageChange }: ChatPanelProps) {
       </div>
     </div>
   );
-}
+});
+
+ChatPanel.displayName = 'ChatPanel';
+
+export default ChatPanel;
