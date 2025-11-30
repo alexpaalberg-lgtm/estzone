@@ -34,13 +34,17 @@ export default function Footer() {
       (window as any).openCookieSettings();
     }
   };
+  
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   return (
     <footer className="border-t bg-card mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           <div className="lg:col-span-2">
-            <Link href="/">
+            <Link href="/" onClick={scrollToTop}>
               <div className="flex items-center gap-2 mb-4 cursor-pointer">
                 <Gamepad2 className="h-6 w-6 text-primary" />
                 <span className="font-bold text-xl">EstZone</span>
@@ -72,9 +76,9 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">{t.footer.categories}</h3>
             <ul className="space-y-2">
-              {categories.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href}>
+              {categories.map((item, index) => (
+                <li key={`cat-${index}`}>
+                  <Link href={item.href} onClick={scrollToTop}>
                     <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
                     </span>
@@ -89,7 +93,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {support.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={item.href} onClick={scrollToTop}>
                     <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
                     </span>
@@ -104,7 +108,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {company.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={item.href} onClick={scrollToTop}>
                     <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                       {item.label}
                     </span>
