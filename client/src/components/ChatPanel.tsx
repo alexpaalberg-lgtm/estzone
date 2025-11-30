@@ -188,6 +188,32 @@ const allSuggestions: QuickSuggestion[] = [
   }
 ];
 
+function renderMessageWithLinks(content: string) {
+  const urlRegex = /(https?:\/\/[^\s\)]+)/g;
+  const parts = content.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      urlRegex.lastIndex = 0;
+      const displayText = part.length > 50 
+        ? part.substring(0, 47) + '...' 
+        : part;
+      return (
+        <a 
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline hover:text-primary/80 break-all"
+        >
+          {displayText}
+        </a>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 function getContextualSuggestions(messages: Message[], language: 'en' | 'et'): QuickSuggestion[] {
   if (messages.length <= 1) {
     return allSuggestions.slice(0, 6);
@@ -522,7 +548,12 @@ export default function ChatPanel() {
                     : "bg-muted text-foreground"
                 )}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className="text-sm whitespace-pre-wrap">
+                  {message.role === 'assistant' 
+                    ? renderMessageWithLinks(message.content)
+                    : message.content
+                  }
+                </div>
               </div>
               
               {message.role === 'user' && (

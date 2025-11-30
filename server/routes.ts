@@ -646,6 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Stream the response
       let fullResponse = '';
+      const baseUrl = process.env.BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'www.estzone.eu'}`;
       
       await streamChatResponse(
         message,
@@ -655,7 +656,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           allProducts,
           categories,
           order,
-          sessionHistory
+          sessionHistory,
+          baseUrl
         },
         (chunk) => {
           // Send SSE chunk
@@ -689,6 +691,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(messages);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch chat history" });
+    }
+  });
+  
+  // Saved Cart Routes (for AI assistant cart sharing)
+  app.post("/api/cart/share", async (req, res) => {
+    try {
+      const { items, customerEmail } = req.body;
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Cart items are required" });
+      }
+      
+      const shareCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      const cart = await storage.createSavedCart({
+        shareCode,
+        items: JSON.stringify(items),
+        customerEmail,
+        expiresAt,
+      });
+      
+      const baseUrl = process.env.BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'www.estzone.eu'}`;
+      
+      res.json({
+        shareCode: cart.shareCode,
+        shareUrl: `${baseUrl}/cart?code=${cart.shareCode}`,
+        expiresAt: cart.expiresAt,
+      });
+    } catch (error: any) {
+      console.error('Error creating shared cart:', error);
+      res.status(500).json({ error: "Failed to create shared cart" });
+    }
+  });
+  
+  app.get("/api/cart/share/:code", async (req, res) => {
+    try {
+      const cart = await storage.getSavedCart(req.params.code);
+      
+      if (!cart) {
+        return res.status(404).json({ error: "Shared cart not found" });
+      }
+      
+      if (cart.expiresAt && new Date(cart.expiresAt) < new Date()) {
+        return res.status(410).json({ error: "Shared cart has expired" });
+      }
+      
+      res.json({
+        items: typeof cart.items === 'string' ? JSON.parse(cart.items) : cart.items,
+        createdAt: cart.createdAt,
+      });
+    } catch (error: any) {
+      console.error('Error fetching shared cart:', error);
+      res.status(500).json({ error: "Failed to fetch shared cart" });
+    }
+  });
+  
+  // Return Request Routes (for AI assistant)
+  app.post("/api/returns", async (req, res) => {
+    try {
+      const { orderNumber, reason, description, customerEmail, customerName } = req.body;
+      
+      if (!orderNumber || !reason) {
+        return res.status(400).json({ error: "Order number and reason are required" });
+      }
+      
+      const order = await storage.getOrderByNumber(orderNumber);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      const orderDate = new Date(order.createdAt);
+      const daysSinceOrder = Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceOrder > 14 && reason !== 'defective') {
+        return res.status(400).json({ 
+          error: "Return period has expired (14 days)",
+          daysSinceOrder,
+        });
+      }
+      
+      const returnRequest = await storage.createReturnRequest({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerEmail: customerEmail || order.customerEmail,
+        customerName: customerName || order.customerName,
+        reason,
+        description,
+        status: 'pending',
+        processedBy: 'ai_assistant',
+      });
+      
+      res.status(201).json(returnRequest);
+    } catch (error: any) {
+      console.error('Error creating return request:', error);
+      res.status(500).json({ error: "Failed to create return request" });
+    }
+  });
+  
+  app.get("/api/returns/:orderNumber", async (req, res) => {
+    try {
+      const returns = await storage.getReturnRequests({ orderNumber: req.params.orderNumber });
+      res.json(returns);
+    } catch (error: any) {
+      console.error('Error fetching returns:', error);
+      res.status(500).json({ error: "Failed to fetch returns" });
+    }
+  });
+  
+  // Order Cancellation (for AI assistant)
+  app.post("/api/orders/:orderNumber/cancel", async (req, res) => {
+    try {
+      const order = await storage.getOrderByNumber(req.params.orderNumber);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      const canCancel = ['pending', 'paid', 'processing'].includes(order.status);
+      
+      if (!canCancel) {
+        return res.status(400).json({ 
+          error: "Order cannot be cancelled",
+          reason: order.status === 'shipped' ? "Order has already been shipped" : "Order is in final state",
+          currentStatus: order.status,
+        });
+      }
+      
+      await storage.updateOrderStatus(order.id, 'cancelled', 'refund_pending');
+      
+      res.json({
+        success: true,
+        message: "Order has been cancelled",
+        orderNumber: order.orderNumber,
+        refundAmount: order.total,
+      });
+    } catch (error: any) {
+      console.error('Error cancelling order:', error);
+      res.status(500).json({ error: "Failed to cancel order" });
+    }
+  });
+  
+  // Stock Check (for AI assistant)
+  app.get("/api/products/:id/stock", async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      res.json({
+        id: product.id,
+        sku: product.sku,
+        stock: product.stock,
+        inStock: product.stock > 0,
+        lowStock: product.stock > 0 && product.stock <= (product.lowStockThreshold || 10),
+      });
+    } catch (error: any) {
+      console.error('Error checking stock:', error);
+      res.status(500).json({ error: "Failed to check stock" });
+    }
+  });
+  
+  // Low Stock Products (for admin/AI)
+  app.get("/api/products/low-stock", async (req, res) => {
+    try {
+      const lowStockProducts = await storage.getLowStockProducts();
+      res.json(lowStockProducts);
+    } catch (error: any) {
+      console.error('Error fetching low stock products:', error);
+      res.status(500).json({ error: "Failed to fetch low stock products" });
     }
   });
 

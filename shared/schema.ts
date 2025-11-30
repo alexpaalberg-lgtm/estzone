@@ -161,6 +161,61 @@ export const supportMessages = pgTable("support_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Return/Refund Requests
+export const returnRequests = pgTable("return_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id),
+  orderNumber: text("order_number").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name"),
+  reason: text("reason").notNull(), // 'defective', 'wrong_item', 'changed_mind', 'not_as_described', 'other'
+  description: text("description"),
+  status: text("status").notNull().default('pending'), // 'pending', 'approved', 'rejected', 'completed', 'refunded'
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }),
+  refundMethod: text("refund_method"), // 'original_payment', 'store_credit', 'bank_transfer'
+  replacementOrderId: varchar("replacement_order_id"),
+  processedBy: text("processed_by"), // 'ai_assistant' or admin email
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Stock Alerts (for low stock notifications)
+export const stockAlerts = pgTable("stock_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  alertType: text("alert_type").notNull(), // 'low_stock', 'out_of_stock', 'restock_needed'
+  currentStock: integer("current_stock").notNull(),
+  threshold: integer("threshold").notNull(),
+  isResolved: boolean("is_resolved").default(false),
+  supplierNotified: boolean("supplier_notified").default(false),
+  supplierNotifiedAt: timestamp("supplier_notified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Supplier Messages (for automated restock requests)
+export const supplierMessages = pgTable("supplier_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supplierEmail: text("supplier_email").notNull(),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  productIds: text("product_ids").array(),
+  messageType: text("message_type").notNull(), // 'restock_request', 'inquiry', 'order_confirmation'
+  status: text("status").notNull().default('pending'), // 'pending', 'sent', 'failed'
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Saved Carts (for sharing cart links)
+export const savedCarts = pgTable("saved_carts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  shareCode: text("share_code").notNull().unique(),
+  items: json("items").notNull(), // Array of {productId, quantity, price}
+  customerEmail: text("customer_email"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -245,3 +300,32 @@ export const insertSupportMessageSchema = createInsertSchema(supportMessages).om
 });
 export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
 export type SupportMessage = typeof supportMessages.$inferSelect;
+
+export const insertReturnRequestSchema = createInsertSchema(returnRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertReturnRequest = z.infer<typeof insertReturnRequestSchema>;
+export type ReturnRequest = typeof returnRequests.$inferSelect;
+
+export const insertStockAlertSchema = createInsertSchema(stockAlerts).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertStockAlert = z.infer<typeof insertStockAlertSchema>;
+export type StockAlert = typeof stockAlerts.$inferSelect;
+
+export const insertSupplierMessageSchema = createInsertSchema(supplierMessages).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSupplierMessage = z.infer<typeof insertSupplierMessageSchema>;
+export type SupplierMessage = typeof supplierMessages.$inferSelect;
+
+export const insertSavedCartSchema = createInsertSchema(savedCarts).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSavedCart = z.infer<typeof insertSavedCartSchema>;
+export type SavedCart = typeof savedCarts.$inferSelect;

@@ -11,6 +11,10 @@ import type {
   NewsletterSubscriber, InsertNewsletterSubscriber,
   SupportSession, InsertSupportSession,
   SupportMessage, InsertSupportMessage,
+  ReturnRequest, InsertReturnRequest,
+  StockAlert, InsertStockAlert,
+  SupplierMessage, InsertSupplierMessage,
+  SavedCart, InsertSavedCart,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray } from 'drizzle-orm';
 
@@ -73,6 +77,26 @@ export interface IStorage {
   updateSupportSession(id: string, session: Partial<InsertSupportSession>): Promise<void>;
   getSupportMessages(sessionId: string): Promise<SupportMessage[]>;
   createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage>;
+  
+  // Return Requests
+  getReturnRequests(filters?: { status?: string; orderNumber?: string }): Promise<ReturnRequest[]>;
+  getReturnRequest(id: string): Promise<ReturnRequest | undefined>;
+  createReturnRequest(request: InsertReturnRequest): Promise<ReturnRequest>;
+  updateReturnRequest(id: string, request: Partial<InsertReturnRequest>): Promise<ReturnRequest | undefined>;
+  
+  // Stock Alerts
+  getStockAlerts(resolved?: boolean): Promise<StockAlert[]>;
+  createStockAlert(alert: InsertStockAlert): Promise<StockAlert>;
+  resolveStockAlert(id: string): Promise<void>;
+  
+  // Supplier Messages
+  getSupplierMessages(status?: string): Promise<SupplierMessage[]>;
+  createSupplierMessage(message: InsertSupplierMessage): Promise<SupplierMessage>;
+  updateSupplierMessageStatus(id: string, status: string): Promise<void>;
+  
+  // Saved Carts
+  getSavedCart(shareCode: string): Promise<SavedCart | undefined>;
+  createSavedCart(cart: InsertSavedCart): Promise<SavedCart>;
 }
 
 export class DbStorage implements IStorage {
@@ -463,6 +487,103 @@ export class DbStorage implements IStorage {
       .values(message)
       .returning();
     return newMessage;
+  }
+  
+  // Return Requests
+  async getReturnRequests(filters?: { status?: string; orderNumber?: string }): Promise<ReturnRequest[]> {
+    let query = db.select().from(schema.returnRequests);
+    
+    if (filters?.status) {
+      query = query.where(eq(schema.returnRequests.status, filters.status)) as any;
+    }
+    if (filters?.orderNumber) {
+      query = query.where(eq(schema.returnRequests.orderNumber, filters.orderNumber)) as any;
+    }
+    
+    return query.orderBy(desc(schema.returnRequests.createdAt));
+  }
+  
+  async getReturnRequest(id: string): Promise<ReturnRequest | undefined> {
+    const [request] = await db.select().from(schema.returnRequests)
+      .where(eq(schema.returnRequests.id, id));
+    return request;
+  }
+  
+  async createReturnRequest(request: InsertReturnRequest): Promise<ReturnRequest> {
+    const [created] = await db.insert(schema.returnRequests)
+      .values(request)
+      .returning();
+    return created;
+  }
+  
+  async updateReturnRequest(id: string, request: Partial<InsertReturnRequest>): Promise<ReturnRequest | undefined> {
+    const [updated] = await db.update(schema.returnRequests)
+      .set({ ...request, updatedAt: new Date() })
+      .where(eq(schema.returnRequests.id, id))
+      .returning();
+    return updated;
+  }
+  
+  // Stock Alerts
+  async getStockAlerts(resolved?: boolean): Promise<StockAlert[]> {
+    if (resolved !== undefined) {
+      return db.select().from(schema.stockAlerts)
+        .where(eq(schema.stockAlerts.isResolved, resolved))
+        .orderBy(desc(schema.stockAlerts.createdAt));
+    }
+    return db.select().from(schema.stockAlerts)
+      .orderBy(desc(schema.stockAlerts.createdAt));
+  }
+  
+  async createStockAlert(alert: InsertStockAlert): Promise<StockAlert> {
+    const [created] = await db.insert(schema.stockAlerts)
+      .values(alert)
+      .returning();
+    return created;
+  }
+  
+  async resolveStockAlert(id: string): Promise<void> {
+    await db.update(schema.stockAlerts)
+      .set({ isResolved: true })
+      .where(eq(schema.stockAlerts.id, id));
+  }
+  
+  // Supplier Messages
+  async getSupplierMessages(status?: string): Promise<SupplierMessage[]> {
+    if (status) {
+      return db.select().from(schema.supplierMessages)
+        .where(eq(schema.supplierMessages.status, status))
+        .orderBy(desc(schema.supplierMessages.createdAt));
+    }
+    return db.select().from(schema.supplierMessages)
+      .orderBy(desc(schema.supplierMessages.createdAt));
+  }
+  
+  async createSupplierMessage(message: InsertSupplierMessage): Promise<SupplierMessage> {
+    const [created] = await db.insert(schema.supplierMessages)
+      .values(message)
+      .returning();
+    return created;
+  }
+  
+  async updateSupplierMessageStatus(id: string, status: string): Promise<void> {
+    await db.update(schema.supplierMessages)
+      .set({ status, sentAt: status === 'sent' ? new Date() : undefined })
+      .where(eq(schema.supplierMessages.id, id));
+  }
+  
+  // Saved Carts
+  async getSavedCart(shareCode: string): Promise<SavedCart | undefined> {
+    const [cart] = await db.select().from(schema.savedCarts)
+      .where(eq(schema.savedCarts.shareCode, shareCode));
+    return cart;
+  }
+  
+  async createSavedCart(cart: InsertSavedCart): Promise<SavedCart> {
+    const [created] = await db.insert(schema.savedCarts)
+      .values(cart)
+      .returning();
+    return created;
   }
 }
 
