@@ -27,7 +27,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Password is required" });
       }
       
-      if (password === process.env.SESSION_SECRET) {
+      // Use ADMIN_PASSWORD if set, otherwise fall back to SESSION_SECRET
+      const adminPassword = process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET;
+      
+      if (!adminPassword) {
+        return res.status(500).json({ error: "Admin password not configured" });
+      }
+      
+      if (password === adminPassword) {
         req.session.isAdmin = true;
         res.json({ success: true, message: "Admin login successful" });
       } else {
