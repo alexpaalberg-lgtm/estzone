@@ -9,15 +9,15 @@ export default function Footer() {
   const { language, setLanguage, t } = useLanguage();
 
   const categories = [
-    { label: t.nav.consoles, href: '/consoles' },
-    { label: t.nav.controllers, href: '/controllers' },
-    { label: t.nav.headsets, href: '/headsets' },
-    { label: t.nav.accessories, href: '/accessories' },
+    { label: t.nav.consoles, href: '/products' },
+    { label: t.nav.controllers, href: '/products' },
+    { label: t.nav.headsets, href: '/products' },
+    { label: t.nav.accessories, href: '/products' },
+    { label: language === 'et' ? 'Kõik tooted' : 'All Products', href: '/products' },
   ];
 
   const support = [
     { label: t.footer.faq, href: '/faq' },
-    { label: t.footer.contact, href: '/contact' },
     { label: t.footer.shippingInfo, href: '/shipping-policy' },
     { label: t.footer.returns, href: '/returns' },
   ];

@@ -24,6 +24,7 @@ import AdminOrders from "@/pages/admin/Orders";
 import AdminCategories from "@/pages/admin/Categories";
 import AdminInventory from "@/pages/admin/Inventory";
 import Legal from "@/pages/Legal";
+import FAQ from "@/pages/FAQ";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/privacy" component={() => <Legal type="privacy" />} />
       <Route path="/returns" component={() => <Legal type="returns" />} />
       <Route path="/shipping-policy" component={() => <Legal type="shipping" />} />
+      <Route path="/faq" component={FAQ} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
