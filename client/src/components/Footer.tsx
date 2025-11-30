@@ -57,8 +57,8 @@ export default function Footer() {
               Pärnu mnt 31, Tallinn, Estonia
             </p>
             <div className="text-xs text-muted-foreground mb-6 space-y-1">
-              <p className="font-medium">FOXNORD OÜ</p>
-              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 14876138</p>
+              <p className="font-medium">NORTEX KAUBAD OÜ</p>
+              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16911643</p>
             </div>
             <div className="space-y-3">
               <p className="text-sm font-semibold">{t.footer.newsletter}</p>
