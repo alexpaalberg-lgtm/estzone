@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X, ChevronUp } from "lucide-react";
 import ChatPanel from "@/components/ChatPanel";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
@@ -56,8 +55,14 @@ function ChatLauncherButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+function getBrowserLanguage(): 'en' | 'et' {
+  if (typeof navigator === 'undefined') return 'et';
+  const browserLang = navigator.language || 'et';
+  return browserLang.startsWith('et') || browserLang.startsWith('ee') ? 'et' : 'en';
+}
+
 function ChatWindow({ onClose }: { onClose: () => void }) {
-  const { language } = useLanguage();
+  const [chatLanguage, setChatLanguage] = useState<'en' | 'et'>(() => getBrowserLanguage());
 
   return (
     <div 
@@ -71,10 +76,10 @@ function ChatWindow({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <h3 className="font-semibold text-sm">
-              {language === 'et' ? 'EstZone Tugi' : 'EstZone Support'}
+              {chatLanguage === 'et' ? 'EstZone Tugi' : 'EstZone Support'}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {language === 'et' ? 'Tavaliselt vastame kohe' : 'Usually replies instantly'}
+              {chatLanguage === 'et' ? 'Tavaliselt vastame kohe' : 'Usually replies instantly'}
             </p>
           </div>
         </div>
@@ -89,7 +94,7 @@ function ChatWindow({ onClose }: { onClose: () => void }) {
         </Button>
       </div>
       
-      <ChatPanel />
+      <ChatPanel onLanguageChange={setChatLanguage} />
     </div>
   );
 }

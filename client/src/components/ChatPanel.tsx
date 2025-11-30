@@ -2,13 +2,45 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   Send, Bot, User, Gamepad2, Headphones, Gift, HelpCircle, Truck, CreditCard,
   ShoppingCart, Package, RotateCcw, Shield, Search, Sparkles, Percent, Monitor,
   Joystick, Glasses, Zap, Clock, MapPin, Phone, Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function detectMessageLanguage(text: string): 'en' | 'et' {
+  const estonianWords = ['tere', 'palun', 'aitäh', 'tänan', 'on', 'ja', 'ei', 'see', 'kui', 'võib', 'saab', 'kas', 'mis', 'kus', 'kes', 'mida', 'kuidas', 'miks', 'mängu', 'toode', 'tellimus', 'soodustus', 'hind', 'laos', 'soovitan', 'otsin', 'vajan', 'konsool', 'mäng', 'pult', 'kõrvaklapid', 'tahan', 'tahaks', 'soovin', 'osta', 'korvi', 'halloo', 'hei', 'tsau', 'näita', 'soov', 'pole', 'veel', 'jah', 'hästi', 'hea', 'super', 'aitab', 'head', 'päeva', 'õhtut', 'öö', 'mängud', 'parimad', 'millised', 'teil', 'mul', 'mulle', 'sulle', 'teile', 'meile', 'nende', 'neid', 'seda', 'need', 'kõik', 'mõned', 'uued', 'vanad', 'hommikust', 'tervitus', 'tervist', 'kohale'];
+  const englishWords = ['hello', 'please', 'thanks', 'thank', 'the', 'is', 'and', 'no', 'this', 'if', 'can', 'get', 'what', 'where', 'who', 'how', 'why', 'game', 'product', 'order', 'sale', 'price', 'stock', 'recommend', 'looking', 'need', 'console', 'controller', 'headset', 'want', 'buy', 'cart', 'hi', 'hey', 'show', 'yes', 'okay', 'good', 'great', 'nice', 'help', 'have', 'you', 'your', 'for', 'with', 'games', 'best', 'which', 'do', 'are', 'my', 'me', 'to', 'we', 'them', 'these', 'those', 'all', 'some', 'new', 'old', 'morning', 'evening'];
+  
+  const lowerText = text.toLowerCase();
+  const words = lowerText.split(/\s+/);
+  let estonianScore = 0;
+  let englishScore = 0;
+  
+  words.forEach(word => {
+    const cleanWord = word.replace(/[^a-zõäöü]/gi, '');
+    if (cleanWord.length < 2) return;
+    if (estonianWords.some(ew => cleanWord === ew || cleanWord.startsWith(ew) || ew.startsWith(cleanWord))) estonianScore++;
+    if (englishWords.some(ew => cleanWord === ew || cleanWord.startsWith(ew) || ew.startsWith(cleanWord))) englishScore++;
+  });
+  
+  const hasEstonianChars = /[õäöü]/i.test(text);
+  if (hasEstonianChars) estonianScore += 10;
+  
+  if (estonianScore === 0 && englishScore === 0) {
+    const browserLang = typeof navigator !== 'undefined' ? navigator.language : 'et';
+    return browserLang.startsWith('et') ? 'et' : 'en';
+  }
+  
+  return estonianScore >= englishScore ? 'et' : 'en';
+}
+
+function getBrowserLanguage(): 'en' | 'et' {
+  if (typeof navigator === 'undefined') return 'et';
+  const browserLang = navigator.language || 'et';
+  return browserLang.startsWith('et') || browserLang.startsWith('ee') ? 'et' : 'en';
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -254,12 +286,16 @@ function getContextualSuggestions(messages: Message[], language: 'en' | 'et'): Q
   return relevantSuggestions.slice(0, 4);
 }
 
-export default function ChatPanel() {
-  const { language } = useLanguage();
+interface ChatPanelProps {
+  onLanguageChange?: (language: 'en' | 'et') => void;
+}
+
+export default function ChatPanel({ onLanguageChange }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [personaName, setPersonaName] = useState<string | null>(null);
+  const [chatLanguage, setChatLanguage] = useState<'en' | 'et'>(() => getBrowserLanguage());
   const [sessionId, setSessionId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('estzone_chat_session');
@@ -268,6 +304,10 @@ export default function ChatPanel() {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  useEffect(() => {
+    onLanguageChange?.(chatLanguage);
+  }, [chatLanguage, onLanguageChange]);
   
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -293,6 +333,14 @@ export default function ChatPanel() {
                 id: msg.id || `history-${index}`
               }));
               setMessages(loadedMessages);
+              
+              const userMessages = history.filter((m: any) => m.role === 'user');
+              if (userMessages.length > 0) {
+                const lastUserMessage = userMessages[userMessages.length - 1].content;
+                const detectedLang = detectMessageLanguage(lastUserMessage);
+                setChatLanguage(detectedLang);
+                onLanguageChange?.(detectedLang);
+              }
               return;
             }
           }
@@ -301,18 +349,21 @@ export default function ChatPanel() {
         }
       }
       
+      const initialLang = getBrowserLanguage();
+      setChatLanguage(initialLang);
+      
       const welcomeMessage: Message = {
         role: 'assistant',
-        content: language === 'et'
-          ? 'Tere! Olen EstZone virtuaalne assistent. Kuidas saan teid aidata?'
-          : 'Hello! I\'m EstZone\'s virtual assistant. How can I help you today?',
+        content: initialLang === 'et'
+          ? 'Tere! Olen EstZone virtuaalne assistent. Kuidas saan aidata? 🎮'
+          : 'Hello! I\'m EstZone\'s virtual assistant. How can I help you today? 🎮',
         id: 'welcome'
       };
       setMessages([welcomeMessage]);
     };
     
     loadSessionHistory();
-  }, [sessionId, language]);
+  }, [sessionId]);
   
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -322,6 +373,10 @@ export default function ChatPanel() {
       content: input.trim(),
       id: Date.now().toString()
     };
+    
+    const detectedLang = detectMessageLanguage(userMessage.content);
+    setChatLanguage(detectedLang);
+    onLanguageChange?.(detectedLang);
     
     setMessages(prev => [...prev, userMessage]);
     setInput("");
@@ -334,7 +389,6 @@ export default function ChatPanel() {
         body: JSON.stringify({
           sessionId,
           message: userMessage.content,
-          language,
         }),
       });
       
@@ -408,7 +462,7 @@ export default function ChatPanel() {
     } catch (error: any) {
       const errorMessage: Message = {
         role: 'assistant',
-        content: language === 'et'
+        content: chatLanguage === 'et'
           ? 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
           : 'Sorry, an error occurred. Please try again later.',
         id: Date.now().toString()
@@ -430,7 +484,10 @@ export default function ChatPanel() {
   const handleSuggestionClickDirect = async (suggestion: QuickSuggestion) => {
     if (isLoading) return;
     
-    const query = language === 'et' ? suggestion.queryEt : suggestion.queryEn;
+    const query = chatLanguage === 'et' ? suggestion.queryEt : suggestion.queryEn;
+    
+    const detectedLang = detectMessageLanguage(query);
+    setChatLanguage(detectedLang);
     
     const userMessage: Message = {
       role: 'user',
@@ -448,7 +505,6 @@ export default function ChatPanel() {
         body: JSON.stringify({
           sessionId,
           message: query,
-          language,
         }),
       });
       
@@ -515,7 +571,7 @@ export default function ChatPanel() {
     } catch (error: any) {
       const errorMessage: Message = {
         role: 'assistant',
-        content: language === 'et'
+        content: chatLanguage === 'et'
           ? 'Vabandust, tekkis viga. Palun proovige hiljem uuesti.'
           : 'Sorry, an error occurred. Please try again later.',
         id: Date.now().toString()
@@ -578,10 +634,10 @@ export default function ChatPanel() {
           {!isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
             <div className="mt-4">
               <p className="text-xs text-muted-foreground mb-3">
-                {language === 'et' ? 'Veel küsimusi:' : 'More questions:'}
+                {chatLanguage === 'et' ? 'Veel küsimusi:' : 'More questions:'}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {getContextualSuggestions(messages, language).map((suggestion: QuickSuggestion, index: number) => (
+                {getContextualSuggestions(messages, chatLanguage).map((suggestion: QuickSuggestion, index: number) => (
                   <button
                     key={index}
                     onClick={() => handleSuggestionClickDirect(suggestion)}
@@ -591,7 +647,7 @@ export default function ChatPanel() {
                   >
                     <suggestion.icon className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="line-clamp-1">
-                      {language === 'et' ? suggestion.textEt : suggestion.textEn}
+                      {chatLanguage === 'et' ? suggestion.textEt : suggestion.textEn}
                     </span>
                   </button>
                 ))}
@@ -610,7 +666,7 @@ export default function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={language === 'et' ? 'Kirjutage sõnum...' : 'Type a message...'}
+            placeholder={chatLanguage === 'et' ? 'Kirjutage sõnum...' : 'Type a message...'}
             className="resize-none min-h-[60px]"
             disabled={isLoading}
             data-testid="input-chat-message"
@@ -626,7 +682,7 @@ export default function ChatPanel() {
         </div>
         {isLoading && (
           <p className="text-xs text-muted-foreground mt-2">
-            {language === 'et' ? 'Kirjutan...' : 'Typing...'}
+            {chatLanguage === 'et' ? 'Kirjutan...' : 'Typing...'}
           </p>
         )}
       </div>
