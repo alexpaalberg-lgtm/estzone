@@ -26,6 +26,13 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+const isProduction = process.env.NODE_ENV === 'production';
+const trustProxy = process.env.TRUST_PROXY === 'true';
+
+if (isProduction || trustProxy) {
+  app.set('trust proxy', 1);
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'default-secret-change-in-production',
   resave: false,
@@ -35,7 +42,8 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
 }));
