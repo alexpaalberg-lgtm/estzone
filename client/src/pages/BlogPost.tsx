@@ -133,7 +133,7 @@ export default function BlogPost() {
             
             {/* Post Content */}
             <div 
-              className="prose prose-lg dark:prose-invert max-w-none mb-12"
+              className="prose prose-lg dark:prose-invert max-w-none mb-12 prose-headings:text-primary prose-headings:font-bold prose-p:text-foreground prose-p:leading-relaxed prose-li:text-foreground prose-strong:text-foreground prose-strong:font-semibold prose-table:text-foreground"
               dangerouslySetInnerHTML={{ __html: content }}
               data-testid="text-content"
             />
