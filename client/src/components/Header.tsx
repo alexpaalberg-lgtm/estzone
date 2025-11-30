@@ -246,8 +246,8 @@ export default function Header() {
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" className="lg:hidden h-14 w-14 p-0 ml-2" data-testid="button-menu">
-                  <Menu className="h-10 w-10" />
+                <Button variant="outline" className="lg:hidden h-11 w-11 p-0 ml-1 border-primary/50" data-testid="button-menu">
+                  <Menu className="h-7 w-7 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
