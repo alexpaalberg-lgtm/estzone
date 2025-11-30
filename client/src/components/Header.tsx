@@ -173,7 +173,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto flex-shrink-0">
             <SearchBar className="hidden xl:block w-72 2xl:w-96" />
 
             <Button
@@ -246,8 +246,8 @@ export default function Header() {
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" className="lg:hidden h-11 w-11 p-0" data-testid="button-menu">
-                  <Menu className="h-7 w-7" />
+                <Button variant="ghost" className="lg:hidden h-12 w-12 p-0 ml-1" data-testid="button-menu">
+                  <Menu className="h-8 w-8" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
