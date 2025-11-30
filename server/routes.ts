@@ -622,15 +622,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastActivity: new Date(),
       });
       
-      // Get conversation history (last 10 messages)
+      // Get conversation history (last 20 messages for better context)
       const history = await storage.getSupportMessages(session.id);
-      const sessionHistory = history.slice(-10).map(msg => ({
+      const sessionHistory = history.slice(-20).map(msg => ({
         role: msg.role,
         content: msg.content
       }));
       
-      // Get all products for context
+      // Get all products and categories for context
       const allProducts = await storage.getProducts({});
+      const categories = await storage.getCategories();
       
       // Search for relevant products based on message
       const relevantProducts = searchProducts(allProducts, message, detectedLang);
@@ -651,6 +652,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         detectedLang,
         {
           products: relevantProducts,
+          allProducts,
+          categories,
           order,
           sessionHistory
         },

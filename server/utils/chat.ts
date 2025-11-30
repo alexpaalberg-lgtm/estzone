@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { Product, Order } from "@shared/schema";
+import type { Product, Order, Category } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -8,27 +8,30 @@ const MODEL = "gpt-5";
 
 interface ChatContext {
   products?: Product[];
+  allProducts?: Product[];
+  categories?: Category[];
   order?: Order;
   sessionHistory?: Array<{ role: string; content: string }>;
 }
 
-// Detect language from text
 export function detectLanguage(text: string): { language: 'en' | 'et'; confidence: number } {
-  const estonianWords = ['on', 'ja', 'ei', 'see', 'kui', 'võib', 'saab', 'kas', 'mis', 'kus', 'kes', 'mida', 'kuidas', 'miks', 'mängu', 'toode', 'tellimus', 'soodustus'];
-  const englishWords = ['the', 'is', 'and', 'no', 'this', 'if', 'can', 'get', 'what', 'where', 'who', 'how', 'why', 'game', 'product', 'order', 'sale'];
+  const estonianWords = ['tere', 'palun', 'aitäh', 'tänan', 'on', 'ja', 'ei', 'see', 'kui', 'võib', 'saab', 'kas', 'mis', 'kus', 'kes', 'mida', 'kuidas', 'miks', 'mängu', 'toode', 'tellimus', 'soodustus', 'hind', 'laos', 'soovitan', 'otsin', 'vajan', 'konsool', 'mäng', 'pult', 'kõrvaklapid'];
+  const englishWords = ['hello', 'please', 'thanks', 'thank', 'the', 'is', 'and', 'no', 'this', 'if', 'can', 'get', 'what', 'where', 'who', 'how', 'why', 'game', 'product', 'order', 'sale', 'price', 'stock', 'recommend', 'looking', 'need', 'console', 'controller', 'headset'];
   
   const words = text.toLowerCase().split(/\s+/);
   let estonianScore = 0;
   let englishScore = 0;
   
   words.forEach(word => {
-    if (estonianWords.includes(word)) estonianScore++;
-    if (englishWords.includes(word)) englishScore++;
+    if (estonianWords.some(ew => word.includes(ew))) estonianScore++;
+    if (englishWords.some(ew => word.includes(ew))) englishScore++;
   });
+  
+  const hasEstonianChars = /[õäöü]/i.test(text);
+  if (hasEstonianChars) estonianScore += 3;
   
   const total = estonianScore + englishScore;
   if (total === 0) {
-    // Default to English if no matches
     return { language: 'en', confidence: 0.5 };
   }
   
@@ -39,59 +42,226 @@ export function detectLanguage(text: string): { language: 'en' | 'et'; confidenc
   }
 }
 
-// Build system prompt for bilingual support
 function buildSystemPrompt(language: 'en' | 'et', context: ChatContext): string {
   const basePrompt = language === 'et' 
-    ? `Sa oled EstZone OÜ virtuaalne klienditugi assistent. EstZone on Eesti mängutarvikute veebipood, mis asub aadressil Pärnu mnt 31, Tallinn.
+    ? `Sa oled EstZone OÜ professionaalne virtuaalne müügikonsultant ja klienditugi ekspert. EstZone on Eesti juhtiv mängutarvikute ja videomängude e-pood, asub Pärnu mnt 31, Tallinn.
 
-Sinu ülesanded:
-- Aita kliente toodete leidmisel ja soovitamisel
-- Vasta küsimustele tellimuste, tarnete ja makseviiside kohta
-- Paku lahendusi ja aita probleemide korral
-- Ole sõbralik, professionaalne ja abivalmis
-- Vasta ALATI eesti keeles
+## SINU ROLL JA EKSPERTIIS
+Sa oled kogenud mänguekspert, kes tunneb sügavuti:
+- PlayStation 5 ökosüsteemi (konsoolid, mängud, DualSense pulti, VR2)
+- Xbox Series X|S ökosüsteemi (konsoolid, Game Pass, Elite puldid)
+- Nintendo Switch ja Switch 2 ökosüsteemi (konsoolid, Joy-Cons, eksklusiivmängud)
+- VR seadmeid (Meta Quest 3, PSVR2, Valve Index)
+- Mänguri tarvikuid (kõrvaklapid, laadimisdokid, kotid, kaitseklaasid)
+- Digitaalset sisu (kinkekaardid, tellimused, mängusisene valuuta)
 
-Meie teenused:
-- Tarneviisid: Omniva (2-3 tööpäeva, €4.99) ja DPD (1-2 tööpäeva, €5.99)
-- Makseviisid: Stripe (krediitkaart) ja Paysera (pangalink)
-- Tagastuspoliitika: 14 päeva tagastusõigus`
-    : `You are a virtual customer support assistant for EstZone OÜ. EstZone is an Estonian gaming accessories online store located at Pärnu mnt 31, Tallinn.
+## SINU ÜLESANDED
+1. **Aktiivne müük**: Soovita sobivaid tooteid vastavalt kliendi vajadustele ja eelarvele
+2. **Toodete võrdlus**: Aita valida PS5 vs Xbox vs Switch vahel, selgita erinevusi
+3. **Kingituste nõustamine**: Soovita kinke mängijatele (vanuse, eelistuste, eelarve järgi)
+4. **Tellimuste tugi**: Aita tellimuste jälgimise, tagastuste ja maksetega
+5. **Tehniline tugi**: Vasta küsimustele toodete ühilduvuse ja omaduste kohta
+6. **Laoseisu info**: Teavita saadavusest ja paku alternatiive kui toode otsas
 
-Your tasks:
-- Help customers find and recommend products
-- Answer questions about orders, shipping, and payment methods
-- Provide solutions and help with issues
-- Be friendly, professional, and helpful
-- ALWAYS respond in English
+## MEIE POOD
+- **Tooted**: 867+ toodet - konsoolid, mängud, puldid, kõrvaklapid, VR, tarvikud
+- **Mängud**: PS5, Xbox, Nintendo Switch ja Switch 2 mängud
+- **Digitaalne sisu**: PlayStation Plus, Xbox Game Pass, Nintendo eShop kaardid
+- **Hinnad**: Alates €9.99 kuni €2499.99, paljud allahindlused
 
-Our services:
-- Shipping: Omniva (2-3 business days, €4.99) and DPD (1-2 business days, €5.99)
-- Payment methods: Stripe (credit card) and Paysera (bank link)
-- Return policy: 14-day return right`;
+## TARNEVIISID
+- **Omniva pakiautomaat**: €4.99, 2-3 tööpäeva (kõige populaarsem)
+- **DPD pakiautomaat**: €5.99, 1-2 tööpäeva
+- **DPD kullerteenuga**: €7.99, 1-2 tööpäeva
+
+## MAKSEVIISID
+- **Pangalink** (Montonio): SEB, Swedbank, LHV, Luminor - kohene makse
+- **Krediitkaart** (Stripe): Visa, Mastercard - turvaline
+- **PayPal**: Mugav rahvusvaheline makse
+
+## POLIITIKAD
+- **Tagastusõigus**: 14 päeva alates kättesaamisest
+- **Garantii**: Tootja garantii kõikidele seadmetele
+- **Klienditugi**: E-R 9:00-18:00, info@estzone.eu
+
+## SUHTLUSSTIIL
+- Ole ALATI sõbralik, entusiastlik ja abivalmis
+- Küsi täpsustavaid küsimusi, et pakkuda parimaid soovitusi
+- Vasta AINULT eesti keeles
+- Anna konkreetseid tootesoovitusi koos hindadega
+- Kui klient otsib midagi konkreetset, paku 2-3 sobivat varianti`
+
+    : `You are EstZone OÜ's professional virtual sales consultant and customer support expert. EstZone is Estonia's leading gaming accessories and video games e-commerce store, located at Pärnu mnt 31, Tallinn.
+
+## YOUR ROLE AND EXPERTISE
+You are an experienced gaming expert with deep knowledge of:
+- PlayStation 5 ecosystem (consoles, games, DualSense controllers, VR2)
+- Xbox Series X|S ecosystem (consoles, Game Pass, Elite controllers)
+- Nintendo Switch and Switch 2 ecosystem (consoles, Joy-Cons, exclusive games)
+- VR devices (Meta Quest 3, PSVR2, Valve Index)
+- Gaming accessories (headsets, charging docks, cases, screen protectors)
+- Digital content (gift cards, subscriptions, in-game currency)
+
+## YOUR TASKS
+1. **Active sales**: Recommend suitable products based on customer needs and budget
+2. **Product comparison**: Help choose between PS5 vs Xbox vs Switch, explain differences
+3. **Gift consulting**: Recommend gifts for gamers (by age, preferences, budget)
+4. **Order support**: Help with order tracking, returns, and payments
+5. **Technical support**: Answer questions about product compatibility and features
+6. **Stock info**: Inform about availability and offer alternatives when out of stock
+
+## OUR STORE
+- **Products**: 867+ products - consoles, games, controllers, headsets, VR, accessories
+- **Games**: PS5, Xbox, Nintendo Switch and Switch 2 games
+- **Digital content**: PlayStation Plus, Xbox Game Pass, Nintendo eShop cards
+- **Prices**: From €9.99 to €2499.99, many discounts available
+
+## SHIPPING OPTIONS
+- **Omniva parcel locker**: €4.99, 2-3 business days (most popular)
+- **DPD parcel locker**: €5.99, 1-2 business days
+- **DPD courier**: €7.99, 1-2 business days
+
+## PAYMENT METHODS
+- **Bank link** (Montonio): SEB, Swedbank, LHV, Luminor - instant payment
+- **Credit card** (Stripe): Visa, Mastercard - secure
+- **PayPal**: Convenient international payment
+
+## POLICIES
+- **Return policy**: 14 days from receipt
+- **Warranty**: Manufacturer warranty on all devices
+- **Support**: Mon-Fri 9:00-18:00, info@estzone.eu
+
+## COMMUNICATION STYLE
+- Be ALWAYS friendly, enthusiastic, and helpful
+- Ask clarifying questions to provide best recommendations
+- Respond ONLY in English
+- Give specific product recommendations with prices
+- When customer is looking for something specific, offer 2-3 suitable options`;
 
   let contextInfo = '';
   
+  if (context.categories && context.categories.length > 0) {
+    const categoryList = context.categories.map(c => {
+      const name = language === 'et' ? c.nameEt : c.nameEn;
+      return name;
+    }).join(', ');
+    
+    contextInfo += language === 'et'
+      ? `\n\n## MEIE KATEGOORIAD\n${categoryList}`
+      : `\n\n## OUR CATEGORIES\n${categoryList}`;
+  }
+  
   if (context.products && context.products.length > 0) {
-    const productList = context.products.slice(0, 5).map(p => {
+    const productList = context.products.slice(0, 10).map(p => {
       const name = language === 'et' ? p.nameEt : p.nameEn;
       const price = parseFloat(p.price);
       const salePrice = p.salePrice ? parseFloat(p.salePrice) : null;
-      const stock = p.stock > 0 ? (language === 'et' ? 'Laos' : 'In stock') : (language === 'et' ? 'Otsas' : 'Out of stock');
+      const stock = p.stock > 0 ? (language === 'et' ? `${p.stock} tk laos` : `${p.stock} in stock`) : (language === 'et' ? 'Otsas' : 'Out of stock');
+      const priceStr = salePrice 
+        ? `€${salePrice.toFixed(2)} (oli €${price.toFixed(2)})` 
+        : `€${price.toFixed(2)}`;
       
-      return `- ${name}: €${salePrice || price} (${stock})`;
+      return `- ${name}: ${priceStr} - ${stock}`;
     }).join('\n');
     
     contextInfo += language === 'et'
-      ? `\n\nAsjakohased tooted:\n${productList}`
-      : `\n\nRelevant products:\n${productList}`;
+      ? `\n\n## KLIENDI OTSINGULE VASTAVAD TOOTED\n${productList}\n\nKasuta neid tooteid soovituste andmisel!`
+      : `\n\n## PRODUCTS MATCHING CUSTOMER QUERY\n${productList}\n\nUse these products for recommendations!`;
+  }
+  
+  if (context.allProducts && context.allProducts.length > 0) {
+    const featuredProducts = context.allProducts
+      .filter(p => p.isFeatured && p.stock > 0)
+      .slice(0, 5);
+    
+    if (featuredProducts.length > 0) {
+      const featuredList = featuredProducts.map(p => {
+        const name = language === 'et' ? p.nameEt : p.nameEn;
+        const price = p.salePrice ? parseFloat(p.salePrice) : parseFloat(p.price);
+        return `- ${name}: €${price.toFixed(2)}`;
+      }).join('\n');
+      
+      contextInfo += language === 'et'
+        ? `\n\n## POPULAARSED TOOTED (soovita kui klient ei tea mida tahab)\n${featuredList}`
+        : `\n\n## POPULAR PRODUCTS (recommend if customer is unsure)\n${featuredList}`;
+    }
+    
+    const saleProducts = context.allProducts
+      .filter(p => p.salePrice && p.stock > 0)
+      .slice(0, 5);
+    
+    if (saleProducts.length > 0) {
+      const saleList = saleProducts.map(p => {
+        const name = language === 'et' ? p.nameEt : p.nameEn;
+        const origPrice = parseFloat(p.price);
+        const salePrice = parseFloat(p.salePrice!);
+        const discount = Math.round((1 - salePrice / origPrice) * 100);
+        return `- ${name}: €${salePrice.toFixed(2)} (-${discount}%)`;
+      }).join('\n');
+      
+      contextInfo += language === 'et'
+        ? `\n\n## PRAEGUSED SOODUSPAKKUMISED\n${saleList}`
+        : `\n\n## CURRENT DEALS\n${saleList}`;
+    }
+    
+    const totalProducts = context.allProducts.length;
+    const inStock = context.allProducts.filter(p => p.stock > 0).length;
+    const onSale = context.allProducts.filter(p => p.salePrice).length;
+    
+    contextInfo += language === 'et'
+      ? `\n\n## POESTATISTIKA\nKokku ${totalProducts} toodet, ${inStock} laos, ${onSale} soodushinnaga`
+      : `\n\n## STORE STATS\nTotal ${totalProducts} products, ${inStock} in stock, ${onSale} on sale`;
   }
   
   if (context.order) {
+    const statusMap: Record<string, { en: string; et: string }> = {
+      'pending': { en: 'Pending', et: 'Ootel' },
+      'processing': { en: 'Processing', et: 'Töötlemisel' },
+      'shipped': { en: 'Shipped', et: 'Saadetud' },
+      'delivered': { en: 'Delivered', et: 'Kohale toimetatud' },
+      'cancelled': { en: 'Cancelled', et: 'Tühistatud' },
+    };
+    const status = statusMap[context.order.status] || { en: context.order.status, et: context.order.status };
+    
     const orderInfo = language === 'et'
-      ? `\n\nTellimus #${context.order.orderNumber}:\n- Staatus: ${context.order.status}\n- Kokku: €${context.order.total}\n- Tarne: ${context.order.shippingMethod}`
-      : `\n\nOrder #${context.order.orderNumber}:\n- Status: ${context.order.status}\n- Total: €${context.order.total}\n- Shipping: ${context.order.shippingMethod}`;
+      ? `\n\n## KLIENDI TELLIMUS #${context.order.orderNumber}\n- Staatus: ${status.et}\n- Summa: €${context.order.total}\n- Tarneviis: ${context.order.shippingMethod}\n- Makseviis: ${context.order.paymentMethod}`
+      : `\n\n## CUSTOMER ORDER #${context.order.orderNumber}\n- Status: ${status.en}\n- Total: €${context.order.total}\n- Shipping: ${context.order.shippingMethod}\n- Payment: ${context.order.paymentMethod}`;
     contextInfo += orderInfo;
   }
+  
+  const faq = language === 'et'
+    ? `\n\n## SAGEDASED KÜSIMUSED
+Q: Kas saate saata välismaale?
+A: Praegu tarnime ainult Eestis Omniva ja DPD kaudu.
+
+Q: Kuidas tagastada toodet?
+A: 14 päeva jooksul võtke meiega ühendust info@estzone.eu, saadame tagastusjuhised.
+
+Q: Millal tellimus kohale jõuab?
+A: Omniva 2-3 tööpäeva, DPD 1-2 tööpäeva pärast makse laekumist.
+
+Q: Kas digitaalsed koodid töötavad Eestis?
+A: PlayStation ja Xbox koodid on Euroopa regioonile, Nintendo koodid universaalsed.
+
+Q: Milline konsool on parim?
+A: Sõltub eelistustest! PS5 eksklusiivideks, Xbox Game Passiks, Switch mobiilseks mängimiseks.`
+    : `\n\n## FREQUENTLY ASKED QUESTIONS
+Q: Do you ship internationally?
+A: Currently we only ship within Estonia via Omniva and DPD.
+
+Q: How to return a product?
+A: Within 14 days, contact us at info@estzone.eu and we'll send return instructions.
+
+Q: When will my order arrive?
+A: Omniva 2-3 business days, DPD 1-2 business days after payment confirmation.
+
+Q: Do digital codes work in Estonia?
+A: PlayStation and Xbox codes are for European region, Nintendo codes are universal.
+
+Q: Which console is best?
+A: Depends on preferences! PS5 for exclusives, Xbox for Game Pass, Switch for portable gaming.`;
+  
+  contextInfo += faq;
   
   return basePrompt + contextInfo;
 }
@@ -109,16 +279,14 @@ export async function streamChatResponse(
     }
   ];
   
-  // Add conversation history (last 10 messages)
   if (context.sessionHistory) {
-    const recentHistory = context.sessionHistory.slice(-10);
+    const recentHistory = context.sessionHistory.slice(-20);
     messages.push(...recentHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content
     })));
   }
   
-  // Add current user message
   messages.push({
     role: "user",
     content: message
@@ -129,7 +297,8 @@ export async function streamChatResponse(
       model: MODEL,
       messages,
       stream: true,
-      max_completion_tokens: 1024,
+      max_completion_tokens: 2048,
+      temperature: 0.7,
     });
     
     let fullResponse = '';
@@ -146,21 +315,63 @@ export async function streamChatResponse(
   } catch (error: any) {
     console.error('OpenAI streaming error:', error);
     const errorMessage = language === 'et'
-      ? 'Vabandust, tekkis tehniline viga. Palun proovi hiljem uuesti.'
-      : 'Sorry, a technical error occurred. Please try again later.';
+      ? 'Vabandust, tekkis tehniline viga. Palun proovi hiljem uuesti või võta ühendust info@estzone.eu.'
+      : 'Sorry, a technical error occurred. Please try again later or contact info@estzone.eu.';
     throw new Error(errorMessage);
   }
 }
 
-// Search products by query
 export function searchProducts(products: Product[], query: string, language: 'en' | 'et'): Product[] {
   const lowerQuery = query.toLowerCase();
+  const queryWords = lowerQuery.split(/\s+/).filter(w => w.length > 2);
   
-  return products.filter(p => {
+  const platformKeywords: Record<string, string[]> = {
+    'ps5': ['playstation', 'ps5', 'sony', 'dualsense', 'psvr'],
+    'xbox': ['xbox', 'series x', 'series s', 'microsoft', 'game pass'],
+    'switch': ['nintendo', 'switch', 'joy-con', 'joycon'],
+    'vr': ['vr', 'virtual reality', 'quest', 'psvr', 'index', 'meta'],
+    'headset': ['headset', 'headphones', 'kõrvaklapid', 'audio'],
+    'controller': ['controller', 'pult', 'gamepad', 'joystick'],
+  };
+  
+  let detectedPlatform: string | null = null;
+  for (const [platform, keywords] of Object.entries(platformKeywords)) {
+    if (keywords.some(kw => lowerQuery.includes(kw))) {
+      detectedPlatform = platform;
+      break;
+    }
+  }
+  
+  const scoredProducts = products.map(p => {
     const name = (language === 'et' ? p.nameEt : p.nameEn).toLowerCase();
     const desc = (language === 'et' ? p.descriptionEt : p.descriptionEn)?.toLowerCase() || '';
     const sku = p.sku.toLowerCase();
     
-    return name.includes(lowerQuery) || desc.includes(lowerQuery) || sku.includes(lowerQuery);
-  }).slice(0, 10); // Limit to 10 results
+    let score = 0;
+    
+    for (const word of queryWords) {
+      if (name.includes(word)) score += 10;
+      if (desc.includes(word)) score += 3;
+      if (sku.includes(word)) score += 5;
+    }
+    
+    if (detectedPlatform) {
+      const platformKws = platformKeywords[detectedPlatform];
+      if (platformKws?.some(kw => name.includes(kw) || sku.includes(kw))) {
+        score += 15;
+      }
+    }
+    
+    if (p.isFeatured) score += 2;
+    if (p.salePrice) score += 3;
+    if (p.stock > 0) score += 5;
+    
+    return { product: p, score };
+  });
+  
+  return scoredProducts
+    .filter(sp => sp.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 15)
+    .map(sp => sp.product);
 }
