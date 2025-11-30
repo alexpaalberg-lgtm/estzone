@@ -1,9 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Send, Bot, User, Gamepad2, Headphones, Gift, HelpCircle, Truck, CreditCard } from "lucide-react";
+import { 
+  Send, Bot, User, Gamepad2, Headphones, Gift, HelpCircle, Truck, CreditCard,
+  ShoppingCart, Package, RotateCcw, Shield, Search, Sparkles, Percent, Monitor,
+  Joystick, Glasses, Zap, Clock, MapPin, Phone, Mail
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -18,52 +22,211 @@ interface QuickSuggestion {
   textEt: string;
   queryEn: string;
   queryEt: string;
+  category: 'products' | 'orders' | 'support' | 'info';
 }
 
-const quickSuggestions: QuickSuggestion[] = [
+const allSuggestions: QuickSuggestion[] = [
   {
     icon: Gamepad2,
     textEn: "Best PS5 games",
     textEt: "Parimad PS5 mängud",
     queryEn: "What are the best PS5 games you have?",
-    queryEt: "Millised on parimad PS5 mängud, mis teil on?"
+    queryEt: "Millised on parimad PS5 mängud, mis teil on?",
+    category: 'products'
+  },
+  {
+    icon: Monitor,
+    textEn: "Xbox games",
+    textEt: "Xbox mängud",
+    queryEn: "Show me Xbox Series X games",
+    queryEt: "Näita Xbox Series X mänge",
+    category: 'products'
+  },
+  {
+    icon: Joystick,
+    textEn: "Nintendo Switch",
+    textEt: "Nintendo Switch",
+    queryEn: "What Nintendo Switch games do you have?",
+    queryEt: "Millised Nintendo Switch mängud teil on?",
+    category: 'products'
   },
   {
     icon: Headphones,
     textEn: "Gaming headsets",
     textEt: "Mänguri kõrvaklapid",
     queryEn: "Show me your best gaming headsets",
-    queryEt: "Näita parimaid mänguri kõrvaklappe"
+    queryEt: "Näita parimaid mänguri kõrvaklappe",
+    category: 'products'
+  },
+  {
+    icon: Glasses,
+    textEn: "VR headsets",
+    textEt: "VR prillid",
+    queryEn: "What VR headsets do you sell?",
+    queryEt: "Milliseid VR prille te müüte?",
+    category: 'products'
+  },
+  {
+    icon: Zap,
+    textEn: "Controllers",
+    textEt: "Puldid",
+    queryEn: "Show me gaming controllers",
+    queryEt: "Näita mängupulte",
+    category: 'products'
   },
   {
     icon: Gift,
     textEn: "Gift ideas",
     textEt: "Kingiideed",
     queryEn: "I need a gift for a gamer, what do you recommend?",
-    queryEt: "Vajan kinki mängurile, mida soovitate?"
+    queryEt: "Vajan kinki mängurile, mida soovitate?",
+    category: 'products'
+  },
+  {
+    icon: Percent,
+    textEn: "Sales & offers",
+    textEt: "Soodustused",
+    queryEn: "What products are on sale right now?",
+    queryEt: "Mis tooted on praegu allahinnatud?",
+    category: 'products'
+  },
+  {
+    icon: Sparkles,
+    textEn: "New arrivals",
+    textEt: "Uued tooted",
+    queryEn: "What new products have arrived recently?",
+    queryEt: "Millised uued tooted on hiljuti saabunud?",
+    category: 'products'
+  },
+  {
+    icon: ShoppingCart,
+    textEn: "Place an order",
+    textEt: "Tee tellimus",
+    queryEn: "I want to place an order, how do I proceed?",
+    queryEt: "Soovin tellimuse teha, kuidas toimida?",
+    category: 'orders'
+  },
+  {
+    icon: Package,
+    textEn: "Track my order",
+    textEt: "Jälgi tellimust",
+    queryEn: "I want to check my order status. My order number is...",
+    queryEt: "Soovin oma tellimuse staatust kontrollida. Mu tellimuse number on...",
+    category: 'orders'
+  },
+  {
+    icon: Clock,
+    textEn: "Delivery time",
+    textEt: "Tarneaeg",
+    queryEn: "How long does delivery take?",
+    queryEt: "Kui kaua tarne aega võtab?",
+    category: 'orders'
   },
   {
     icon: Truck,
-    textEn: "Shipping info",
-    textEt: "Tarneinfo",
-    queryEn: "What are your shipping options and delivery times?",
-    queryEt: "Millised on tarnevõimalused ja tarneajad?"
+    textEn: "Shipping options",
+    textEt: "Tarneviisid",
+    queryEn: "What are your shipping options and costs?",
+    queryEt: "Millised on tarneviisid ja hinnad?",
+    category: 'info'
   },
   {
     icon: CreditCard,
     textEn: "Payment methods",
     textEt: "Makseviisid",
     queryEn: "What payment methods do you accept?",
-    queryEt: "Milliseid makseviise te aktsepteerite?"
+    queryEt: "Milliseid makseviise te aktsepteerite?",
+    category: 'info'
+  },
+  {
+    icon: RotateCcw,
+    textEn: "Return a product",
+    textEt: "Tagasta toode",
+    queryEn: "I want to return a product, how does that work?",
+    queryEt: "Soovin toodet tagastada, kuidas see käib?",
+    category: 'support'
+  },
+  {
+    icon: Shield,
+    textEn: "Warranty info",
+    textEt: "Garantiiinfo",
+    queryEn: "What is the warranty on your products?",
+    queryEt: "Milline on toodete garantii?",
+    category: 'support'
   },
   {
     icon: HelpCircle,
-    textEn: "Returns & warranty",
-    textEt: "Tagastus ja garantii",
-    queryEn: "What is your return policy and warranty?",
-    queryEt: "Milline on tagastuspoliitika ja garantii?"
+    textEn: "Product problem",
+    textEt: "Toote probleem",
+    queryEn: "I have a problem with a product I bought",
+    queryEt: "Mul on probleem ostetud tootega",
+    category: 'support'
+  },
+  {
+    icon: MapPin,
+    textEn: "Store location",
+    textEt: "Poe asukoht",
+    queryEn: "Where is your store located?",
+    queryEt: "Kus teie pood asub?",
+    category: 'info'
+  },
+  {
+    icon: Phone,
+    textEn: "Contact us",
+    textEt: "Kontakt",
+    queryEn: "How can I contact you?",
+    queryEt: "Kuidas teiega ühendust saada?",
+    category: 'info'
+  },
+  {
+    icon: Search,
+    textEn: "Find a product",
+    textEt: "Otsi toodet",
+    queryEn: "I'm looking for a specific product...",
+    queryEt: "Otsin kindlat toodet...",
+    category: 'products'
   }
 ];
+
+function getContextualSuggestions(messages: Message[], language: 'en' | 'et'): QuickSuggestion[] {
+  if (messages.length <= 1) {
+    return allSuggestions.slice(0, 6);
+  }
+  
+  const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content.toLowerCase() || '';
+  const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content.toLowerCase() || '';
+  
+  let relevantSuggestions: QuickSuggestion[] = [];
+  
+  if (lastAssistantMessage.includes('tellimus') || lastAssistantMessage.includes('order') ||
+      lastUserMessage.includes('tellimus') || lastUserMessage.includes('order')) {
+    relevantSuggestions = allSuggestions.filter(s => s.category === 'orders');
+  } else if (lastAssistantMessage.includes('tagast') || lastAssistantMessage.includes('return') ||
+             lastAssistantMessage.includes('garantii') || lastAssistantMessage.includes('warranty')) {
+    relevantSuggestions = allSuggestions.filter(s => s.category === 'support');
+  } else if (lastAssistantMessage.includes('mäng') || lastAssistantMessage.includes('game') ||
+             lastAssistantMessage.includes('konsool') || lastAssistantMessage.includes('console')) {
+    relevantSuggestions = allSuggestions.filter(s => s.category === 'products');
+  } else {
+    const categories = ['products', 'orders', 'support', 'info'] as const;
+    relevantSuggestions = categories.flatMap(cat => 
+      allSuggestions.filter(s => s.category === cat).slice(0, 2)
+    );
+  }
+  
+  const alreadyAsked = messages
+    .filter(m => m.role === 'user')
+    .map(m => m.content.toLowerCase());
+  
+  relevantSuggestions = relevantSuggestions.filter(s => {
+    const query = (language === 'et' ? s.queryEt : s.queryEn).toLowerCase();
+    return !alreadyAsked.some(asked => 
+      asked.includes(query.slice(0, 20)) || query.includes(asked.slice(0, 20))
+    );
+  });
+  
+  return relevantSuggestions.slice(0, 4);
+}
 
 export default function ChatPanel() {
   const { language } = useLanguage();
@@ -76,7 +239,6 @@ export default function ChatPanel() {
     }
     return null;
   });
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   
@@ -104,7 +266,6 @@ export default function ChatPanel() {
                 id: msg.id || `history-${index}`
               }));
               setMessages(loadedMessages);
-              setShowSuggestions(false);
               return;
             }
           }
@@ -234,20 +395,10 @@ export default function ChatPanel() {
     }
   };
   
-  const handleSuggestionClick = (suggestion: QuickSuggestion) => {
-    const query = language === 'et' ? suggestion.queryEt : suggestion.queryEn;
-    setInput(query);
-    setShowSuggestions(false);
-    setTimeout(() => {
-      handleSend();
-    }, 100);
-  };
-  
   const handleSuggestionClickDirect = async (suggestion: QuickSuggestion) => {
     if (isLoading) return;
     
     const query = language === 'et' ? suggestion.queryEt : suggestion.queryEn;
-    setShowSuggestions(false);
     
     const userMessage: Message = {
       role: 'user',
@@ -382,13 +533,13 @@ export default function ChatPanel() {
             </div>
           ))}
           
-          {showSuggestions && messages.length <= 1 && (
+          {!isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
             <div className="mt-4">
               <p className="text-xs text-muted-foreground mb-3">
-                {language === 'et' ? 'Kiirvalikud:' : 'Quick suggestions:'}
+                {language === 'et' ? 'Veel küsimusi:' : 'More questions:'}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {quickSuggestions.map((suggestion, index) => (
+                {getContextualSuggestions(messages, language).map((suggestion: QuickSuggestion, index: number) => (
                   <button
                     key={index}
                     onClick={() => handleSuggestionClickDirect(suggestion)}
