@@ -63,8 +63,8 @@ export default function Header() {
         <div className="flex h-14 lg:h-16 items-center justify-between gap-2">
           <Link href="/">
             <div className="flex items-center gap-2 hover-elevate px-2 py-1.5 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-7 sm:h-8 w-auto" />
-              <span className="font-bold text-lg sm:text-xl">
+              <img src={logoImage} alt="EstZone" className="h-8 sm:h-8 w-auto" />
+              <span className="font-bold text-xl sm:text-xl">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
@@ -174,7 +174,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-            <SearchBar className="hidden xl:block w-56 2xl:w-64" />
+            <SearchBar className="hidden xl:block w-60 2xl:w-72" />
 
             <Button
               variant="ghost"
