@@ -303,7 +303,6 @@ export async function streamChatResponse(
       messages,
       stream: true,
       max_completion_tokens: 2048,
-      temperature: 0.7,
     });
     
     let fullResponse = '';
