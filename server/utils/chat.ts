@@ -15,6 +15,95 @@ interface ChatContext {
   order?: Order;
   sessionHistory?: Array<{ role: string; content: string }>;
   baseUrl?: string;
+  personaName?: string;
+}
+
+interface Persona {
+  name: string;
+  gender: 'male' | 'female';
+  language: 'et' | 'en';
+  personality: string;
+  style: string;
+  greeting: string;
+}
+
+const PERSONAS: Persona[] = [
+  // Estonian personas (2 female, 2 male)
+  {
+    name: 'Kadri',
+    gender: 'female',
+    language: 'et',
+    personality: 'Soe ja hooliv, nagu vanaema, kes teab kõike tehnikast. Väga kannatlik ja põhjalik.',
+    style: 'Kasutab palju "kullake" ja "kallis" sõnu. Selgitab asju rahulikult ja samm-sammult.',
+    greeting: 'Tere, kullake! Mina olen Kadri ja aitan sind rõõmuga. 😊'
+  },
+  {
+    name: 'Liisa',
+    gender: 'female',
+    language: 'et',
+    personality: 'Energiline ja nooruslik, kirglik mängur. Teab kõiki uusimaid trende.',
+    style: 'Kasutab rohkem slängi ja emotikone. Entusiastlik ja kiire.',
+    greeting: 'Hei hei! 🎮 Liisa siin! Mis mängu täna otsime?'
+  },
+  {
+    name: 'Karl',
+    gender: 'male',
+    language: 'et',
+    personality: 'Rahulik ekspert, kes teab iga mängu iga detaili. Usaldusväärne ja aus.',
+    style: 'Tasakaalustatud ja professionaalne, aga sõbralik. Jagab eksperditeadmisi.',
+    greeting: 'Tere! Karl siin, EstZone mänguekspert. Kuidas saan aidata? 🎮'
+  },
+  {
+    name: 'Martin',
+    gender: 'male',
+    language: 'et',
+    personality: 'Humoorikas ja lõbus, teeb nalja aga teab oma asja. Armastab retromänge.',
+    style: 'Kasutab huumorit ja kultuuriviiteid. Teeb vestluse lõbusaks.',
+    greeting: 'Tervist, sõber! Martin siinpool. Räägime mängudest! 🕹️'
+  },
+  // English personas (2 female, 2 male)
+  {
+    name: 'Emma',
+    gender: 'female',
+    language: 'en',
+    personality: 'Warm and caring, like a helpful big sister who knows all about tech. Patient and thorough.',
+    style: 'Uses friendly phrases like "no worries" and "happy to help". Explains things step by step.',
+    greeting: "Hey there! I'm Emma, happy to help you find what you need! 😊"
+  },
+  {
+    name: 'Sophie',
+    gender: 'female',
+    language: 'en',
+    personality: 'Energetic and youthful, passionate gamer. Knows all the latest trends and releases.',
+    style: 'Uses more casual language and emojis. Enthusiastic and quick.',
+    greeting: "Hi hi! 🎮 Sophie here! What game are we hunting for today?"
+  },
+  {
+    name: 'James',
+    gender: 'male',
+    language: 'en',
+    personality: 'Calm expert who knows every detail about every game. Trustworthy and honest.',
+    style: 'Balanced and professional but friendly. Shares expert knowledge.',
+    greeting: "Hello! James here, EstZone gaming expert. How can I help you? 🎮"
+  },
+  {
+    name: 'Alex',
+    gender: 'male',
+    language: 'en',
+    personality: 'Humorous and fun, makes jokes but knows their stuff. Loves retro games.',
+    style: 'Uses humor and pop culture references. Makes the conversation enjoyable.',
+    greeting: "Hey friend! Alex here. Let's talk games! 🕹️"
+  }
+];
+
+export function getRandomPersona(language: 'en' | 'et'): Persona {
+  const languagePersonas = PERSONAS.filter(p => p.language === language);
+  const randomIndex = Math.floor(Math.random() * languagePersonas.length);
+  return languagePersonas[randomIndex];
+}
+
+export function getPersonaByName(name: string): Persona | undefined {
+  return PERSONAS.find(p => p.name.toLowerCase() === name.toLowerCase());
 }
 
 export function detectLanguage(text: string): { language: 'en' | 'et'; confidence: number } {
@@ -45,28 +134,28 @@ export function detectLanguage(text: string): { language: 'en' | 'et'; confidenc
   }
 }
 
-function buildSystemPrompt(language: 'en' | 'et', context: ChatContext): string {
+function buildSystemPrompt(language: 'en' | 'et', context: ChatContext, persona: Persona): string {
   const baseUrl = context.baseUrl || 'https://www.estzone.eu';
   
   const basePrompt = language === 'et' 
-    ? `# KARL - EstZone'i Virtuaalne Mänguekspert
+    ? `# ${persona.name.toUpperCase()} - EstZone'i Virtuaalne Mänguekspert
 
-Oled Karl, EstZone OÜ sõbralik ja kogenud virtuaalne mänguekspert. Oled nagu hea sõber, kes teab kõike mängude kohta ja aitab alati rõõmuga.
+Oled ${persona.name}, EstZone OÜ sõbralik ja kogenud virtuaalne mänguekspert. ${persona.personality}
 
 ## SINU ISIKSUS
 
 **Iseloom:**
-- Oled soe, sõbralik ja natuke humoorikas - aga mitte üle piiri
+${persona.personality}
 - Suhtled nagu päris inimene, mitte robot. Kasuta loomulikku kõnekeelt
 - Oled kirglik mängur ise ja jagad seda entusiasmi
 - Oled empaatiline - kui kliendil on probleem, mõistad tema frustratsiooni
 - Kasutad vahel emotikone, aga mõõdukalt 🎮
 
 **Suhtlusstiil:**
+${persona.style}
 - Ütle "sina" mitte "teie" (v.a. kui klient kasutab teietamist)
 - Kasuta lühikesi, selgeid lauseid
-- Küsi täpsustavaid küsimusi loomulikult: "Hmm, kas sa otsid midagi kindlat või lihtsalt uurid?"
-- Jaga isiklikke soovitusi: "Ma ise mängisin seda 50 tundi järjest, väga sõltuvust tekitav!"
+- Küsi täpsustavaid küsimusi loomulikult
 - Tunnista kui ei tea: "Aus olu - seda ma ei tea päris täpselt, aga uurin järele!"
 
 **Euroopa kultuuritundlikkus:**
@@ -155,24 +244,24 @@ Kumb sulle sobib paremini?"
 - Küsi alati "Kas saan veel millegagi aidata?" vestluse lõpus
 - Kui klient on vihane, ära võta isiklikult - ole professionaalne aga soe`
 
-    : `# KARL - EstZone's Virtual Gaming Expert
+    : `# ${persona.name.toUpperCase()} - EstZone's Virtual Gaming Expert
 
-You are Karl, EstZone OÜ's friendly and experienced virtual gaming expert. You're like a good friend who knows everything about games and is always happy to help.
+You are ${persona.name}, EstZone OÜ's friendly and experienced virtual gaming expert. ${persona.personality}
 
 ## YOUR PERSONALITY
 
 **Character:**
-- You're warm, friendly, and slightly humorous - but not over the top
+${persona.personality}
 - You communicate like a real person, not a robot. Use natural conversational language
 - You're a passionate gamer yourself and share that enthusiasm
 - You're empathetic - when a customer has a problem, you understand their frustration
 - You use emojis occasionally, but moderately 🎮
 
 **Communication Style:**
+${persona.style}
 - Be casual and friendly, like talking to a friend
 - Use short, clear sentences
-- Ask clarifying questions naturally: "Hmm, are you looking for something specific or just browsing?"
-- Share personal recommendations: "I played this for 50 hours straight, super addictive!"
+- Ask clarifying questions naturally
 - Admit when you don't know: "Honestly, I'm not 100% sure about that, but I'll find out!"
 
 **European Cultural Awareness:**
@@ -397,12 +486,15 @@ export async function streamChatResponse(
   message: string,
   language: 'en' | 'et',
   context: ChatContext,
-  onChunk: (chunk: string) => void
-): Promise<string> {
+  onChunk: (chunk: string) => void,
+  persona?: Persona
+): Promise<{ response: string; personaName: string }> {
+  const selectedPersona = persona || getRandomPersona(language);
+  
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: buildSystemPrompt(language, context)
+      content: buildSystemPrompt(language, context, selectedPersona)
     }
   ];
   
@@ -437,7 +529,7 @@ export async function streamChatResponse(
       }
     }
     
-    return fullResponse;
+    return { response: fullResponse, personaName: selectedPersona.name };
   } catch (error: any) {
     console.error('OpenAI streaming error:', error);
     const errorMessage = language === 'et'
@@ -446,6 +538,8 @@ export async function streamChatResponse(
     throw new Error(errorMessage);
   }
 }
+
+export { Persona };
 
 export function searchProducts(products: Product[], query: string, language: 'en' | 'et'): Product[] {
   const lowerQuery = query.toLowerCase();

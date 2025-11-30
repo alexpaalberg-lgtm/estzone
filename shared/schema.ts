@@ -145,6 +145,7 @@ export const supportSessions = pgTable("support_sessions", {
   languageConfidence: decimal("language_confidence", { precision: 3, scale: 2 }).default('0'), // 0-1
   sessionTopic: text("session_topic"), // Auto-detected topic summary
   assistantModel: text("assistant_model").default('gpt-5'), // OpenAI model used
+  metadata: json("metadata"), // For storing persona name and other session data
   isActive: boolean("is_active").default(true),
   lastActivity: timestamp("last_activity").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -259,6 +259,7 @@ export default function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [personaName, setPersonaName] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('estzone_chat_session');
@@ -382,6 +383,11 @@ export default function ChatPanel() {
                 }
                 
                 if (data.done) {
+                  // Capture persona name if provided
+                  if (data.personaName && !personaName) {
+                    setPersonaName(data.personaName);
+                  }
+                  
                   // Finalize the assistant message
                   setMessages(prev => {
                     const filtered = prev.filter(m => m.id !== 'temp-assistant');
@@ -535,8 +541,13 @@ export default function ChatPanel() {
               data-testid={`message-${message.role}-${message.id}`}
             >
               {message.role === 'assistant' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-primary-foreground" />
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  {personaName && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{personaName}</span>
+                  )}
                 </div>
               )}
               

@@ -6,7 +6,7 @@ import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
 import { createStripePayment, createPayseraPayment } from "./utils/payments";
-import { streamChatResponse, detectLanguage, searchProducts } from "./utils/chat";
+import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
 
@@ -648,7 +648,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let fullResponse = '';
       const baseUrl = process.env.BASE_URL || `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'www.estzone.eu'}`;
       
-      await streamChatResponse(
+      // Get persona from session or create new one
+      let storedPersonaName: string | null = null;
+      try {
+        if (session.metadata) {
+          const metadata = typeof session.metadata === 'string' ? JSON.parse(session.metadata) : session.metadata;
+          storedPersonaName = metadata?.personaName || null;
+        }
+      } catch (e) {
+        storedPersonaName = null;
+      }
+      
+      let persona = storedPersonaName ? getPersonaByName(storedPersonaName) : undefined;
+      
+      const result = await streamChatResponse(
         message,
         detectedLang,
         {
@@ -663,8 +676,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Send SSE chunk
           res.write(`data: ${JSON.stringify({ chunk, sessionId: session.id })}\n\n`);
           fullResponse += chunk;
-        }
+        },
+        persona
       );
+      
+      // Store persona name in session metadata if new
+      if (!storedPersonaName && result.personaName) {
+        await storage.updateSupportSession(session.id, {
+          metadata: JSON.stringify({ personaName: result.personaName })
+        });
+      }
       
       // Save assistant response
       await storage.createSupportMessage({
@@ -673,8 +694,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: fullResponse,
       });
       
-      // Send completion signal
-      res.write(`data: ${JSON.stringify({ done: true, sessionId: session.id })}\n\n`);
+      // Send completion signal with persona name
+      res.write(`data: ${JSON.stringify({ done: true, sessionId: session.id, personaName: result.personaName })}\n\n`);
       res.end();
       
     } catch (error: any) {
