@@ -45,15 +45,19 @@ const checkoutSchema = z.object({
   city: z.string().min(1, "City is required"),
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
-  shippingMethod: z.enum(["omniva_terminal", "omniva_courier", "dhl_pickup", "dhl_courier"]),
+  shippingMethod: z.enum(["omniva_terminal", "omniva_courier", "dpd_pickup", "dpd_courier", "dhl_pickup", "dhl_courier", "venipak_pickup", "venipak_courier"]),
   paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
 });
 
 const shippingOptions = [
-  { id: 'omniva_terminal', name: 'Omniva Pakiautomaat', nameEn: 'Omniva Parcel Terminal', price: 2.99, days: '2-4' },
-  { id: 'omniva_courier', name: 'Omniva Kuller', nameEn: 'Omniva Courier', price: 4.99, days: '1-2' },
-  { id: 'dhl_pickup', name: 'DHL Pakipunkt', nameEn: 'DHL Service Point', price: 3.49, days: '2-3' },
-  { id: 'dhl_courier', name: 'DHL Kuller', nameEn: 'DHL Express', price: 6.99, days: '1-2' },
+  { id: 'omniva_terminal', name: 'Omniva Pakiautomaat', nameEn: 'Omniva Parcel Terminal', price: 2.99, days: '2-4', carrier: 'Omniva' },
+  { id: 'omniva_courier', name: 'Omniva Kuller', nameEn: 'Omniva Courier', price: 4.99, days: '1-2', carrier: 'Omniva' },
+  { id: 'dpd_pickup', name: 'DPD Pakipunkt', nameEn: 'DPD Pickup Point', price: 3.49, days: '2-3', carrier: 'DPD' },
+  { id: 'dpd_courier', name: 'DPD Kuller', nameEn: 'DPD Home Delivery', price: 5.99, days: '1-2', carrier: 'DPD' },
+  { id: 'dhl_pickup', name: 'DHL Pakipunkt', nameEn: 'DHL Service Point', price: 3.99, days: '2-3', carrier: 'DHL' },
+  { id: 'dhl_courier', name: 'DHL Kuller', nameEn: 'DHL Express', price: 6.99, days: '1-2', carrier: 'DHL' },
+  { id: 'venipak_pickup', name: 'Venipak Pakipunkt', nameEn: 'Venipak Pickup Point', price: 2.99, days: '2-3', carrier: 'Venipak' },
+  { id: 'venipak_courier', name: 'Venipak Kuller', nameEn: 'Venipak Home Delivery', price: 4.99, days: '1-2', carrier: 'Venipak' },
 ] as const;
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
