@@ -188,7 +188,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-auto sm:ml-0"
+              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-2 sm:ml-0"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
