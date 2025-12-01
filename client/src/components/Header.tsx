@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Search, User, Menu, Heart, LogIn } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,11 +15,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
 import type { Category, Wishlist } from '@shared/schema';
 import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
@@ -243,85 +238,72 @@ export default function Header() {
               <span className="text-xs font-bold">{currency}</span>
             </Button>
 
-            {/* Wishlist - always show, leads to login if not authenticated */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {isAuthenticated ? (
-                  <Link href="/wishlist">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-9 w-9"
-                      data-testid="button-wishlist"
+            {/* Wishlist - click to go to wishlist or login */}
+            {isAuthenticated ? (
+              <Link href="/wishlist">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-9 w-9"
+                  data-testid="button-wishlist"
+                  title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
+                >
+                  <Heart className="h-5 w-5" />
+                  {wishlistItems && wishlistItems.length > 0 && (
+                    <Badge
+                      variant="default"
+                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                      data-testid="badge-wishlist-count"
                     >
-                      <Heart className="h-5 w-5" />
-                      {wishlistItems && wishlistItems.length > 0 && (
-                        <Badge
-                          variant="default"
-                          className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                          data-testid="badge-wishlist-count"
-                        >
-                          {wishlistItems.length}
-                        </Badge>
-                      )}
-                    </Button>
-                  </Link>
-                ) : (
-                  <a href="/api/login">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-9 w-9"
-                      data-testid="button-wishlist"
-                    >
-                      <Heart className="h-5 w-5" />
-                    </Button>
-                  </a>
-                )}
-              </TooltipTrigger>
-              <TooltipContent>
-                {language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
-              </TooltipContent>
-            </Tooltip>
+                      {wishlistItems.length}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9"
+                data-testid="button-wishlist"
+                title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
+                onClick={() => window.location.href = '/api/login'}
+              >
+                <Heart className="h-5 w-5" />
+              </Button>
+            )}
 
-            {/* User account */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {isAuthenticated ? (
-                  <Link href="/account">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      data-testid="button-account"
-                    >
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <a href="/api/login">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      data-testid="button-login"
-                    >
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </a>
-                )}
-              </TooltipTrigger>
-              <TooltipContent>
-                {isAuthenticated 
-                  ? (language === 'et' ? 'Minu konto' : 'My Account')
-                  : (language === 'et' ? 'Logi sisse' : 'Sign In')}
-              </TooltipContent>
-            </Tooltip>
+            {/* User account / Login */}
+            {isAuthenticated ? (
+              <Link href="/account">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  data-testid="button-account"
+                  title={language === 'et' ? 'Minu konto' : 'My Account'}
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                data-testid="button-login"
+                title={language === 'et' ? 'Logi sisse' : 'Sign In'}
+                onClick={() => window.location.href = '/api/login'}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            )}
 
+            {/* Cart - with margin for spacing before menu button */}
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-9 w-9"
+              className="relative h-9 w-9 mr-1 lg:mr-0"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
@@ -337,9 +319,10 @@ export default function Header() {
               )}
             </Button>
 
+            {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden h-9 w-9 p-0 ml-1 sm:ml-2 border-primary/50" data-testid="button-menu">
+                <Button variant="outline" className="lg:hidden h-9 w-9 p-0 border-primary/50" data-testid="button-menu">
                   <Menu className="h-5 w-5 text-primary" />
                 </Button>
               </SheetTrigger>
