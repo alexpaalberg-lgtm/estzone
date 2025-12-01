@@ -168,28 +168,46 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {/* Payment Methods */}
             <div>
-              <p className="text-sm text-muted-foreground mb-2">{t.footer.paymentMethods}</p>
-              <div className="flex items-center gap-5">
-                <SiStripe className="h-7 w-7 sm:h-6 sm:w-6 text-primary" />
-                <SiVisa className="h-7 w-7 sm:h-6 sm:w-6 text-muted-foreground" />
-                <SiMastercard className="h-7 w-7 sm:h-6 sm:w-6 text-muted-foreground" />
-                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">Paysera</span>
+              <p className="text-sm font-medium text-foreground mb-3">{t.footer.paymentMethods}</p>
+              <div className="flex items-center gap-4">
+                <SiStripe className="h-6 w-6 text-primary" />
+                <SiVisa className="h-6 w-6 text-muted-foreground" />
+                <SiMastercard className="h-6 w-6 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground">Paysera</span>
               </div>
             </div>
 
+            {/* Shipping Partners */}
             <div>
-              <p className="text-sm text-muted-foreground mb-2">{t.footer.shipping}</p>
-              <div className="flex items-center gap-5">
-                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">Omniva</span>
-                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">DPD</span>
-                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">DHL</span>
+              <p className="text-sm font-medium text-foreground mb-3">{t.footer.shipping}</p>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-muted-foreground">Omniva</span>
+                <span className="text-xs font-semibold text-muted-foreground">DPD</span>
+                <span className="text-xs font-semibold text-muted-foreground">DHL</span>
               </div>
             </div>
 
-            <div className="text-sm text-muted-foreground md:ml-auto">
-              {t.footer.copyright}
+            {/* Contact */}
+            <div>
+              <p className="text-sm font-medium text-foreground mb-3">{language === 'et' ? 'Kontakt' : 'Contact'}</p>
+              <a 
+                href="mailto:estzone.shop@gmail.com" 
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                data-testid="link-footer-email"
+              >
+                estzone.shop@gmail.com
+              </a>
+            </div>
+
+            {/* Copyright */}
+            <div className="sm:text-right lg:text-right">
+              <p className="text-sm font-medium text-foreground mb-3 invisible">.</p>
+              <p className="text-sm text-muted-foreground">
+                {t.footer.copyright}
+              </p>
             </div>
           </div>
         </div>
