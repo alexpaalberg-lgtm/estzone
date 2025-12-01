@@ -8,6 +8,16 @@ EstZone is a bilingual (English/Estonian) e-commerce platform specializing in pr
 
 Preferred communication style: Simple, everyday language.
 
+## Environment Variables Needed
+
+### Email Service (Resend)
+To enable order confirmation emails, add `RESEND_API_KEY` secret. Without it, emails are logged to console only.
+
+### Payment Gateways
+- `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLIC_KEY` - For Stripe payments (configured)
+- `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` - For PayPal payments (not configured)
+- `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY` - For Montonio Baltic payments (not configured)
+
 ## System Architecture
 
 ### Frontend Architecture

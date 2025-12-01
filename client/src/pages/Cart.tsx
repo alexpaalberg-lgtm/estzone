@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -8,7 +9,9 @@ import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateVatBreakdown } from "@/lib/vat";
-import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, Sparkles } from "lucide-react";
+import ProductCard from "@/components/ProductCard";
+import type { Product } from "@shared/schema";
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
@@ -18,6 +21,16 @@ export default function Cart() {
   // Calculate VAT on base EUR amount
   // Keep in EUR - formatPrice() will handle conversion to display currency
   const vatBreakdown = calculateVatBreakdown(totalPrice);
+  
+  // Fetch popular/recommended products for cart suggestions
+  const { data: suggestedProducts } = useQuery<Product[]>({
+    queryKey: ['/api/recommendations/popular', '4'],
+    enabled: items.length > 0,
+  });
+  
+  // Filter out products already in cart
+  const cartProductIds = items.map(item => item.id);
+  const filteredSuggestions = suggestedProducts?.filter(p => !cartProductIds.includes(p.id)).slice(0, 4);
   
   const seoTitle = language === 'et' ? 'Ostukorv' : 'Shopping Cart';
   const seoDescription = language === 'et' 
@@ -185,6 +198,23 @@ export default function Cart() {
               </Card>
             </div>
           </div>
+          
+          {/* You Might Also Like Section */}
+          {filteredSuggestions && filteredSuggestions.length > 0 && (
+            <div className="mt-12" data-testid="section-cart-suggestions">
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles className="h-6 w-6 text-primary" />
+                <h2 className="text-2xl font-bold">
+                  {language === 'et' ? 'Lisa ka need' : 'You Might Also Like'}
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {filteredSuggestions.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
       

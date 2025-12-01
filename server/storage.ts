@@ -114,6 +114,11 @@ export interface IStorage {
   // Saved Carts
   getSavedCart(shareCode: string): Promise<SavedCart | undefined>;
   createSavedCart(cart: InsertSavedCart): Promise<SavedCart>;
+  
+  // Recommendations
+  getRecommendationsForUser(userId: string, limit?: number): Promise<Product[]>;
+  getRelatedProducts(productId: string, limit?: number): Promise<Product[]>;
+  getPopularProducts(limit?: number): Promise<Product[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -682,6 +687,110 @@ export class DbStorage implements IStorage {
       .values(cart)
       .returning();
     return created;
+  }
+  
+  // Recommendations - Based on wishlist categories and popular products
+  async getRecommendationsForUser(userId: string, limit: number = 8): Promise<Product[]> {
+    const wishlistItems = await this.getWishlistItems(userId);
+    
+    if (wishlistItems.length === 0) {
+      return this.getPopularProducts(limit);
+    }
+    
+    const wishlistProductIds = wishlistItems.map(w => w.productId);
+    
+    // Guard against empty wishlist product IDs
+    if (wishlistProductIds.length === 0) {
+      return this.getPopularProducts(limit);
+    }
+    
+    const wishlistProducts = await db.select().from(schema.products)
+      .where(inArray(schema.products.id, wishlistProductIds));
+    
+    const categoryIds = Array.from(new Set(wishlistProducts.map(p => p.categoryId).filter(Boolean)));
+    
+    // If no valid categories found, return popular products
+    if (categoryIds.length === 0) {
+      return this.getPopularProducts(limit);
+    }
+    
+    // Build NOT IN clause safely
+    const notInClause = wishlistProductIds.length > 0 
+      ? sql`${schema.products.id} NOT IN (${sql.join(wishlistProductIds.map(id => sql`${id}`), sql`, `)})`
+      : sql`1=1`;
+    
+    const recommendations = await db.select().from(schema.products)
+      .where(
+        and(
+          inArray(schema.products.categoryId, categoryIds),
+          notInClause,
+          eq(schema.products.isActive, true),
+          sql`${schema.products.stock} > 0`
+        )
+      )
+      .orderBy(
+        desc(schema.products.isFeatured),
+        desc(schema.products.isNew)
+      )
+      .limit(limit);
+    
+    if (recommendations.length < limit) {
+      const remainingLimit = limit - recommendations.length;
+      const existingIds = [...wishlistProductIds, ...recommendations.map(r => r.id)];
+      
+      // Build NOT IN clause safely for additional products
+      const additionalNotInClause = existingIds.length > 0
+        ? sql`${schema.products.id} NOT IN (${sql.join(existingIds.map(id => sql`${id}`), sql`, `)})`
+        : sql`1=1`;
+      
+      const additionalProducts = await db.select().from(schema.products)
+        .where(
+          and(
+            additionalNotInClause,
+            eq(schema.products.isActive, true),
+            sql`${schema.products.stock} > 0`
+          )
+        )
+        .orderBy(desc(schema.products.isFeatured))
+        .limit(remainingLimit);
+      
+      return [...recommendations, ...additionalProducts];
+    }
+    
+    return recommendations;
+  }
+  
+  async getRelatedProducts(productId: string, limit: number = 4): Promise<Product[]> {
+    const product = await this.getProduct(productId);
+    if (!product) return [];
+    
+    return db.select().from(schema.products)
+      .where(
+        and(
+          eq(schema.products.categoryId, product.categoryId),
+          sql`${schema.products.id} != ${productId}`,
+          eq(schema.products.isActive, true),
+          sql`${schema.products.stock} > 0`
+        )
+      )
+      .orderBy(desc(schema.products.isFeatured), desc(schema.products.isNew))
+      .limit(limit);
+  }
+  
+  async getPopularProducts(limit: number = 8): Promise<Product[]> {
+    return db.select().from(schema.products)
+      .where(
+        and(
+          eq(schema.products.isActive, true),
+          sql`${schema.products.stock} > 0`
+        )
+      )
+      .orderBy(
+        desc(schema.products.isFeatured),
+        desc(schema.products.isNew),
+        desc(schema.products.createdAt)
+      )
+      .limit(limit);
   }
 }
 

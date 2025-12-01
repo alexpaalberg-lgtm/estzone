@@ -224,6 +224,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete address" });
     }
   });
+  
+  // Recommendations API Routes
+  app.get('/api/recommendations', async (req: any, res) => {
+    try {
+      const { limit = '8' } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 8, 20);
+      
+      let userId: string | null = null;
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        userId = req.user?.claims?.sub || req.user?.id;
+      }
+      
+      let recommendations;
+      if (userId) {
+        recommendations = await storage.getRecommendationsForUser(userId, limitNum);
+      } else {
+        recommendations = await storage.getPopularProducts(limitNum);
+      }
+      
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      res.status(500).json({ error: "Failed to fetch recommendations" });
+    }
+  });
+  
+  app.get('/api/recommendations/related/:productId', async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const { limit = '4' } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 4, 10);
+      
+      const relatedProducts = await storage.getRelatedProducts(productId, limitNum);
+      res.json(relatedProducts);
+    } catch (error) {
+      console.error("Error fetching related products:", error);
+      res.status(500).json({ error: "Failed to fetch related products" });
+    }
+  });
+  
+  app.get('/api/recommendations/popular', async (req, res) => {
+    try {
+      const { limit = '8' } = req.query;
+      const limitNum = Math.min(parseInt(limit as string) || 8, 20);
+      
+      const popularProducts = await storage.getPopularProducts(limitNum);
+      res.json(popularProducts);
+    } catch (error) {
+      console.error("Error fetching popular products:", error);
+      res.status(500).json({ error: "Failed to fetch popular products" });
+    }
+  });
 
   // Admin Authentication Routes
   app.post("/api/admin/login", async (req, res) => {

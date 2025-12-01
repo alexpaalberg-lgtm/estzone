@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -14,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
+import ProductCard from "@/components/ProductCard";
 
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
@@ -60,6 +62,12 @@ export default function ProductDetail() {
   
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+  });
+  
+  // Fetch related products
+  const { data: relatedProducts } = useQuery<Product[]>({
+    queryKey: ['/api/recommendations/related', productId],
+    enabled: !!productId,
   });
   
   // Check if product is in wishlist
@@ -407,6 +415,20 @@ export default function ProductDetail() {
               </div>
             </div>
           </div>
+          
+          {/* Related Products Section */}
+          {relatedProducts && relatedProducts.length > 0 && (
+            <div className="mt-16" data-testid="section-related-products">
+              <h2 className="text-2xl font-bold mb-6">
+                {language === 'et' ? 'Sarnased tooted' : 'Related Products'}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {relatedProducts.map((relatedProduct) => (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
       
