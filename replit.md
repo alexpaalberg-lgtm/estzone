@@ -8,6 +8,9 @@ EstZone is a bilingual (English/Estonian) e-commerce platform specializing in pr
 
 Preferred communication style: Simple, everyday language.
 
+### IMPORTANT: Header is LOCKED
+The Header component (client/src/components/Header.tsx) is now perfect and should NOT be modified. Both desktop and mobile versions are finalized after extensive work. Any future changes should avoid touching the header unless absolutely critical.
+
 ## Environment Variables Needed
 
 ### Email Service (Resend)
