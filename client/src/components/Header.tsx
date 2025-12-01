@@ -188,7 +188,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10"
+              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 mr-2 sm:mr-0"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -324,7 +324,7 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 border-primary/50" data-testid="button-menu">
+                <Button variant="outline" size="icon" className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-2 sm:ml-0 border-primary/50" data-testid="button-menu">
                   <Menu className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </Button>
               </SheetTrigger>
