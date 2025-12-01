@@ -71,9 +71,9 @@ export default function Header() {
       <div className="w-full px-2 sm:px-3 lg:px-4 box-border">
         <div className="flex h-14 items-center gap-1">
           <Link href="/">
-            <div className="flex items-center gap-1.5 hover-elevate px-1.5 py-1 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-7 w-auto" />
-              <span className="font-bold text-lg hidden sm:inline">
+            <div className="flex items-center gap-2 hover-elevate px-2 py-1 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-8 sm:h-9 w-auto" />
+              <span className="font-bold text-lg sm:text-xl hidden sm:inline">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
@@ -182,8 +182,8 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-0.5 ml-auto">
-            <SearchBar className="hidden xl:block w-48 2xl:w-64" />
+          <div className="flex items-center gap-1 ml-auto">
+            <SearchBar className="hidden xl:block w-60 2xl:w-80" />
 
             <Button
               variant="ghost"
@@ -192,7 +192,7 @@ export default function Header() {
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-6 w-6" />
             </Button>
 
             <Sheet open={searchSheetOpen} onOpenChange={setSearchSheetOpen}>
@@ -248,7 +248,7 @@ export default function Header() {
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className="h-6 w-6" />
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
@@ -269,7 +269,7 @@ export default function Header() {
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className="h-6 w-6" />
                 </Button>
               </Link>
             )}
@@ -283,7 +283,7 @@ export default function Header() {
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
-                  <User className="h-5 w-5" />
+                  <User className="h-6 w-6" />
                 </Button>
               </Link>
             ) : (
@@ -294,7 +294,7 @@ export default function Header() {
                   data-testid="button-login"
                   title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 >
-                  <User className="h-5 w-5" />
+                  <User className="h-6 w-6" />
                 </Button>
               </Link>
             )}
@@ -307,7 +307,7 @@ export default function Header() {
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-6 w-6" />
               {totalItems > 0 && (
                 <Badge
                   variant="default"
@@ -323,7 +323,7 @@ export default function Header() {
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="lg:hidden border-primary/50" data-testid="button-menu">
-                  <Menu className="h-5 w-5 text-primary" />
+                  <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
