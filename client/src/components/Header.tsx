@@ -182,7 +182,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 ml-auto flex-shrink-0">
             <SearchBar className="hidden xl:block w-72 2xl:w-96" />
 
             <Button
@@ -303,7 +303,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-11 w-11 mr-3 lg:mr-0"
+              className="relative h-11 w-11 mr-1 lg:mr-0"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
