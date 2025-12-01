@@ -183,12 +183,12 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-1 ml-auto">
-            <SearchBar className="hidden xl:block w-60 2xl:w-80" />
+            <SearchBar className="hidden lg:block w-56 xl:w-72 2xl:w-96" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden"
+              className="lg:hidden"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -244,7 +244,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative"
+                  className="relative h-10 w-10"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
@@ -252,7 +252,7 @@ export default function Header() {
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
-                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[9px]"
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
                       data-testid="badge-wishlist-count"
                     >
                       {wishlistItems.length}
@@ -265,7 +265,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative"
+                  className="relative h-10 w-10"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 >
@@ -280,6 +280,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-10 w-10"
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
@@ -291,6 +292,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-10 w-10"
                   data-testid="button-login"
                   title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 >
@@ -303,7 +305,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative"
+              className="relative h-10 w-10"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
@@ -311,7 +313,7 @@ export default function Header() {
               {totalItems > 0 && (
                 <Badge
                   variant="default"
-                  className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[9px]"
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
                   data-testid="badge-cart-count"
                 >
                   {totalItems}
@@ -322,7 +324,7 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden border-primary/50" data-testid="button-menu">
+                <Button variant="outline" size="icon" className="lg:hidden h-10 w-10 border-primary/50" data-testid="button-menu">
                   <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
