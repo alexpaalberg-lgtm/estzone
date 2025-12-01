@@ -57,8 +57,8 @@ export default function Footer() {
               Pärnu mnt 31, Tallinn, Estonia
             </p>
             <div className="text-xs text-muted-foreground mb-4 space-y-1">
-              <p className="font-medium">NORTEX KAUBAD OÜ</p>
-              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16911643</p>
+              <p className="font-medium">AVERING GRUPP OÜ</p>
+              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16236733</p>
             </div>
             
             {/* Social Media Links */}

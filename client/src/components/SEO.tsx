@@ -71,7 +71,7 @@ export default function SEO({
           : "https://schema.org/OutOfStock",
         "seller": {
           "@type": "Organization",
-          "name": "NORTEX KAUBAD OÜ"
+          "name": "AVERING GRUPP OÜ"
         }
       };
     } else if (ogType === 'article' && article) {
