@@ -182,13 +182,13 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-1 sm:gap-1 ml-auto mr-3 sm:mr-0">
+          <div className="flex items-center gap-1 sm:gap-1 ml-auto">
             <SearchBar className="hidden lg:block w-56 xl:w-72 2xl:w-96" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-10 mr-2 sm:ml-0 sm:mr-0"
+              className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-auto mr-1 sm:ml-0 sm:mr-0"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -324,7 +324,7 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 ml-2 sm:ml-0 border-primary/50" data-testid="button-menu">
+                <Button variant="outline" size="icon" className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 border-primary/50" data-testid="button-menu">
                   <Menu className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </Button>
               </SheetTrigger>
