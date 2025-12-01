@@ -45,9 +45,16 @@ const checkoutSchema = z.object({
   city: z.string().min(1, "City is required"),
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
-  shippingMethod: z.enum(["omniva", "dpd"]),
+  shippingMethod: z.enum(["omniva_terminal", "omniva_courier", "dpd_pickup", "dpd_courier"]),
   paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
 });
+
+const shippingOptions = [
+  { id: 'omniva_terminal', name: 'Omniva Pakiautomaat', nameEn: 'Omniva Parcel Terminal', price: 2.99, days: '2-4', icon: '📦' },
+  { id: 'omniva_courier', name: 'Omniva Kuller', nameEn: 'Omniva Courier', price: 4.99, days: '1-2', icon: '🚚' },
+  { id: 'dpd_pickup', name: 'DPD Pakipunkt', nameEn: 'DPD Pickup Point', price: 3.49, days: '2-3', icon: '📍' },
+  { id: 'dpd_courier', name: 'DPD Kuller', nameEn: 'DPD Home Delivery', price: 5.99, days: '1-2', icon: '🏠' },
+] as const;
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
@@ -59,8 +66,8 @@ export default function Checkout() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
-  // Track shipping cost based on selected method (Omniva: 4.99, DPD: 5.99)
-  const [shippingCost, setShippingCost] = useState(4.99);
+  // Track shipping cost based on selected method
+  const [shippingCost, setShippingCost] = useState(2.99);
   const [saveAddress, setSaveAddress] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   
@@ -98,7 +105,7 @@ export default function Checkout() {
       city: "",
       postalCode: "",
       country: "Estonia",
-      shippingMethod: "omniva",
+      shippingMethod: "omniva_terminal",
       paymentMethod: "stripe",
     },
   });
@@ -432,7 +439,7 @@ export default function Checkout() {
                   <Card className="p-6">
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                       <Package className="h-6 w-6" />
-                      {language === 'et' ? 'Tarnev iis' : 'Shipping Method'}
+                      {language === 'et' ? 'Tarneviis' : 'Shipping Method'}
                     </h2>
                     <FormField
                       control={form.control}
@@ -443,31 +450,32 @@ export default function Checkout() {
                             <RadioGroup
                               onValueChange={(value) => {
                                 field.onChange(value);
-                                setShippingCost(value === 'dpd' ? 5.99 : 4.99);
+                                const option = shippingOptions.find(o => o.id === value);
+                                if (option) setShippingCost(option.price);
                               }}
                               value={field.value}
                               className="space-y-3"
                             >
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-omniva">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="omniva" id="omniva" />
-                                  <Label htmlFor="omniva" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">Omniva</span>
-                                    <span className="text-sm text-muted-foreground">2-3 {language === 'et' ? 'tööpäeva' : 'business days'}</span>
-                                  </Label>
+                              {shippingOptions.map((option) => (
+                                <div 
+                                  key={option.id}
+                                  className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" 
+                                  data-testid={`option-${option.id}`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <RadioGroupItem value={option.id} id={option.id} />
+                                    <Label htmlFor={option.id} className="cursor-pointer flex flex-col">
+                                      <span className="font-semibold">
+                                        {language === 'et' ? option.name : option.nameEn}
+                                      </span>
+                                      <span className="text-sm text-muted-foreground">
+                                        {option.days} {language === 'et' ? 'tööpäeva' : 'business days'}
+                                      </span>
+                                    </Label>
+                                  </div>
+                                  <span className="font-semibold">{formatPrice(option.price)}</span>
                                 </div>
-                                <span className="font-semibold">{formatPrice(4.99)}</span>
-                              </div>
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-dpd">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="dpd" id="dpd" />
-                                  <Label htmlFor="dpd" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">DPD</span>
-                                    <span className="text-sm text-muted-foreground">1-2 {language === 'et' ? 'tööpäeva' : 'business days'}</span>
-                                  </Label>
-                                </div>
-                                <span className="font-semibold">{formatPrice(5.99)}</span>
-                              </div>
+                              ))}
                             </RadioGroup>
                           </FormControl>
                           <FormMessage />

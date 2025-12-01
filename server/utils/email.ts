@@ -52,7 +52,11 @@ class ResendEmailService implements EmailService {
   private getCarrierName(shippingMethod: string | null): string {
     const carriers: Record<string, string> = {
       'omniva': 'Omniva',
+      'omniva_terminal': 'Omniva Pakiautomaat',
+      'omniva_courier': 'Omniva Kuller',
       'dpd': 'DPD',
+      'dpd_pickup': 'DPD Pakipunkt',
+      'dpd_courier': 'DPD Kuller',
       'dhl': 'DHL',
       'itella': 'Itella SmartPOST',
     };
