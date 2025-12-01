@@ -7,9 +7,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { getPlatformInfo } from '@/lib/platform';
 import PlatformIcon from '@/components/PlatformIcon';
-import type { Product } from '@shared/schema';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import type { Product, Wishlist } from '@shared/schema';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +23,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { formatPrice } = useCurrency();
   const { addItem } = useCart();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   
   const name = language === 'et' ? product.nameEt : product.nameEn;
   const price = parseFloat(product.price);
@@ -30,6 +34,59 @@ export default function ProductCard({ product }: ProductCardProps) {
   const stock = !inStock ? 'out_of_stock' : lowStock ? 'low_stock' : 'in_stock';
   
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
+  
+  const { data: wishlistItems } = useQuery<Wishlist[]>({
+    queryKey: ['/api/wishlist'],
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
+  });
+  
+  const isInWishlist = wishlistItems?.some(item => item.productId === product.id) || false;
+  
+  const addToWishlistMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/wishlist', { productId: product.id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist'] });
+      toast({
+        title: language === 'et' ? 'Lisatud soovinimekirja' : 'Added to wishlist',
+        description: name,
+      });
+    },
+  });
+  
+  const removeFromWishlistMutation = useMutation({
+    mutationFn: async () => {
+      const wishlistItem = wishlistItems?.find(item => item.productId === product.id);
+      if (wishlistItem) {
+        return apiRequest('DELETE', `/api/wishlist/${wishlistItem.id}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist'] });
+      toast({
+        title: language === 'et' ? 'Eemaldatud soovinimekirjast' : 'Removed from wishlist',
+        description: name,
+      });
+    },
+  });
+  
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      window.location.href = '/api/login';
+      return;
+    }
+    
+    if (isInWishlist) {
+      removeFromWishlistMutation.mutate();
+    } else {
+      addToWishlistMutation.mutate();
+    }
+  };
   
   const stockLabels = {
     in_stock: t.product.inStock,
@@ -104,14 +161,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Button
             size="icon"
             variant="ghost"
-            className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+            className={`absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm transition-colors ${isInWishlist ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'}`}
+            onClick={handleWishlistClick}
+            disabled={addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
             data-testid={`button-wishlist-${product.id}`}
+            title={isAuthenticated 
+              ? (isInWishlist 
+                ? (language === 'et' ? 'Eemalda soovinimekirjast' : 'Remove from wishlist')
+                : (language === 'et' ? 'Lisa soovinimekirja' : 'Add to wishlist'))
+              : (language === 'et' ? 'Logi sisse soovinimekirja kasutamiseks' : 'Sign in to use wishlist')
+            }
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
           </Button>
         </div>
 
