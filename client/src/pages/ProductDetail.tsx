@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,8 +9,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function getYouTubeVideoId(url: string): string | null {
@@ -41,6 +43,7 @@ export default function ProductDetail() {
   const { formatPrice } = useCurrency();
   const { addItem } = useCart();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [quantity, setQuantity] = useState(1);
   
   // Scroll to top when page loads
@@ -58,6 +61,48 @@ export default function ProductDetail() {
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
+  
+  // Check if product is in wishlist
+  const { data: wishlistCheck } = useQuery<{ inWishlist: boolean }>({
+    queryKey: ['/api/wishlist/check', productId],
+    enabled: isAuthenticated && !!productId,
+  });
+  
+  const addToWishlistMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/wishlist', { productId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist/check', productId] });
+      toast({
+        title: language === 'et' ? 'Lisatud soovinimekirja' : 'Added to Wishlist',
+        description: language === 'et' ? 'Toode lisati sinu soovinimekirja' : 'Product added to your wishlist',
+      });
+    },
+  });
+  
+  const removeFromWishlistMutation = useMutation({
+    mutationFn: () => apiRequest('DELETE', `/api/wishlist/${productId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wishlist/check', productId] });
+      toast({
+        title: language === 'et' ? 'Eemaldatud' : 'Removed',
+        description: language === 'et' ? 'Toode eemaldati soovinimekirjast' : 'Product removed from wishlist',
+      });
+    },
+  });
+  
+  const handleWishlistToggle = () => {
+    if (!isAuthenticated) {
+      window.location.href = '/api/login';
+      return;
+    }
+    if (wishlistCheck?.inWishlist) {
+      removeFromWishlistMutation.mutate();
+    } else {
+      addToWishlistMutation.mutate();
+    }
+  };
   
   const category = categories?.find(c => c.id === product?.categoryId);
   
@@ -313,17 +358,29 @@ export default function ProductDetail() {
                 </div>
               </div>
               
-              {/* Add to Cart */}
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={handleAddToCart}
-                disabled={!inStock}
-                data-testid="button-add-to-cart"
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                {language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart'}
-              </Button>
+              {/* Add to Cart & Wishlist */}
+              <div className="flex gap-2">
+                <Button
+                  size="lg"
+                  className="flex-1"
+                  onClick={handleAddToCart}
+                  disabled={!inStock}
+                  data-testid="button-add-to-cart"
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  {language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart'}
+                </Button>
+                <Button
+                  size="lg"
+                  variant={wishlistCheck?.inWishlist ? "default" : "outline"}
+                  onClick={handleWishlistToggle}
+                  disabled={addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
+                  data-testid="button-wishlist-toggle"
+                  title={language === 'et' ? (wishlistCheck?.inWishlist ? 'Eemalda soovinimekirjast' : 'Lisa soovinimekirja') : (wishlistCheck?.inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist')}
+                >
+                  <Heart className={`h-5 w-5 ${wishlistCheck?.inWishlist ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
               
               {/* Trust Badges */}
               <div className="grid grid-cols-2 gap-3 pt-4">

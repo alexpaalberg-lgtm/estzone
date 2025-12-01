@@ -25,6 +25,8 @@ import AdminCategories from "@/pages/admin/Categories";
 import AdminInventory from "@/pages/admin/Inventory";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
+import Wishlist from "@/pages/Wishlist";
+import Account from "@/pages/Account";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -50,6 +52,8 @@ function Router() {
       <Route path="/returns" component={() => <Legal type="returns" />} />
       <Route path="/shipping-policy" component={() => <Legal type="shipping" />} />
       <Route path="/faq" component={FAQ} />
+      <Route path="/wishlist" component={Wishlist} />
+      <Route path="/account" component={Account} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/dashboard" component={AdminDashboard} />

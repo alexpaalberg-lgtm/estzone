@@ -1,7 +1,7 @@
 import { db } from './db';
 import * as schema from '@shared/schema';
 import type {
-  User, InsertUser,
+  User, InsertUser, UpsertUser,
   Product, InsertProduct,
   Category, InsertCategory,
   Order, InsertOrder,
@@ -15,6 +15,8 @@ import type {
   StockAlert, InsertStockAlert,
   SupplierMessage, InsertSupplierMessage,
   SavedCart, InsertSavedCart,
+  Wishlist, InsertWishlist,
+  RecurringOrder, InsertRecurringOrder,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray } from 'drizzle-orm';
 
@@ -23,6 +25,19 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Wishlists
+  getWishlistItems(userId: string): Promise<Wishlist[]>;
+  addToWishlist(item: InsertWishlist): Promise<Wishlist>;
+  removeFromWishlist(userId: string, productId: string): Promise<void>;
+  isInWishlist(userId: string, productId: string): Promise<boolean>;
+  
+  // Recurring Orders
+  getRecurringOrders(userId: string): Promise<RecurringOrder[]>;
+  createRecurringOrder(order: InsertRecurringOrder): Promise<RecurringOrder>;
+  updateRecurringOrder(id: string, order: Partial<InsertRecurringOrder>): Promise<RecurringOrder | undefined>;
+  deleteRecurringOrder(id: string): Promise<void>;
   
   // Categories
   getCategories(): Promise<Category[]>;
@@ -114,6 +129,66 @@ export class DbStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const [created] = await db.insert(schema.users).values(user).returning();
     return created;
+  }
+  
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(schema.users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: schema.users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+  
+  // Wishlists
+  async getWishlistItems(userId: string): Promise<Wishlist[]> {
+    return db.select().from(schema.wishlists).where(eq(schema.wishlists.userId, userId));
+  }
+  
+  async addToWishlist(item: InsertWishlist): Promise<Wishlist> {
+    const [created] = await db.insert(schema.wishlists).values(item).returning();
+    return created;
+  }
+  
+  async removeFromWishlist(userId: string, productId: string): Promise<void> {
+    await db.delete(schema.wishlists).where(
+      and(eq(schema.wishlists.userId, userId), eq(schema.wishlists.productId, productId))
+    );
+  }
+  
+  async isInWishlist(userId: string, productId: string): Promise<boolean> {
+    const [item] = await db.select().from(schema.wishlists).where(
+      and(eq(schema.wishlists.userId, userId), eq(schema.wishlists.productId, productId))
+    );
+    return !!item;
+  }
+  
+  // Recurring Orders
+  async getRecurringOrders(userId: string): Promise<RecurringOrder[]> {
+    return db.select().from(schema.recurringOrders).where(eq(schema.recurringOrders.userId, userId));
+  }
+  
+  async createRecurringOrder(order: InsertRecurringOrder): Promise<RecurringOrder> {
+    const [created] = await db.insert(schema.recurringOrders).values(order).returning();
+    return created;
+  }
+  
+  async updateRecurringOrder(id: string, order: Partial<InsertRecurringOrder>): Promise<RecurringOrder | undefined> {
+    const [updated] = await db.update(schema.recurringOrders)
+      .set({ ...order, updatedAt: new Date() })
+      .where(eq(schema.recurringOrders.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteRecurringOrder(id: string): Promise<void> {
+    await db.delete(schema.recurringOrders).where(eq(schema.recurringOrders.id, id));
   }
   
   // Categories

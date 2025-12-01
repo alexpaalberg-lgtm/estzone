@@ -1,15 +1,31 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, json, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users/Customers
+// Session storage for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Users/Customers (Updated for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export type UpsertUser = typeof users.$inferInsert;
 
 // Categories
 export const categories = pgTable("categories", {
@@ -42,6 +58,30 @@ export const products = pgTable("products", {
   isFeatured: boolean("is_featured").default(false),
   isActive: boolean("is_active").default(true),
   metaKeywords: text("meta_keywords"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Wishlists (must be defined after products for foreign key reference)
+export const wishlists = pgTable("wishlists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  notifyOnSale: boolean("notify_on_sale").default(true),
+  notifyOnRestock: boolean("notify_on_restock").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Recurring Orders (must be defined after products for foreign key reference)
+export const recurringOrders = pgTable("recurring_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull().default(1),
+  frequencyDays: integer("frequency_days").notNull().default(30),
+  nextOrderDate: timestamp("next_order_date").notNull(),
+  isActive: boolean("is_active").default(true),
+  lastOrderId: varchar("last_order_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -220,10 +260,27 @@ export const savedCarts = pgTable("saved_carts", {
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
-  name: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const insertWishlistSchema = createInsertSchema(wishlists).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
+export type Wishlist = typeof wishlists.$inferSelect;
+
+export const insertRecurringOrderSchema = createInsertSchema(recurringOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
+export type RecurringOrder = typeof recurringOrders.$inferSelect;
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,

@@ -24,7 +24,11 @@ The primary database is PostgreSQL (Neon serverless). The schema includes tables
 
 ### Authentication & Authorization
 
-The current implementation uses session-based user tracking. The architecture is designed to support future expansion with full user authentication, including email/password and OAuth providers.
+The platform uses Replit Auth for user authentication via OpenID Connect, allowing users to sign in with their Replit accounts. Session management uses Express sessions with PostgreSQL storage for persistence. Key features include:
+- User profile management (first name, last name, profile image)
+- Wishlist functionality with price and stock alerts
+- Recurring orders for subscription-like purchases
+- Compact header icons for login, wishlist, and account access
 
 ### UI/UX Decisions
 

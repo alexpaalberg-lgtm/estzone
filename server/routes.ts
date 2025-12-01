@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingRates } from "./utils/shipping";
@@ -9,6 +9,7 @@ import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.isAdmin) {
@@ -18,6 +19,128 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup Replit Auth
+  await setupAuth(app);
+  
+  // Get current authenticated user
+  app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Wishlist Routes (require authentication)
+  app.get('/api/wishlist', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const items = await storage.getWishlistItems(userId);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+      res.status(500).json({ error: "Failed to fetch wishlist" });
+    }
+  });
+  
+  app.post('/api/wishlist', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { productId } = req.body;
+      
+      // Check if already in wishlist
+      const exists = await storage.isInWishlist(userId, productId);
+      if (exists) {
+        return res.status(400).json({ error: "Already in wishlist" });
+      }
+      
+      const item = await storage.addToWishlist({
+        userId,
+        productId,
+        notifyOnSale: true,
+        notifyOnRestock: true,
+      });
+      res.json(item);
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      res.status(500).json({ error: "Failed to add to wishlist" });
+    }
+  });
+  
+  app.delete('/api/wishlist/:productId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { productId } = req.params;
+      await storage.removeFromWishlist(userId, productId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      res.status(500).json({ error: "Failed to remove from wishlist" });
+    }
+  });
+  
+  app.get('/api/wishlist/check/:productId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { productId } = req.params;
+      const inWishlist = await storage.isInWishlist(userId, productId);
+      res.json({ inWishlist });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check wishlist" });
+    }
+  });
+  
+  // Recurring Orders Routes (require authentication)
+  app.get('/api/recurring-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const orders = await storage.getRecurringOrders(userId);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching recurring orders:", error);
+      res.status(500).json({ error: "Failed to fetch recurring orders" });
+    }
+  });
+  
+  app.post('/api/recurring-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validated = insertRecurringOrderSchema.parse({ ...req.body, userId });
+      const order = await storage.createRecurringOrder(validated);
+      res.json(order);
+    } catch (error) {
+      console.error("Error creating recurring order:", error);
+      res.status(500).json({ error: "Failed to create recurring order" });
+    }
+  });
+  
+  app.patch('/api/recurring-orders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateRecurringOrder(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating recurring order:", error);
+      res.status(500).json({ error: "Failed to update recurring order" });
+    }
+  });
+  
+  app.delete('/api/recurring-orders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteRecurringOrder(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting recurring order:", error);
+      res.status(500).json({ error: "Failed to delete recurring order" });
+    }
+  });
   // Admin Authentication Routes
   app.post("/api/admin/login", async (req, res) => {
     try {

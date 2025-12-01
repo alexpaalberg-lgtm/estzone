@@ -1,5 +1,5 @@
-import { Link } from 'wouter';
-import { ShoppingCart, Search, User, Menu } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { ShoppingCart, Search, User, Menu, Heart, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,11 +15,17 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
-import type { Category } from '@shared/schema';
+import type { Category, Wishlist } from '@shared/schema';
 import logoImage from '@assets/generated_images/EstZone_company_logo_8c405552.png';
 import gamingHeaderImage from '@assets/generated_images/Gaming_controller_illustration_header_1c4ec04d.png';
 import { useMemo, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Header() {
   const { language, setLanguage, t } = useLanguage();
@@ -27,10 +33,18 @@ export default function Header() {
   const { totalItems, setIsOpen } = useCart();
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
   
   const { data: categories, isLoading, isError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     staleTime: 5 * 60 * 1000,
+  });
+  
+  const { data: wishlistItems } = useQuery<Wishlist[]>({
+    queryKey: ['/api/wishlist'],
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
   });
   
   const { parentCategories, subcategoriesByParent, visibleCategories, moreCategories } = useMemo(() => {
@@ -224,6 +238,70 @@ export default function Header() {
             >
               <span className="text-xs font-bold">{currency}</span>
             </Button>
+
+            {isAuthenticated ? (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/wishlist">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative"
+                        data-testid="button-wishlist"
+                      >
+                        <Heart className="h-5 w-5" />
+                        {wishlistItems && wishlistItems.length > 0 && (
+                          <Badge
+                            variant="default"
+                            className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                            data-testid="badge-wishlist-count"
+                          >
+                            {wishlistItems.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/account">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        data-testid="button-account"
+                      >
+                        <User className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {language === 'et' ? 'Minu konto' : 'My Account'}
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a href="/api/login">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid="button-login"
+                    >
+                      <LogIn className="h-5 w-5" />
+                    </Button>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {language === 'et' ? 'Logi sisse' : 'Sign In'}
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             <Button
               variant="ghost"
