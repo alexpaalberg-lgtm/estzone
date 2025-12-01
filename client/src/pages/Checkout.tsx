@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,15 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { calculateVatBreakdown } from "@/lib/vat";
-import { ShoppingBag, Package, CreditCard } from "lucide-react";
+import { ShoppingBag, Package, CreditCard, MapPin, Plus } from "lucide-react";
 import { Link } from "wouter";
+import type { Address } from "@shared/schema";
 
 const platformColors: Record<string, string> = {
   'PS5': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -51,11 +55,27 @@ export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { language } = useLanguage();
   const { currency, formatPrice, formatDualPrice, toDisplay } = useCurrency();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
   // Track shipping cost based on selected method (Omniva: 4.99, DPD: 5.99)
   const [shippingCost, setShippingCost] = useState(4.99);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  
+  // Fetch saved addresses for authenticated users
+  const { data: savedAddresses } = useQuery<Address[]>({
+    queryKey: ['/api/addresses'],
+    enabled: isAuthenticated,
+  });
+  
+  // Mutation to save address after order
+  const saveAddressMutation = useMutation({
+    mutationFn: async (addressData: Partial<Address>) => {
+      return apiRequest('POST', '/api/addresses', addressData);
+    },
+  });
   
   // All cart amounts are in EUR (base currency)
   const baseTotalPrice = totalPrice;  // Cart total is in EUR
@@ -70,9 +90,9 @@ export default function Checkout() {
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      email: "",
-      firstName: "",
-      lastName: "",
+      email: user?.email || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       phone: "",
       address: "",
       city: "",
@@ -82,6 +102,53 @@ export default function Checkout() {
       paymentMethod: "stripe",
     },
   });
+
+  // Auto-fill from saved address when selected
+  const handleAddressSelect = (addressId: string) => {
+    if (addressId === 'new') {
+      setSelectedAddressId(null);
+      form.setValue('address', '');
+      form.setValue('city', '');
+      form.setValue('postalCode', '');
+      form.setValue('country', 'Estonia');
+      return;
+    }
+    
+    const address = savedAddresses?.find(a => a.id === addressId);
+    if (address) {
+      setSelectedAddressId(addressId);
+      form.setValue('firstName', address.firstName);
+      form.setValue('lastName', address.lastName);
+      form.setValue('address', address.street);
+      form.setValue('city', address.city);
+      form.setValue('postalCode', address.postalCode);
+      form.setValue('country', address.country);
+      if (address.phone) form.setValue('phone', address.phone);
+    }
+  };
+
+  // Auto-select default address on load
+  useEffect(() => {
+    if (savedAddresses && savedAddresses.length > 0) {
+      const defaultAddress = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+      if (defaultAddress && !selectedAddressId) {
+        handleAddressSelect(defaultAddress.id);
+      }
+    }
+  }, [savedAddresses]);
+
+  // Pre-fill email from user
+  useEffect(() => {
+    if (user?.email && !form.getValues('email')) {
+      form.setValue('email', user.email);
+    }
+    if (user?.firstName && !form.getValues('firstName')) {
+      form.setValue('firstName', user.firstName);
+    }
+    if (user?.lastName && !form.getValues('lastName')) {
+      form.setValue('lastName', user.lastName);
+    }
+  }, [user]);
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -135,7 +202,26 @@ export default function Checkout() {
     },
   });
   
-  const onSubmit = (data: CheckoutFormData) => {
+  const onSubmit = async (data: CheckoutFormData) => {
+    // Save address if checkbox is checked and user is authenticated
+    if (saveAddress && isAuthenticated && !selectedAddressId) {
+      try {
+        await saveAddressMutation.mutateAsync({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          street: data.address,
+          city: data.city,
+          postalCode: data.postalCode,
+          country: data.country,
+          phone: data.phone,
+          isDefault: !savedAddresses || savedAddresses.length === 0,
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/addresses'] });
+      } catch (error) {
+        console.error('Failed to save address:', error);
+      }
+    }
+    
     createOrderMutation.mutate(data);
   };
   
@@ -244,7 +330,42 @@ export default function Checkout() {
                   
                   {/* Shipping Address */}
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold mb-6">{language === 'et' ? 'Tarneaadress' : 'Shipping Address'}</h2>
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                      <MapPin className="h-6 w-6" />
+                      {language === 'et' ? 'Tarneaadress' : 'Shipping Address'}
+                    </h2>
+                    
+                    {/* Saved Addresses Selector */}
+                    {isAuthenticated && savedAddresses && savedAddresses.length > 0 && (
+                      <div className="mb-6">
+                        <Label className="text-sm font-medium mb-2 block">
+                          {language === 'et' ? 'Vali salvestatud aadress' : 'Select saved address'}
+                        </Label>
+                        <Select 
+                          value={selectedAddressId || 'new'} 
+                          onValueChange={handleAddressSelect}
+                        >
+                          <SelectTrigger data-testid="select-saved-address">
+                            <SelectValue placeholder={language === 'et' ? 'Vali aadress' : 'Select address'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {savedAddresses.map((addr) => (
+                              <SelectItem key={addr.id} value={addr.id}>
+                                {addr.street}, {addr.city} {addr.postalCode}
+                                {addr.isDefault && ` - ${language === 'et' ? 'Vaikimisi' : 'Default'}`}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="new">
+                              <span className="flex items-center gap-2">
+                                <Plus className="h-4 w-4" />
+                                {language === 'et' ? 'Lisa uus aadress' : 'Add new address'}
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -287,6 +408,23 @@ export default function Checkout() {
                           )}
                         />
                       </div>
+                      
+                      {/* Save address checkbox for authenticated users */}
+                      {isAuthenticated && !selectedAddressId && (
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                          <Checkbox
+                            id="save-address"
+                            checked={saveAddress}
+                            onCheckedChange={(checked) => setSaveAddress(checked === true)}
+                            data-testid="checkbox-save-address"
+                          />
+                          <Label htmlFor="save-address" className="text-sm cursor-pointer">
+                            {language === 'et' 
+                              ? 'Salvesta see aadress järgmisteks tellimusteks' 
+                              : 'Save this address for future orders'}
+                          </Label>
+                        </div>
+                      )}
                     </div>
                   </Card>
                   

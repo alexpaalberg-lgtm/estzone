@@ -261,16 +261,17 @@ export default function Header() {
                 </Button>
               </Link>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-11 w-11"
-                data-testid="button-wishlist"
-                title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
-                onClick={() => window.location.href = '/api/login'}
-              >
-                <Heart className="h-7 w-7" />
-              </Button>
+              <Link href="/auth">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-11 w-11"
+                  data-testid="button-wishlist"
+                  title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
+                >
+                  <Heart className="h-7 w-7" />
+                </Button>
+              </Link>
             )}
 
             {/* User account / Login */}
@@ -287,16 +288,17 @@ export default function Header() {
                 </Button>
               </Link>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11"
-                data-testid="button-login"
-                title={language === 'et' ? 'Logi sisse' : 'Sign In'}
-                onClick={() => window.location.href = '/api/login'}
-              >
-                <User className="h-7 w-7" />
-              </Button>
+              <Link href="/auth">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11"
+                  data-testid="button-login"
+                  title={language === 'et' ? 'Logi sisse' : 'Sign In'}
+                >
+                  <User className="h-7 w-7" />
+                </Button>
+              </Link>
             )}
 
             {/* Cart - with margin for spacing before menu button */}

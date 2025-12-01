@@ -25,6 +25,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createUserWithPassword(user: { email: string; passwordHash: string; firstName: string; lastName: string; phone?: string; authProvider: string; emailVerified: boolean }): Promise<User>;
+  updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Wishlists
@@ -129,6 +131,27 @@ export class DbStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const [created] = await db.insert(schema.users).values(user).returning();
     return created;
+  }
+  
+  async createUserWithPassword(user: { email: string; passwordHash: string; firstName: string; lastName: string; phone?: string; authProvider: string; emailVerified: boolean }): Promise<User> {
+    const [created] = await db.insert(schema.users).values({
+      email: user.email,
+      passwordHash: user.passwordHash,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      authProvider: user.authProvider,
+      emailVerified: user.emailVerified,
+    }).returning();
+    return created;
+  }
+  
+  async updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(schema.users)
+      .set({ ...user, updatedAt: new Date() })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return updated;
   }
   
   async upsertUser(userData: UpsertUser): Promise<User> {

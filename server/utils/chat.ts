@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { Product, Order, Category } from "@shared/schema";
+import type { Product, Order, Category, User, Wishlist, Address, RecurringOrder } from "@shared/schema";
 
 const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || undefined,
@@ -16,6 +16,10 @@ interface ChatContext {
   sessionHistory?: Array<{ role: string; content: string }>;
   baseUrl?: string;
   personaName?: string;
+  user?: User | null;
+  wishlist?: Wishlist[];
+  addresses?: Address[];
+  recurringOrders?: RecurringOrder[];
 }
 
 interface Persona {
@@ -473,6 +477,92 @@ ${context.order.trackingNumber ? `- **Tracking**: ${context.order.trackingNumber
 - **Can cancel**: ${canCancel ? 'YES ✅' : 'NO ❌ (already shipped)'}
 - **Can return**: ${canReturn ? 'YES ✅ (within 14 days)' : 'NO ❌ (over 14 days)'}`;
     contextInfo += orderInfo;
+  }
+  
+  // Add authenticated user context
+  if (context.user) {
+    const userName = context.user.firstName && context.user.lastName 
+      ? `${context.user.firstName} ${context.user.lastName}`
+      : context.user.firstName || 'Registered Customer';
+    
+    const userGreeting = language === 'et'
+      ? `\n\n## SISSE LOGITUD KASUTAJA
+- **Nimi**: ${userName}
+- **Email**: ${context.user.email || 'Pole määratud'}
+${context.user.phone ? `- **Telefon**: ${context.user.phone}` : ''}
+
+Tervita klienti nimepidi ja paku personaalset teenust!`
+      : `\n\n## LOGGED IN USER
+- **Name**: ${userName}
+- **Email**: ${context.user.email || 'Not set'}
+${context.user.phone ? `- **Phone**: ${context.user.phone}` : ''}
+
+Greet the customer by name and offer personalized service!`;
+    contextInfo += userGreeting;
+    
+    // Add wishlist if available
+    if (context.wishlist && context.wishlist.length > 0 && context.allProducts) {
+      const wishlistItems = context.wishlist.map(w => {
+        const product = context.allProducts?.find(p => p.id === w.productId);
+        if (!product) return null;
+        const name = language === 'et' ? product.nameEt : product.nameEn;
+        const price = product.salePrice ? parseFloat(product.salePrice) : parseFloat(product.price);
+        const inStock = product.stock > 0;
+        const onSale = !!product.salePrice;
+        return `- ${name}: €${price.toFixed(2)} ${onSale ? '(SOODUSHIND!)' : ''} - ${inStock ? (language === 'et' ? 'Laos' : 'In Stock') : (language === 'et' ? 'Otsas' : 'Out of Stock')}`;
+      }).filter(Boolean).join('\n');
+      
+      const wishlistInfo = language === 'et'
+        ? `\n\n## KLIENDI SOOVINIMEKIRI (${context.wishlist.length} toodet)
+${wishlistItems}
+
+Sa saad aidata kliendil:
+- Vaadata oma soovinimekirja: ${baseUrl}/wishlist
+- Soovitada alternatiive otsas olevatele toodetele
+- Teavitada sooduspakkumistest nende lemmiktoodete kohta`
+        : `\n\n## CUSTOMER WISHLIST (${context.wishlist.length} items)
+${wishlistItems}
+
+You can help the customer:
+- View their wishlist: ${baseUrl}/wishlist
+- Recommend alternatives for out-of-stock items
+- Notify about sales on their favorite products`;
+      contextInfo += wishlistInfo;
+    }
+    
+    // Add saved addresses
+    if (context.addresses && context.addresses.length > 0) {
+      const defaultAddr = context.addresses.find(a => a.isDefault) || context.addresses[0];
+      const addressInfo = language === 'et'
+        ? `\n\n## SALVESTATUD AADRESS
+- ${defaultAddr.street}, ${defaultAddr.city}, ${defaultAddr.postalCode}
+
+Klient saab kassas kasutada salvestatud aadressi!`
+        : `\n\n## SAVED ADDRESS
+- ${defaultAddr.street}, ${defaultAddr.city}, ${defaultAddr.postalCode}
+
+Customer can use their saved address at checkout!`;
+      contextInfo += addressInfo;
+    }
+    
+    // Add recurring orders
+    if (context.recurringOrders && context.recurringOrders.length > 0) {
+      const activeOrders = context.recurringOrders.filter(o => o.isActive);
+      const pausedOrders = context.recurringOrders.filter(o => !o.isActive);
+      
+      const recurringInfo = language === 'et'
+        ? `\n\n## KORDUVAD TELLIMUSED
+- Aktiivseid: ${activeOrders.length}
+- Peatatud: ${pausedOrders.length}
+
+Klient saab hallata korduvaid tellimusi: ${baseUrl}/account`
+        : `\n\n## RECURRING ORDERS
+- Active: ${activeOrders.length}
+- Paused: ${pausedOrders.length}
+
+Customer can manage recurring orders at: ${baseUrl}/account`;
+      contextInfo += recurringInfo;
+    }
   }
   
   const quickActions = language === 'et'

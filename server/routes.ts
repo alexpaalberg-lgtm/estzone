@@ -10,6 +10,7 @@ import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } 
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupLocalAuth } from "./localAuth";
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.isAdmin) {
@@ -18,17 +19,39 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const user = req.user as any;
+  const userId = user?.claims?.sub || user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  (req as any).userId = userId;
+  next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth
   await setupAuth(app);
   
-  // Get current authenticated user
+  // Setup Local Email/Password Auth
+  setupLocalAuth(app);
+  
+  // Get current authenticated user (supports both Replit Auth and local auth)
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const userId = req.user.claims.sub;
+      
+      // Support both Replit Auth (claims.sub) and local auth (id)
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -38,10 +61,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Wishlist Routes (require authentication)
-  app.get('/api/wishlist', isAuthenticated, async (req: any, res) => {
+  app.get('/api/wishlist', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const items = await storage.getWishlistItems(userId);
+      const items = await storage.getWishlistItems(req.userId);
       res.json(items);
     } catch (error) {
       console.error("Error fetching wishlist:", error);
@@ -49,19 +71,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/wishlist', isAuthenticated, async (req: any, res) => {
+  app.post('/api/wishlist', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const { productId } = req.body;
       
       // Check if already in wishlist
-      const exists = await storage.isInWishlist(userId, productId);
+      const exists = await storage.isInWishlist(req.userId, productId);
       if (exists) {
         return res.status(400).json({ error: "Already in wishlist" });
       }
       
       const item = await storage.addToWishlist({
-        userId,
+        userId: req.userId,
         productId,
         notifyOnSale: true,
         notifyOnRestock: true,
@@ -73,11 +94,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/wishlist/:productId', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/wishlist/:productId', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const { productId } = req.params;
-      await storage.removeFromWishlist(userId, productId);
+      await storage.removeFromWishlist(req.userId, productId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error removing from wishlist:", error);
@@ -85,11 +105,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/wishlist/check/:productId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/wishlist/check/:productId', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const { productId } = req.params;
-      const inWishlist = await storage.isInWishlist(userId, productId);
+      const inWishlist = await storage.isInWishlist(req.userId, productId);
       res.json({ inWishlist });
     } catch (error) {
       res.status(500).json({ error: "Failed to check wishlist" });
@@ -97,10 +116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Recurring Orders Routes (require authentication)
-  app.get('/api/recurring-orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/recurring-orders', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const orders = await storage.getRecurringOrders(userId);
+      const orders = await storage.getRecurringOrders(req.userId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching recurring orders:", error);
@@ -108,10 +126,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/recurring-orders', isAuthenticated, async (req: any, res) => {
+  app.post('/api/recurring-orders', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const validated = insertRecurringOrderSchema.parse({ ...req.body, userId });
+      const validated = insertRecurringOrderSchema.parse({ ...req.body, userId: req.userId });
       const order = await storage.createRecurringOrder(validated);
       res.json(order);
     } catch (error) {
@@ -120,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/recurring-orders/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/recurring-orders/:id', requireAuth, async (req: any, res) => {
     try {
       const { id } = req.params;
       const updated = await storage.updateRecurringOrder(id, req.body);
@@ -131,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/recurring-orders/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/recurring-orders/:id', requireAuth, async (req: any, res) => {
     try {
       const { id } = req.params;
       await storage.deleteRecurringOrder(id);
@@ -141,6 +158,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete recurring order" });
     }
   });
+
+  // User Addresses Routes (require authentication)
+  app.get('/api/addresses', requireAuth, async (req: any, res) => {
+    try {
+      const addresses = await storage.getUserAddresses(req.userId);
+      res.json(addresses);
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      res.status(500).json({ error: "Failed to fetch addresses" });
+    }
+  });
+
+  app.post('/api/addresses', requireAuth, async (req: any, res) => {
+    try {
+      const addressData = { ...req.body, userId: req.userId };
+      
+      // If this is marked as default, unset other defaults first
+      if (addressData.isDefault) {
+        const existingAddresses = await storage.getUserAddresses(req.userId);
+        for (const addr of existingAddresses) {
+          if (addr.isDefault) {
+            await storage.updateAddress(addr.id, { isDefault: false });
+          }
+        }
+      }
+      
+      const address = await storage.createAddress(addressData);
+      res.json(address);
+    } catch (error) {
+      console.error("Error creating address:", error);
+      res.status(500).json({ error: "Failed to create address" });
+    }
+  });
+
+  app.patch('/api/addresses/:id', requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // If marking as default, unset other defaults first
+      if (req.body.isDefault) {
+        const existingAddresses = await storage.getUserAddresses(req.userId);
+        for (const addr of existingAddresses) {
+          if (addr.isDefault && addr.id !== id) {
+            await storage.updateAddress(addr.id, { isDefault: false });
+          }
+        }
+      }
+      
+      const updated = await storage.updateAddress(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating address:", error);
+      res.status(500).json({ error: "Failed to update address" });
+    }
+  });
+
+  app.delete('/api/addresses/:id', requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteAddress(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      res.status(500).json({ error: "Failed to delete address" });
+    }
+  });
+
   // Admin Authentication Routes
   app.post("/api/admin/login", async (req, res) => {
     try {
@@ -700,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // AI Support Chat
-  app.post("/api/support/chat", async (req, res) => {
+  app.post("/api/support/chat", async (req: any, res) => {
     try {
       const { sessionId, message, language: userLanguage } = req.body;
       
@@ -712,6 +796,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      
+      // Try to get authenticated user
+      let userId: string | null = null;
+      let userInfo: any = null;
+      let userWishlist: any[] = [];
+      let userAddresses: any[] = [];
+      let userRecurringOrders: any[] = [];
+      
+      if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.user?.id) {
+        userId = req.user.id;
+      }
+      
+      if (userId) {
+        try {
+          userInfo = await storage.getUser(userId);
+          userWishlist = await storage.getWishlist(userId);
+          userAddresses = await storage.getUserAddresses(userId);
+          userRecurringOrders = await storage.getRecurringOrders(userId);
+        } catch (e) {
+          console.log('Could not fetch user context for chat:', e);
+        }
+      }
       
       let session;
       
@@ -808,7 +916,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           categories,
           order,
           sessionHistory,
-          baseUrl
+          baseUrl,
+          user: userInfo,
+          wishlist: userWishlist,
+          addresses: userAddresses,
+          recurringOrders: userRecurringOrders,
         },
         (chunk) => {
           // Send SSE chunk

@@ -77,7 +77,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     
     if (!isAuthenticated) {
-      window.location.href = '/api/login';
+      window.location.href = '/auth';
       return;
     }
     
