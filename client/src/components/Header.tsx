@@ -182,7 +182,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-0.5 sm:gap-1 ml-auto mr-1 sm:mr-0">
+          <div className="flex items-center gap-1 sm:gap-1 ml-auto mr-3 sm:mr-0">
             <SearchBar className="hidden lg:block w-56 xl:w-72 2xl:w-96" />
 
             <Button
