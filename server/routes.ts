@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
-import { getShippingRates } from "./utils/shipping";
+import { getShippingOptions } from "./utils/shipping";
 import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
@@ -653,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Shipping
   app.get("/api/shipping/rates", (req, res) => {
-    const rates = getShippingRates();
+    const rates = getShippingOptions();
     res.json(rates);
   });
   

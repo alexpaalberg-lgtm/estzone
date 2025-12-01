@@ -1,7 +1,7 @@
 // Shipping provider integrations for EstZone
 
-export type ShippingCarrier = 'omniva' | 'dpd' | 'dhl';
-export type ShippingMethodId = 'omniva_terminal' | 'omniva_courier' | 'dpd_pickup' | 'dpd_courier';
+export type ShippingCarrier = 'omniva' | 'dhl';
+export type ShippingMethodId = 'omniva_terminal' | 'omniva_courier' | 'dhl_pickup' | 'dhl_courier';
 
 export interface ShippingOption {
   id: ShippingMethodId;
@@ -61,20 +61,20 @@ export const shippingOptions: ShippingOption[] = [
     type: 'courier',
   },
   {
-    id: 'dpd_pickup',
-    carrier: 'dpd',
-    name: 'DPD Pakipunkt',
-    nameEn: 'DPD Pickup Point',
+    id: 'dhl_pickup',
+    carrier: 'dhl',
+    name: 'DHL Pakipunkt',
+    nameEn: 'DHL Service Point',
     cost: 3.49,
     estimatedDays: '2-3',
     type: 'pickup',
   },
   {
-    id: 'dpd_courier',
-    carrier: 'dpd',
-    name: 'DPD Kuller',
-    nameEn: 'DPD Home Delivery',
-    cost: 5.99,
+    id: 'dhl_courier',
+    carrier: 'dhl',
+    name: 'DHL Kuller',
+    nameEn: 'DHL Express',
+    cost: 6.99,
     estimatedDays: '1-2',
     type: 'courier',
   },
@@ -88,16 +88,15 @@ export function getShippingOptionById(id: string): ShippingOption | undefined {
   return shippingOptions.find(opt => opt.id === id);
 }
 
-export function getCarrierFromMethod(methodId: string): ShippingCarrier {
+export function getCarrierFromMethod(methodId: string): ShippingCarrier | null {
   if (methodId.startsWith('omniva')) return 'omniva';
-  if (methodId.startsWith('dpd')) return 'dpd';
   if (methodId.startsWith('dhl')) return 'dhl';
-  return 'dpd';
+  return null;
 }
 
 export function getShippingCost(methodId: string): number {
   const option = getShippingOptionById(methodId);
-  return option?.cost ?? 5.99;
+  return option?.cost ?? 6.99;
 }
 
 export async function createOmnivaShipment(order: any): Promise<string> {
@@ -105,9 +104,9 @@ export async function createOmnivaShipment(order: any): Promise<string> {
   return `OMN${Date.now()}`;
 }
 
-export async function createDPDShipment(order: any): Promise<string> {
-  console.log('[DPD] Creating shipment for order', order.id);
-  return `DPD${Date.now()}`;
+export async function createDHLShipment(order: any): Promise<string> {
+  console.log('[DHL] Creating shipment for order', order.id);
+  return `DHL${Date.now()}`;
 }
 
 export async function getTrackingInfo(carrier: string, trackingNumber: string): Promise<TrackingInfo> {

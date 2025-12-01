@@ -54,10 +54,10 @@ class ResendEmailService implements EmailService {
       'omniva': 'Omniva',
       'omniva_terminal': 'Omniva Pakiautomaat',
       'omniva_courier': 'Omniva Kuller',
-      'dpd': 'DPD',
-      'dpd_pickup': 'DPD Pakipunkt',
-      'dpd_courier': 'DPD Kuller',
       'dhl': 'DHL',
+      'dhl_pickup': 'DHL Pakipunkt',
+      'dhl_courier': 'DHL Express',
+      'dpd': 'DPD',
       'itella': 'Itella SmartPOST',
     };
     return carriers[shippingMethod || ''] || shippingMethod || 'Courier';
