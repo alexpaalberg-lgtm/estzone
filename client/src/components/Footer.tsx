@@ -184,6 +184,7 @@ export default function Footer() {
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-muted-foreground">Omniva</span>
                 <span className="text-xs font-semibold text-muted-foreground">DPD</span>
+                <span className="text-xs font-semibold text-muted-foreground">DHL</span>
               </div>
             </div>
 
