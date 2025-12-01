@@ -182,7 +182,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             <SearchBar className="hidden xl:block w-72 2xl:w-96" />
 
             <Button
@@ -244,15 +244,15 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10"
+                  className="relative h-11 w-11"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
-                  <Heart className="h-6 w-6" />
+                  <Heart className="h-7 w-7" />
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
-                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
                       data-testid="badge-wishlist-count"
                     >
                       {wishlistItems.length}
@@ -264,12 +264,12 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-10 w-10"
+                className="relative h-11 w-11"
                 data-testid="button-wishlist"
                 title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 onClick={() => window.location.href = '/api/login'}
               >
-                <Heart className="h-6 w-6" />
+                <Heart className="h-7 w-7" />
               </Button>
             )}
 
@@ -279,23 +279,23 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="h-11 w-11"
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
-                  <User className="h-6 w-6" />
+                  <User className="h-7 w-7" />
                 </Button>
               </Link>
             ) : (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-11 w-11"
                 data-testid="button-login"
                 title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 onClick={() => window.location.href = '/api/login'}
               >
-                <User className="h-6 w-6" />
+                <User className="h-7 w-7" />
               </Button>
             )}
 
@@ -303,11 +303,11 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-10 w-10 mr-2 lg:mr-0"
+              className="relative h-11 w-11 mr-3 lg:mr-0"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-7 w-7" />
               {totalItems > 0 && (
                 <Badge
                   variant="default"
@@ -322,8 +322,8 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden h-10 w-10 p-0 border-primary/50" data-testid="button-menu">
-                  <Menu className="h-6 w-6 text-primary" />
+                <Button variant="outline" className="lg:hidden h-11 w-11 p-0 border-primary/50" data-testid="button-menu">
+                  <Menu className="h-7 w-7 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
