@@ -71,9 +71,9 @@ export default function Header() {
       <div className="w-full px-2 sm:px-3 lg:px-4 box-border">
         <div className="flex h-14 items-center gap-1">
           <Link href="/">
-            <div className="flex items-center gap-2 hover-elevate px-2 py-1 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-8 sm:h-9 w-auto" />
-              <span className="font-bold text-lg sm:text-xl hidden sm:inline">
+            <div className="flex items-center gap-1.5 sm:gap-2 hover-elevate px-1 sm:px-2 py-1 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-7 sm:h-9 w-auto" />
+              <span className="font-bold text-base sm:text-xl">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
