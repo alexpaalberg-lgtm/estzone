@@ -168,7 +168,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t.footer.paymentMethods}</p>
               <div className="flex items-center gap-4">
@@ -188,7 +188,7 @@ export default function Footer() {
               </div>
             </div>
 
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground md:ml-auto">
               {t.footer.copyright}
             </div>
           </div>
