@@ -68,12 +68,12 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="w-full px-2 sm:px-4 lg:px-6 box-border">
-        <div className="flex h-14 lg:h-16 items-center gap-1 lg:gap-2">
+      <div className="w-full px-2 sm:px-3 lg:px-4 box-border">
+        <div className="flex h-14 items-center gap-1">
           <Link href="/">
-            <div className="flex items-center gap-2 hover-elevate px-2 py-1.5 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
-              <img src={logoImage} alt="EstZone" className="h-8 sm:h-8 w-auto" />
-              <span className="font-bold text-xl sm:text-xl">
+            <div className="flex items-center gap-1.5 hover-elevate px-1.5 py-1 rounded-md cursor-pointer flex-shrink-0" data-testid="link-home">
+              <img src={logoImage} alt="EstZone" className="h-7 w-auto" />
+              <span className="font-bold text-lg hidden sm:inline">
                 <span className="text-foreground">Est</span>
                 <span className="text-primary">Zone</span>
               </span>
@@ -182,13 +182,13 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-0.5 sm:gap-1 ml-auto flex-shrink-0">
-            <SearchBar className="hidden xl:block w-72 2xl:w-96" />
+          <div className="flex items-center gap-0.5 ml-auto">
+            <SearchBar className="hidden xl:block w-48 2xl:w-64" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden h-9 w-9"
+              className="xl:hidden"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -218,7 +218,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex h-9 w-9"
+              className="hidden sm:flex"
               onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
               data-testid="button-language-toggle"
               title={language === 'en' ? 'Switch to Estonian' : 'Lülitu inglise keelele'}
@@ -230,7 +230,7 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex h-9 w-9"
+              className="hidden sm:flex"
               onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
               data-testid="button-currency-toggle"
               title={currency === 'EUR' ? 'Switch to USD' : 'Switch to EUR'}
@@ -244,15 +244,15 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-11 w-11"
+                  className="relative"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
-                  <Heart className="h-7 w-7" />
+                  <Heart className="h-5 w-5" />
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[9px]"
                       data-testid="badge-wishlist-count"
                     >
                       {wishlistItems.length}
@@ -265,11 +265,11 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-11 w-11"
+                  className="relative"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 >
-                  <Heart className="h-7 w-7" />
+                  <Heart className="h-5 w-5" />
                 </Button>
               </Link>
             )}
@@ -280,11 +280,10 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11"
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
-                  <User className="h-7 w-7" />
+                  <User className="h-5 w-5" />
                 </Button>
               </Link>
             ) : (
@@ -292,28 +291,27 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11"
                   data-testid="button-login"
                   title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 >
-                  <User className="h-7 w-7" />
+                  <User className="h-5 w-5" />
                 </Button>
               </Link>
             )}
 
-            {/* Cart - with margin for spacing before menu button */}
+            {/* Cart */}
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-11 w-11 mr-1 lg:mr-0"
+              className="relative"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
-              <ShoppingCart className="h-7 w-7" />
+              <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
                 <Badge
                   variant="default"
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[9px]"
                   data-testid="badge-cart-count"
                 >
                   {totalItems}
@@ -324,8 +322,8 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden h-11 w-11 p-0 border-primary/50" data-testid="button-menu">
-                  <Menu className="h-7 w-7 text-primary" />
+                <Button variant="outline" size="icon" className="lg:hidden border-primary/50" data-testid="button-menu">
+                  <Menu className="h-5 w-5 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
