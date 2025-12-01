@@ -182,7 +182,7 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2.5 sm:gap-1 ml-auto pr-1 sm:pr-0">
+          <div className="flex items-center gap-1.5 sm:gap-1 ml-auto">
             <SearchBar className="hidden lg:block w-56 xl:w-72 2xl:w-96" />
 
             <Button
@@ -214,28 +214,28 @@ export default function Header() {
               </SheetContent>
             </Sheet>
 
-            {/* Language toggle - hidden on mobile, shown in menu */}
+            {/* Language toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex"
+              className="h-11 w-11 sm:h-10 sm:w-10"
               onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
               data-testid="button-language-toggle"
               title={language === 'en' ? 'Switch to Estonian' : 'Lülitu inglise keelele'}
             >
-              <span className="text-xs font-bold">{language.toUpperCase()}</span>
+              <span className="text-sm sm:text-xs font-bold">{language.toUpperCase()}</span>
             </Button>
 
-            {/* Currency toggle - hidden on mobile, shown in menu */}
+            {/* Currency toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex"
+              className="h-11 w-11 sm:h-10 sm:w-10"
               onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
               data-testid="button-currency-toggle"
               title={currency === 'EUR' ? 'Switch to USD' : 'Switch to EUR'}
             >
-              <span className="text-xs font-bold">{currency}</span>
+              <span className="text-sm sm:text-xs font-bold">{currency}</span>
             </Button>
 
             {/* Wishlist - click to go to wishlist or login */}
@@ -305,15 +305,15 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-10 w-10"
+              className="relative h-11 w-11 sm:h-10 sm:w-10"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-7 w-7 sm:h-6 sm:w-6" />
               {totalItems > 0 && (
                 <Badge
                   variant="default"
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                  className="absolute -top-1.5 -right-1.5 sm:-top-1 sm:-right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
                   data-testid="badge-cart-count"
                 >
                   {totalItems}
@@ -324,8 +324,8 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden h-10 w-10 border-primary/50" data-testid="button-menu">
-                  <Menu className="h-6 w-6 text-primary" />
+                <Button variant="outline" size="icon" className="lg:hidden h-11 w-11 sm:h-10 sm:w-10 border-primary/50" data-testid="button-menu">
+                  <Menu className="h-7 w-7 sm:h-6 sm:w-6 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
