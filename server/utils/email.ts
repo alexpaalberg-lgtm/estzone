@@ -2,8 +2,9 @@ import { Resend } from 'resend';
 import type { Order, OrderItem, Product } from '@shared/schema';
 
 const { RESEND_API_KEY } = process.env;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'EstZone <orders@estzone.com>';
-const SUPPLIER_EMAIL = process.env.SUPPLIER_EMAIL || 'supplier@estzone.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'EstZone <orders@estzone.eu>';
+const SUPPLIER_EMAIL = process.env.SUPPLIER_EMAIL || 'estzone.shop@gmail.com';
+const CONTACT_EMAIL = 'estzone.shop@gmail.com';
 
 export interface LowStockItem {
   product: Product;
@@ -58,12 +59,12 @@ class ResendEmailService implements EmailService {
         <hr style="margin: 30px 0;">
         <p style="color: #666; font-size: 0.9em;">
           ${isEstonian 
-            ? 'Kui teil on küsimusi, võtke meiega ühendust aadressil support@estzone.com' 
-            : 'If you have any questions, please contact us at support@estzone.com'}
+            ? `Kui teil on küsimusi, võtke meiega ühendust aadressil ${CONTACT_EMAIL}` 
+            : `If you have any questions, please contact us at ${CONTACT_EMAIL}`}
         </p>
         <p style="color: #666; font-size: 0.9em;">
-          <strong>EstZone OÜ</strong><br>
-          Pärnu mnt 31, Tallinn, Estonia
+          <strong>AVERING GRUPP OÜ</strong><br>
+          Reg: 16236733
         </p>
       </div>
     `;
@@ -104,8 +105,8 @@ class ResendEmailService implements EmailService {
         
         <hr style="margin: 30px 0;">
         <p style="color: #666; font-size: 0.9em;">
-          <strong>EstZone OÜ</strong><br>
-          Pärnu mnt 31, Tallinn, Estonia
+          <strong>AVERING GRUPP OÜ</strong><br>
+          Reg: 16236733
         </p>
       </div>
     `;
@@ -197,7 +198,7 @@ class ResendEmailService implements EmailService {
 
         <hr style="margin: 30px 0;">
         <p style="color: #666; font-size: 0.9em;">
-          <strong>EstZone OÜ</strong><br>
+          <strong>AVERING GRUPP OÜ</strong><br>
           Automated Notification
         </p>
       </div>
@@ -206,7 +207,7 @@ class ResendEmailService implements EmailService {
     try {
       await this.resend.emails.send({
         from: FROM_EMAIL,
-        to: FROM_EMAIL,
+        to: CONTACT_EMAIL,
         subject: `[RETURN] New return request for order #${returnRequest.orderNumber}`,
         html,
       });
