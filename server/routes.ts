@@ -1902,6 +1902,207 @@ Format your response as JSON:
     }
   });
 
+  // ============================================
+  // AI EMAIL CAMPAIGNS
+  // ============================================
+  
+  app.get('/api/admin/ai/email-campaigns', requireAdmin, async (req, res) => {
+    try {
+      const { getSubscriberStats } = await import('./utils/aiEmailCampaigns');
+      const stats = await getSubscriberStats();
+      
+      // Get saved campaigns from AI reports
+      const savedCampaigns = await storage.getAIReport('email-campaigns');
+      
+      res.json({
+        stats,
+        campaigns: savedCampaigns?.campaigns || [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching email campaigns:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/ai/email-campaigns/generate', requireAdmin, async (req, res) => {
+    try {
+      const { generateEmailCampaign } = await import('./utils/aiEmailCampaigns');
+      const { type, occasion, discount, productIds, customMessage } = req.body;
+      
+      const campaign = await generateEmailCampaign({
+        type: type || 'promotional',
+        occasion,
+        discount,
+        productIds,
+        customMessage,
+      });
+      
+      // Save campaign
+      const existingCampaigns = await storage.getAIReport('email-campaigns');
+      const campaigns = existingCampaigns?.campaigns || [];
+      campaigns.unshift(campaign);
+      await storage.saveAIReport('email-campaigns', { campaigns: campaigns.slice(0, 20) });
+      
+      res.json(campaign);
+    } catch (error: any) {
+      console.error('Error generating email campaign:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/ai/email-campaigns/send', requireAdmin, async (req, res) => {
+    try {
+      const { sendBulkEmails, EmailCampaign } = await import('./utils/aiEmailCampaigns');
+      const { campaignId, targetAudience } = req.body;
+      
+      // Get the campaign
+      const savedCampaigns = await storage.getAIReport('email-campaigns');
+      const campaign = savedCampaigns?.campaigns?.find((c: any) => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      
+      const result = await sendBulkEmails(campaign, targetAudience || 'all');
+      
+      // Update campaign status
+      campaign.status = 'sent';
+      campaign.sentAt = new Date();
+      campaign.recipientCount = result.totalSent;
+      await storage.saveAIReport('email-campaigns', { campaigns: savedCampaigns?.campaigns });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error sending email campaign:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/admin/ai/email-campaigns/subscribers', requireAdmin, async (req, res) => {
+    try {
+      const subscribers = await storage.getNewsletterSubscribers();
+      res.json(subscribers);
+    } catch (error: any) {
+      console.error('Error fetching subscribers:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // AI AUTO PRODUCT ADDITION
+  // ============================================
+
+  app.get('/api/admin/ai/auto-products', requireAdmin, async (req, res) => {
+    try {
+      const { getDefaultSettings } = await import('./utils/aiAutoProducts');
+      
+      // Get saved settings
+      const savedSettings = await storage.getAIReport('auto-products-settings');
+      const settings = savedSettings || getDefaultSettings();
+      
+      // Get last run results - try to get from the most recent key
+      let lastRun = await storage.getAIReport('auto-products-latest');
+      
+      // If no "latest" key, try today's date for backwards compatibility
+      if (!lastRun) {
+        const today = new Date().toISOString().split('T')[0];
+        lastRun = await storage.getAIReport(`auto-products-${today}`);
+      }
+      
+      res.json({
+        settings,
+        lastRun,
+      });
+    } catch (error: any) {
+      console.error('Error fetching auto products settings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/ai/auto-products/settings', requireAdmin, async (req, res) => {
+    try {
+      const { startAutoProductScheduler, stopAutoProductScheduler } = await import('./utils/aiAutoProducts');
+      const settings = req.body;
+      
+      // Save settings
+      await storage.saveAIReport('auto-products-settings', settings);
+      
+      // Update scheduler
+      if (settings.enabled) {
+        startAutoProductScheduler(settings);
+      } else {
+        stopAutoProductScheduler();
+      }
+      
+      res.json({ success: true, settings });
+    } catch (error: any) {
+      console.error('Error saving auto products settings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/ai/auto-products/run', requireAdmin, async (req, res) => {
+    try {
+      const { analyzeDemandAndAddProducts, getDefaultSettings } = await import('./utils/aiAutoProducts');
+      
+      // Get saved settings or use defaults
+      const savedSettings = await storage.getAIReport('auto-products-settings');
+      const settings = savedSettings || getDefaultSettings();
+      
+      // Override with request settings if provided
+      const runSettings = {
+        ...settings,
+        ...req.body,
+        enabled: true,
+      };
+      
+      const result = await analyzeDemandAndAddProducts(runSettings);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error running auto products:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // AI SMART SEARCH
+  // ============================================
+
+  app.get('/api/products/smart-search/:query', async (req, res) => {
+    try {
+      const { smartSearch } = await import('./utils/aiSmartSearch');
+      const { query } = req.params;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const result = await smartSearch(query, limit);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Smart search error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/search/suggest/:query', async (req, res) => {
+    try {
+      const { suggestCorrection, getSynonyms } = await import('./utils/aiSmartSearch');
+      const { query } = req.params;
+      
+      const correction = suggestCorrection(query);
+      const synonyms = getSynonyms(query);
+      
+      res.json({
+        original: query,
+        correction,
+        synonyms,
+      });
+    } catch (error: any) {
+      console.error('Search suggest error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

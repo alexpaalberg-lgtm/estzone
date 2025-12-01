@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Product } from '@shared/schema';
 import { useLocation } from 'wouter';
+
+interface SmartSearchResult {
+  products: Product[];
+  originalQuery: string;
+  correctedQuery?: string;
+  didCorrect: boolean;
+  usedSynonyms: boolean;
+  expandedTerms: string[];
+}
 
 function useLocationChange(callback: () => void) {
   const [location] = useLocation();
@@ -39,11 +48,15 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
     return () => clearTimeout(timer);
   }, [query]);
 
-  const { data: results = [], isLoading } = useQuery<Product[]>({
-    queryKey: [`/api/products/search/${debouncedQuery}`],
+  const { data: searchData, isLoading } = useQuery<SmartSearchResult>({
+    queryKey: [`/api/products/smart-search/${debouncedQuery}`],
     enabled: debouncedQuery.length >= 2,
     staleTime: 1000 * 60,
   });
+
+  const results = searchData?.products || [];
+  const didCorrect = searchData?.didCorrect || false;
+  const correctedQuery = searchData?.correctedQuery;
 
   useLocationChange(() => {
     if (isFirstMount.current) {
@@ -108,6 +121,15 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
 
       {showDesktopResults && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-md shadow-lg max-h-96 overflow-y-auto z-50">
+          {didCorrect && correctedQuery && (
+            <div className="px-4 py-2 bg-primary/5 border-b flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">
+                {language === 'et' ? 'Otsisime: ' : 'Showing results for: '}
+              </span>
+              <span className="font-medium text-primary">{correctedQuery}</span>
+            </div>
+          )}
           {results.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground" data-testid="text-no-results">
               {language === 'et' ? 'Tooteid ei leitud' : 'No products found'}
@@ -154,6 +176,15 @@ export default function SearchBar({ className, isMobile, onNavigate }: SearchBar
 
       {showMobileResults && (
         <div className="mt-4 bg-card border rounded-md shadow-lg max-h-96 overflow-y-auto">
+          {didCorrect && correctedQuery && (
+            <div className="px-4 py-2 bg-primary/5 border-b flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">
+                {language === 'et' ? 'Otsisime: ' : 'Showing results for: '}
+              </span>
+              <span className="font-medium text-primary">{correctedQuery}</span>
+            </div>
+          )}
           {results.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground" data-testid="text-no-results">
               {language === 'et' ? 'Tooteid ei leitud' : 'No products found'}

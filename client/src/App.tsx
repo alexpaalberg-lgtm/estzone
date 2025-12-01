@@ -34,6 +34,8 @@ import AdminAICampaigns from "@/pages/admin/AICampaigns";
 import AdminAISeo from "@/pages/admin/AISeo";
 import AdminAIInfluencers from "@/pages/admin/AIInfluencers";
 import AdminAIProductViz from "@/pages/admin/AIProductViz";
+import AdminAIEmailCampaigns from "@/pages/admin/AIEmailCampaigns";
+import AdminAIAutoProducts from "@/pages/admin/AIAutoProducts";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -87,6 +89,8 @@ function Router() {
       <Route path="/admin/ai-seo" component={AdminAISeo} />
       <Route path="/admin/ai-influencers" component={AdminAIInfluencers} />
       <Route path="/admin/ai-product-viz" component={AdminAIProductViz} />
+      <Route path="/admin/ai-email-campaigns" component={AdminAIEmailCampaigns} />
+      <Route path="/admin/ai-auto-products" component={AdminAIAutoProducts} />
       <Route component={NotFound} />
     </Switch>
   );
