@@ -295,6 +295,15 @@ export const couponUsage = pgTable("coupon_usage", {
   usedAt: timestamp("used_at").defaultNow().notNull(),
 });
 
+// AI Reports (daily AI-generated business reports)
+export const aiReports = pgTable("ai_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: text("date").notNull().unique(), // YYYY-MM-DD format
+  reportData: json("report_data").notNull(), // Full report JSON
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,

@@ -24,6 +24,7 @@ import AdminOrders from "@/pages/admin/Orders";
 import AdminCategories from "@/pages/admin/Categories";
 import AdminInventory from "@/pages/admin/Inventory";
 import AdminCoupons from "@/pages/admin/Coupons";
+import AdminAIReports from "@/pages/admin/AIReports";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/admin/categories" component={AdminCategories} />
       <Route path="/admin/inventory" component={AdminInventory} />
       <Route path="/admin/coupons" component={AdminCoupons} />
+      <Route path="/admin/ai-reports" component={AdminAIReports} />
       <Route component={NotFound} />
     </Switch>
   );

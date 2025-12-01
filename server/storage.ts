@@ -132,6 +132,10 @@ export interface IStorage {
   getCouponUsage(couponId: string): Promise<CouponUsage[]>;
   recordCouponUsage(usage: InsertCouponUsage): Promise<CouponUsage>;
   incrementCouponUsage(couponId: string): Promise<void>;
+  
+  // AI Reports
+  getAIReport(date: string): Promise<any | undefined>;
+  saveAIReport(date: string, reportData: any): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -879,6 +883,24 @@ export class DbStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(schema.coupons.id, couponId));
+  }
+  
+  // AI Reports
+  async getAIReport(date: string): Promise<any | undefined> {
+    const [report] = await db.select().from(schema.aiReports).where(eq(schema.aiReports.date, date));
+    return report ? report.reportData : undefined;
+  }
+  
+  async saveAIReport(date: string, reportData: any): Promise<void> {
+    // Upsert - update if exists, insert if not
+    const existing = await db.select().from(schema.aiReports).where(eq(schema.aiReports.date, date));
+    if (existing.length > 0) {
+      await db.update(schema.aiReports)
+        .set({ reportData, updatedAt: new Date() })
+        .where(eq(schema.aiReports.date, date));
+    } else {
+      await db.insert(schema.aiReports).values({ date, reportData });
+    }
   }
 }
 
