@@ -187,13 +187,13 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
             <SearchBar className="hidden xl:block w-72 2xl:w-96" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden"
+              className="xl:hidden h-9 w-9"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
@@ -219,9 +219,11 @@ export default function Header() {
               </SheetContent>
             </Sheet>
 
+            {/* Language toggle - hidden on mobile, shown in menu */}
             <Button
               variant="ghost"
               size="icon"
+              className="hidden sm:flex h-9 w-9"
               onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
               data-testid="button-language-toggle"
               title={language === 'en' ? 'Switch to Estonian' : 'Lülitu inglise keelele'}
@@ -229,9 +231,11 @@ export default function Header() {
               <span className="text-xs font-bold">{language.toUpperCase()}</span>
             </Button>
 
+            {/* Currency toggle - hidden on mobile, shown in menu */}
             <Button
               variant="ghost"
               size="icon"
+              className="hidden sm:flex h-9 w-9"
               onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
               data-testid="button-currency-toggle"
               title={currency === 'EUR' ? 'Switch to USD' : 'Switch to EUR'}
@@ -239,74 +243,85 @@ export default function Header() {
               <span className="text-xs font-bold">{currency}</span>
             </Button>
 
-            {isAuthenticated ? (
-              <>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link href="/wishlist">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative"
-                        data-testid="button-wishlist"
-                      >
-                        <Heart className="h-5 w-5" />
-                        {wishlistItems && wishlistItems.length > 0 && (
-                          <Badge
-                            variant="default"
-                            className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                            data-testid="badge-wishlist-count"
-                          >
-                            {wishlistItems.length}
-                          </Badge>
-                        )}
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link href="/account">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        data-testid="button-account"
-                      >
-                        <User className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {language === 'et' ? 'Minu konto' : 'My Account'}
-                  </TooltipContent>
-                </Tooltip>
-              </>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
+            {/* Wishlist - always show, leads to login if not authenticated */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {isAuthenticated ? (
+                  <Link href="/wishlist">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative h-9 w-9"
+                      data-testid="button-wishlist"
+                    >
+                      <Heart className="h-5 w-5" />
+                      {wishlistItems && wishlistItems.length > 0 && (
+                        <Badge
+                          variant="default"
+                          className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                          data-testid="badge-wishlist-count"
+                        >
+                          {wishlistItems.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                ) : (
                   <a href="/api/login">
                     <Button
                       variant="ghost"
                       size="icon"
-                      data-testid="button-login"
+                      className="relative h-9 w-9"
+                      data-testid="button-wishlist"
                     >
-                      <LogIn className="h-5 w-5" />
+                      <Heart className="h-5 w-5" />
                     </Button>
                   </a>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {language === 'et' ? 'Logi sisse' : 'Sign In'}
-                </TooltipContent>
-              </Tooltip>
-            )}
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
+              </TooltipContent>
+            </Tooltip>
+
+            {/* User account */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {isAuthenticated ? (
+                  <Link href="/account">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      data-testid="button-account"
+                    >
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <a href="/api/login">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      data-testid="button-login"
+                    >
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </a>
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {isAuthenticated 
+                  ? (language === 'et' ? 'Minu konto' : 'My Account')
+                  : (language === 'et' ? 'Logi sisse' : 'Sign In')}
+              </TooltipContent>
+            </Tooltip>
 
             <Button
               variant="ghost"
               size="icon"
-              className="relative"
+              className="relative h-9 w-9"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
@@ -324,8 +339,8 @@ export default function Header() {
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden h-11 w-11 p-0 ml-4 border-primary/50" data-testid="button-menu">
-                  <Menu className="h-7 w-7 text-primary" />
+                <Button variant="outline" className="lg:hidden h-9 w-9 p-0 ml-1 sm:ml-2 border-primary/50" data-testid="button-menu">
+                  <Menu className="h-5 w-5 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
@@ -399,6 +414,30 @@ export default function Header() {
                       {t.nav.blog}
                     </Button>
                   </Link>
+                  
+                  {/* Settings section in mobile menu */}
+                  <div className="border-t border-border mt-4 pt-4">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setLanguage(language === 'en' ? 'et' : 'en')}
+                        data-testid="mobile-button-language"
+                      >
+                        {language === 'et' ? 'English' : 'Eesti'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setCurrency(currency === 'EUR' ? 'USD' : 'EUR')}
+                        data-testid="mobile-button-currency"
+                      >
+                        {currency === 'EUR' ? 'USD' : 'EUR'}
+                      </Button>
+                    </div>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>

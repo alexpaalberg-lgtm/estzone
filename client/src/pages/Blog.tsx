@@ -10,9 +10,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 export default function Blog() {
   const { language } = useLanguage();
+  
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
   
   const { data: posts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ['/api/blog/posts'],
