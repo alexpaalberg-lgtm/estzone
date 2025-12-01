@@ -17,8 +17,10 @@ import type {
   SavedCart, InsertSavedCart,
   Wishlist, InsertWishlist,
   RecurringOrder, InsertRecurringOrder,
+  Coupon, InsertCoupon,
+  CouponUsage, InsertCouponUsage,
 } from '@shared/schema';
-import { eq, desc, and, sql, inArray } from 'drizzle-orm';
+import { eq, desc, and, sql, inArray, gte, lte, or, isNull } from 'drizzle-orm';
 
 export interface IStorage {
   // Users
@@ -119,6 +121,17 @@ export interface IStorage {
   getRecommendationsForUser(userId: string, limit?: number): Promise<Product[]>;
   getRelatedProducts(productId: string, limit?: number): Promise<Product[]>;
   getPopularProducts(limit?: number): Promise<Product[]>;
+  
+  // Coupons
+  getCoupons(): Promise<Coupon[]>;
+  getCouponByCode(code: string): Promise<Coupon | undefined>;
+  getActiveCoupons(): Promise<Coupon[]>;
+  createCoupon(coupon: InsertCoupon): Promise<Coupon>;
+  updateCoupon(id: string, coupon: Partial<InsertCoupon>): Promise<Coupon | undefined>;
+  deleteCoupon(id: string): Promise<void>;
+  getCouponUsage(couponId: string): Promise<CouponUsage[]>;
+  recordCouponUsage(usage: InsertCouponUsage): Promise<CouponUsage>;
+  incrementCouponUsage(couponId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -791,6 +804,81 @@ export class DbStorage implements IStorage {
         desc(schema.products.createdAt)
       )
       .limit(limit);
+  }
+  
+  // Coupons
+  async getCoupons(): Promise<Coupon[]> {
+    return db.select().from(schema.coupons).orderBy(desc(schema.coupons.createdAt));
+  }
+  
+  async getCouponByCode(code: string): Promise<Coupon | undefined> {
+    const results = await db.select().from(schema.coupons)
+      .where(eq(schema.coupons.code, code.toUpperCase()));
+    return results[0];
+  }
+  
+  async getActiveCoupons(): Promise<Coupon[]> {
+    const now = new Date();
+    return db.select().from(schema.coupons)
+      .where(
+        and(
+          eq(schema.coupons.isActive, true),
+          or(
+            isNull(schema.coupons.startsAt),
+            lte(schema.coupons.startsAt, now)
+          ),
+          or(
+            isNull(schema.coupons.expiresAt),
+            gte(schema.coupons.expiresAt, now)
+          )
+        )
+      )
+      .orderBy(desc(schema.coupons.discountPercent));
+  }
+  
+  async createCoupon(coupon: InsertCoupon): Promise<Coupon> {
+    const [result] = await db.insert(schema.coupons).values({
+      ...coupon,
+      code: coupon.code.toUpperCase(),
+    }).returning();
+    return result;
+  }
+  
+  async updateCoupon(id: string, coupon: Partial<InsertCoupon>): Promise<Coupon | undefined> {
+    const updateData: any = { ...coupon, updatedAt: new Date() };
+    if (coupon.code) {
+      updateData.code = coupon.code.toUpperCase();
+    }
+    const [result] = await db.update(schema.coupons)
+      .set(updateData)
+      .where(eq(schema.coupons.id, id))
+      .returning();
+    return result;
+  }
+  
+  async deleteCoupon(id: string): Promise<void> {
+    await db.delete(schema.coupons).where(eq(schema.coupons.id, id));
+  }
+  
+  async getCouponUsage(couponId: string): Promise<CouponUsage[]> {
+    return db.select().from(schema.couponUsage)
+      .where(eq(schema.couponUsage.couponId, couponId))
+      .orderBy(desc(schema.couponUsage.usedAt));
+  }
+  
+  async recordCouponUsage(usage: InsertCouponUsage): Promise<CouponUsage> {
+    const [result] = await db.insert(schema.couponUsage).values(usage).returning();
+    await this.incrementCouponUsage(usage.couponId);
+    return result;
+  }
+  
+  async incrementCouponUsage(couponId: string): Promise<void> {
+    await db.update(schema.coupons)
+      .set({ 
+        usedCount: sql`COALESCE(${schema.coupons.usedCount}, 0) + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.coupons.id, couponId));
   }
 }
 

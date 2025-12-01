@@ -75,6 +75,18 @@ export default function Checkout() {
   const [saveAddress, setSaveAddress] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    id: string;
+    code: string;
+    discountPercent: number;
+    discountAmount: string;
+    descriptionEn?: string;
+    descriptionEt?: string;
+  } | null>(null);
+  
   // Fetch saved addresses for authenticated users
   const { data: savedAddresses } = useQuery<Address[]>({
     queryKey: ['/api/addresses'],
@@ -90,13 +102,64 @@ export default function Checkout() {
   
   // All cart amounts are in EUR (base currency)
   const baseTotalPrice = totalPrice;  // Cart total is in EUR
-  const grandTotal = baseTotalPrice + shippingCost;
+  const couponDiscount = appliedCoupon ? parseFloat(appliedCoupon.discountAmount) : 0;
   
-  // Calculate VAT breakdown on base EUR amounts
+  // Apply discount to products subtotal (discount reduces taxable amount)
+  const discountedProductsTotal = Math.max(0, baseTotalPrice - couponDiscount);
+  const grandTotal = discountedProductsTotal + shippingCost;
+  
+  // Calculate VAT breakdown on discounted amounts
   // Keep values in EUR - formatPrice() will handle conversion to display currency
-  const itemsVat = calculateVatBreakdown(baseTotalPrice);
+  const itemsVat = calculateVatBreakdown(discountedProductsTotal);
   const shippingVat = calculateVatBreakdown(shippingCost);
   const totalVat = calculateVatBreakdown(grandTotal);
+  
+  // Validate and apply coupon
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    
+    setCouponLoading(true);
+    try {
+      const response = await apiRequest('POST', '/api/coupons/validate', {
+        code: couponCode.trim(),
+        orderTotal: baseTotalPrice,
+        customerEmail: form.getValues('email'),
+      });
+      
+      if (response.valid) {
+        setAppliedCoupon({
+          id: response.coupon.id,
+          code: response.coupon.code,
+          discountPercent: response.coupon.discountPercent,
+          discountAmount: response.discountAmount,
+          descriptionEn: response.coupon.descriptionEn,
+          descriptionEt: response.coupon.descriptionEt,
+        });
+        toast({
+          title: language === 'et' ? 'Kupong rakendatud!' : 'Coupon applied!',
+          description: language === 'et' 
+            ? `Soodustus: -${response.coupon.discountPercent}%` 
+            : `Discount: -${response.coupon.discountPercent}%`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: language === 'et' ? 'Vigane kood' : 'Invalid code',
+        description: error.message || (language === 'et' ? 'Kupongi kood ei kehti' : 'Coupon code is invalid'),
+        variant: 'destructive',
+      });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+  
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    toast({
+      title: language === 'et' ? 'Kupong eemaldatud' : 'Coupon removed',
+    });
+  };
   
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -179,6 +242,8 @@ export default function Checkout() {
         subtotal: itemsVat.subtotalExVat.toFixed(2),
         shippingCost: shippingVat.subtotalExVat.toFixed(2),
         vatAmount: totalVat.vatAmount.toFixed(2),
+        discountAmount: appliedCoupon ? appliedCoupon.discountAmount : '0.00',
+        couponCode: appliedCoupon?.code || null,
         total: grandTotal.toFixed(2),
         currency: 'EUR',
         status: 'pending',
@@ -194,7 +259,12 @@ export default function Checkout() {
         subtotal: (item.price * item.quantity).toFixed(2),
       }));
       
-      return await apiRequest('POST', '/api/orders', { order: orderData, items: orderItems, language });
+      return await apiRequest('POST', '/api/orders', { 
+        order: orderData, 
+        items: orderItems, 
+        language,
+        couponId: appliedCoupon?.id || null,
+      });
     },
     onSuccess: () => {
       clearCart();
@@ -585,6 +655,51 @@ export default function Checkout() {
                     
                     <Separator className="my-4" />
                     
+                    {/* Coupon Code Input */}
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium mb-2 block">
+                        {language === 'et' ? 'Sooduskood' : 'Discount Code'}
+                      </Label>
+                      {appliedCoupon ? (
+                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-md border border-primary/20">
+                          <div>
+                            <span className="font-mono font-semibold text-primary">{appliedCoupon.code}</span>
+                            <span className="ml-2 text-sm text-muted-foreground">(-{appliedCoupon.discountPercent}%)</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveCoupon}
+                            data-testid="button-remove-coupon"
+                          >
+                            {language === 'et' ? 'Eemalda' : 'Remove'}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            placeholder={language === 'et' ? 'Sisesta kood' : 'Enter code'}
+                            className="font-mono"
+                            data-testid="input-coupon-code"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleApplyCoupon}
+                            disabled={couponLoading || !couponCode.trim()}
+                            data-testid="button-apply-coupon"
+                          >
+                            {couponLoading 
+                              ? (language === 'et' ? 'Kontrollin...' : 'Checking...')
+                              : (language === 'et' ? 'Rakenda' : 'Apply')}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Tooted (ilma KM-ta)' : 'Products (ex VAT)'}</span>
@@ -610,6 +725,14 @@ export default function Checkout() {
                         <span>{language === 'et' ? 'Kohaletoimetamine (koos KM-ga)' : 'Shipping (incl VAT)'}</span>
                         <span data-testid="text-shipping" className="text-sm">{formatDualPrice(shippingCost)}</span>
                       </div>
+                      {appliedCoupon && (
+                        <div className="flex justify-between text-primary font-medium">
+                          <span>
+                            {language === 'et' ? 'Sooduskood' : 'Discount'} ({appliedCoupon.code})
+                          </span>
+                          <span data-testid="text-discount" className="text-sm">-{formatDualPrice(couponDiscount)}</span>
+                        </div>
+                      )}
                       <Separator />
                       <div className="flex justify-between font-semibold">
                         <span>{language === 'et' ? 'Kokku KM 24%' : 'Total VAT 24%'}</span>

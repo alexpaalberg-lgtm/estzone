@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingOptions } from "./utils/shipping";
@@ -708,13 +708,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.post("/api/orders", async (req, res) => {
     try {
-      const { order, items, language = 'en' } = req.body;
+      const { order, items, language = 'en', couponId } = req.body;
+      
+      // Validate coupon if discount was applied
+      let validCoupon = null;
+      const hasDiscountApplied = order.discountAmount && parseFloat(order.discountAmount) > 0;
+      
+      if (hasDiscountApplied) {
+        // If discount was applied, coupon MUST be valid
+        if (!couponId || !order.couponCode) {
+          return res.status(400).json({ error: "Coupon information required for discounted orders" });
+        }
+        
+        // Fetch coupon by code and verify
+        const coupon = await storage.getCouponByCode(order.couponCode.toUpperCase());
+        if (!coupon || coupon.id !== couponId) {
+          return res.status(400).json({ error: "Invalid coupon code" });
+        }
+        
+        if (!coupon.isActive) {
+          return res.status(400).json({ error: "Coupon is no longer active" });
+        }
+        
+        // Check expiration
+        const now = new Date();
+        if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
+          return res.status(400).json({ error: "Coupon has expired" });
+        }
+        
+        // Check usage limit
+        if (coupon.maxUses && coupon.usedCount && coupon.usedCount >= coupon.maxUses) {
+          return res.status(400).json({ error: "Coupon has reached maximum usage" });
+        }
+        
+        validCoupon = coupon;
+      }
       
       // Validate order data
       const validatedOrder = insertOrderSchema.parse(order);
       
       // Create order
       const createdOrder = await storage.createOrder(validatedOrder, items);
+      
+      // Record coupon usage only if coupon was validated
+      if (validCoupon && order.customerEmail) {
+        try {
+          await storage.recordCouponUsage({
+            couponId: validCoupon.id,
+            orderId: createdOrder.id,
+            customerEmail: order.customerEmail,
+          });
+        } catch (couponError) {
+          console.error('Error recording coupon usage:', couponError);
+        }
+      }
       
       // Send confirmation email
       const orderItems = await storage.getOrderItems(createdOrder.id);
@@ -1186,6 +1233,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error fetching low stock products:', error);
       res.status(500).json({ error: "Failed to fetch low stock products" });
+    }
+  });
+  
+  // ===== COUPON ROUTES =====
+  
+  // Get all coupons (admin only)
+  app.get("/api/admin/coupons", requireAdmin, async (req, res) => {
+    try {
+      const coupons = await storage.getCoupons();
+      res.json(coupons);
+    } catch (error: any) {
+      console.error('Error fetching coupons:', error);
+      res.status(500).json({ error: "Failed to fetch coupons" });
+    }
+  });
+  
+  // Create coupon (admin only)
+  app.post("/api/admin/coupons", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertCouponSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid coupon data", details: parsed.error.errors });
+      }
+      const coupon = await storage.createCoupon(parsed.data);
+      res.status(201).json(coupon);
+    } catch (error: any) {
+      console.error('Error creating coupon:', error);
+      if (error.message?.includes('unique')) {
+        return res.status(400).json({ error: "Coupon code already exists" });
+      }
+      res.status(500).json({ error: "Failed to create coupon" });
+    }
+  });
+  
+  // Update coupon (admin only)
+  app.patch("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.updateCoupon(req.params.id, req.body);
+      if (!coupon) {
+        return res.status(404).json({ error: "Coupon not found" });
+      }
+      res.json(coupon);
+    } catch (error: any) {
+      console.error('Error updating coupon:', error);
+      res.status(500).json({ error: "Failed to update coupon" });
+    }
+  });
+  
+  // Delete coupon (admin only)
+  app.delete("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCoupon(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting coupon:', error);
+      res.status(500).json({ error: "Failed to delete coupon" });
+    }
+  });
+  
+  // Get coupon usage stats (admin only)
+  app.get("/api/admin/coupons/:id/usage", requireAdmin, async (req, res) => {
+    try {
+      const usage = await storage.getCouponUsage(req.params.id);
+      res.json(usage);
+    } catch (error: any) {
+      console.error('Error fetching coupon usage:', error);
+      res.status(500).json({ error: "Failed to fetch coupon usage" });
+    }
+  });
+  
+  // Validate coupon (public - for checkout)
+  app.post("/api/coupons/validate", async (req, res) => {
+    try {
+      const { code, orderTotal, customerEmail } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ error: "Coupon code is required" });
+      }
+      
+      const coupon = await storage.getCouponByCode(code.toUpperCase());
+      
+      if (!coupon) {
+        return res.status(404).json({ error: "Invalid coupon code", valid: false });
+      }
+      
+      // Check if coupon is active
+      if (!coupon.isActive) {
+        return res.status(400).json({ error: "This coupon is no longer active", valid: false });
+      }
+      
+      // Check dates
+      const now = new Date();
+      if (coupon.startsAt && new Date(coupon.startsAt) > now) {
+        return res.status(400).json({ error: "This coupon is not yet valid", valid: false });
+      }
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
+        return res.status(400).json({ error: "This coupon has expired", valid: false });
+      }
+      
+      // Check usage limit
+      if (coupon.maxUses && coupon.usedCount && coupon.usedCount >= coupon.maxUses) {
+        return res.status(400).json({ error: "This coupon has reached its usage limit", valid: false });
+      }
+      
+      // Check minimum order amount
+      if (coupon.minOrderAmount && orderTotal && parseFloat(String(orderTotal)) < parseFloat(String(coupon.minOrderAmount))) {
+        return res.status(400).json({ 
+          error: `Minimum order amount is €${coupon.minOrderAmount}`,
+          valid: false,
+          minOrderAmount: coupon.minOrderAmount
+        });
+      }
+      
+      // Calculate discount
+      const total = parseFloat(String(orderTotal)) || 0;
+      const discountAmount = (total * coupon.discountPercent) / 100;
+      
+      res.json({
+        valid: true,
+        coupon: {
+          id: coupon.id,
+          code: coupon.code,
+          discountPercent: coupon.discountPercent,
+          descriptionEn: coupon.descriptionEn,
+          descriptionEt: coupon.descriptionEt,
+        },
+        discountAmount: discountAmount.toFixed(2),
+      });
+    } catch (error: any) {
+      console.error('Error validating coupon:', error);
+      res.status(500).json({ error: "Failed to validate coupon" });
+    }
+  });
+  
+  // Get active coupons (for AI assistant to recommend)
+  app.get("/api/coupons/active", async (req, res) => {
+    try {
+      const coupons = await storage.getActiveCoupons();
+      res.json(coupons.map(c => ({
+        code: c.code,
+        discountPercent: c.discountPercent,
+        descriptionEn: c.descriptionEn,
+        descriptionEt: c.descriptionEt,
+        minOrderAmount: c.minOrderAmount,
+        expiresAt: c.expiresAt,
+      })));
+    } catch (error: any) {
+      console.error('Error fetching active coupons:', error);
+      res.status(500).json({ error: "Failed to fetch active coupons" });
     }
   });
 

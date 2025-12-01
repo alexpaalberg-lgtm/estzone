@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse } from 'lucide-react';
+import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -87,6 +87,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       title: t.admin.inventory,
       url: '/admin/inventory',
       icon: Warehouse,
+    },
+    {
+      title: language === 'et' ? 'Kupongid' : 'Coupons',
+      url: '/admin/coupons',
+      icon: Ticket,
     },
   ];
 

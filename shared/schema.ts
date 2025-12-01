@@ -62,6 +62,9 @@ export const products = pgTable("products", {
   isFeatured: boolean("is_featured").default(false),
   isActive: boolean("is_active").default(true),
   metaKeywords: text("meta_keywords"),
+  discountPercent: integer("discount_percent"),
+  discountStartDate: timestamp("discount_start_date"),
+  discountEndDate: timestamp("discount_end_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -136,6 +139,10 @@ export const orders = pgTable("orders", {
   // Customer info (for guest checkout)
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name"),
+  
+  // Discount/Coupon info
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default('0'),
+  couponCode: text("coupon_code"),
   
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -259,6 +266,33 @@ export const savedCarts = pgTable("saved_carts", {
   customerEmail: text("customer_email"),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Coupons (discount codes)
+export const coupons = pgTable("coupons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  descriptionEn: text("description_en"),
+  descriptionEt: text("description_et"),
+  discountPercent: integer("discount_percent").notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").default(0),
+  isActive: boolean("is_active").default(true),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Coupon Usage (track who used which coupon)
+export const couponUsage = pgTable("coupon_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").notNull().references(() => coupons.id, { onDelete: 'cascade' }),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  customerEmail: text("customer_email").notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull(),
+  usedAt: timestamp("used_at").defaultNow().notNull(),
 });
 
 // Schemas for validation
@@ -391,3 +425,24 @@ export const insertSavedCartSchema = createInsertSchema(savedCarts).omit({
 });
 export type InsertSavedCart = z.infer<typeof insertSavedCartSchema>;
 export type SavedCart = typeof savedCarts.$inferSelect;
+
+export const insertCouponSchema = createInsertSchema(coupons).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  minOrderAmount: z.string().or(z.number()).optional(),
+  discountPercent: z.number().min(1).max(100),
+});
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+export type Coupon = typeof coupons.$inferSelect;
+
+export const insertCouponUsageSchema = createInsertSchema(couponUsage).omit({
+  id: true,
+  usedAt: true,
+}).extend({
+  discountAmount: z.string().or(z.number()),
+});
+export type InsertCouponUsage = z.infer<typeof insertCouponUsageSchema>;
+export type CouponUsage = typeof couponUsage.$inferSelect;
