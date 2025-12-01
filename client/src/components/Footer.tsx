@@ -172,22 +172,22 @@ export default function Footer() {
             {/* Payment Methods */}
             <div>
               <p className="text-sm font-medium text-foreground mb-3">{t.footer.paymentMethods}</p>
-              <div className="flex items-center gap-3 md:gap-3 flex-wrap">
-                <SiStripe className="h-5 w-5 text-primary" />
-                <SiVisa className="h-5 w-5 text-muted-foreground" />
-                <SiMastercard className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs font-semibold text-muted-foreground">Paysera</span>
+              <div className="flex items-center gap-4 flex-wrap">
+                <SiStripe className="h-6 w-6 text-primary" />
+                <SiVisa className="h-6 w-6 text-muted-foreground" />
+                <SiMastercard className="h-6 w-6 text-muted-foreground" />
+                <span className="text-xs md:text-sm font-semibold text-muted-foreground">Paysera</span>
               </div>
             </div>
 
             {/* Shipping Partners */}
             <div>
               <p className="text-sm font-medium text-foreground mb-3">{t.footer.shipping}</p>
-              <div className="flex items-center gap-3 md:gap-3 flex-wrap">
-                <span className="text-xs font-semibold text-muted-foreground">Omniva</span>
-                <span className="text-xs font-semibold text-muted-foreground">DPD</span>
-                <span className="text-xs font-semibold text-muted-foreground">DHL</span>
-                <span className="text-xs font-semibold text-muted-foreground">Venipak</span>
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-xs md:text-sm font-semibold text-muted-foreground">Omniva</span>
+                <span className="text-xs md:text-sm font-semibold text-muted-foreground">DPD</span>
+                <span className="text-xs md:text-sm font-semibold text-muted-foreground">DHL</span>
+                <span className="text-xs md:text-sm font-semibold text-muted-foreground">Venipak</span>
               </div>
             </div>
 
@@ -196,7 +196,7 @@ export default function Footer() {
               <p className="text-sm font-medium text-foreground mb-3">{language === 'et' ? 'Kontakt' : 'Contact'}</p>
               <a 
                 href="mailto:estzone.shop@gmail.com" 
-                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                className="text-xs md:text-sm text-muted-foreground hover:text-primary transition-colors"
                 data-testid="link-footer-email"
               >
                 estzone.shop@gmail.com
