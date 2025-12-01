@@ -62,36 +62,36 @@ export default function Footer() {
             </div>
             
             {/* Social Media Links */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-4 mb-6">
               <a 
                 href="https://facebook.com/estzone" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
                 aria-label="Facebook"
                 data-testid="link-facebook"
               >
-                <SiFacebook className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                <SiFacebook className="h-6 w-6 text-muted-foreground hover:text-foreground" />
               </a>
               <a 
                 href="https://instagram.com/estzone" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
                 aria-label="Instagram"
                 data-testid="link-instagram"
               >
-                <SiInstagram className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                <SiInstagram className="h-6 w-6 text-muted-foreground hover:text-foreground" />
               </a>
               <a 
                 href="https://x.com/estzone" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
                 aria-label="X (Twitter)"
                 data-testid="link-twitter"
               >
-                <SiX className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                <SiX className="h-6 w-6 text-muted-foreground hover:text-foreground" />
               </a>
             </div>
             
@@ -168,23 +168,23 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 border-t">
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8">
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t.footer.paymentMethods}</p>
-              <div className="flex items-center gap-4">
-                <SiStripe className="h-6 w-6 text-primary" />
-                <SiVisa className="h-6 w-6 text-muted-foreground" />
-                <SiMastercard className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs font-semibold text-muted-foreground">Paysera</span>
+              <div className="flex items-center gap-5">
+                <SiStripe className="h-7 w-7 sm:h-6 sm:w-6 text-primary" />
+                <SiVisa className="h-7 w-7 sm:h-6 sm:w-6 text-muted-foreground" />
+                <SiMastercard className="h-7 w-7 sm:h-6 sm:w-6 text-muted-foreground" />
+                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">Paysera</span>
               </div>
             </div>
 
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t.footer.shipping}</p>
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-semibold text-muted-foreground">Omniva</span>
-                <span className="text-xs font-semibold text-muted-foreground">DPD</span>
-                <span className="text-xs font-semibold text-muted-foreground">DHL</span>
+              <div className="flex items-center gap-5">
+                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">Omniva</span>
+                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">DPD</span>
+                <span className="text-sm sm:text-xs font-semibold text-muted-foreground">DHL</span>
               </div>
             </div>
 
