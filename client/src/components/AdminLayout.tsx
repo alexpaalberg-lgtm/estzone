@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain } from 'lucide-react';
+import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain, Shield, DollarSign, Gift, GraduationCap, Percent, Megaphone, Search, UserCircle, Image } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -97,6 +97,51 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       title: language === 'et' ? 'AI Raportid' : 'AI Reports',
       url: '/admin/ai-reports',
       icon: Brain,
+    },
+    {
+      title: language === 'et' ? 'Süsteemi Tervis' : 'System Health',
+      url: '/admin/ai-system',
+      icon: Shield,
+    },
+    {
+      title: language === 'et' ? 'AI Hinnastamine' : 'AI Pricing',
+      url: '/admin/ai-pricing',
+      icon: DollarSign,
+    },
+    {
+      title: language === 'et' ? 'AI Komplektid' : 'AI Bundles',
+      url: '/admin/ai-bundles',
+      icon: Gift,
+    },
+    {
+      title: language === 'et' ? 'Oskustasemed' : 'Skill Levels',
+      url: '/admin/ai-skills',
+      icon: GraduationCap,
+    },
+    {
+      title: language === 'et' ? 'AI Kupongid' : 'AI Coupons',
+      url: '/admin/ai-personalized-coupons',
+      icon: Percent,
+    },
+    {
+      title: language === 'et' ? 'Kampaaniad' : 'Campaigns',
+      url: '/admin/ai-campaigns',
+      icon: Megaphone,
+    },
+    {
+      title: language === 'et' ? 'AI SEO' : 'AI SEO',
+      url: '/admin/ai-seo',
+      icon: Search,
+    },
+    {
+      title: language === 'et' ? 'Influencerid' : 'Influencers',
+      url: '/admin/ai-influencers',
+      icon: UserCircle,
+    },
+    {
+      title: language === 'et' ? 'AR Vaade' : 'AR View',
+      url: '/admin/ai-product-viz',
+      icon: Image,
     },
   ];
 

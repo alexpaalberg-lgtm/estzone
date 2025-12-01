@@ -1385,6 +1385,321 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ AI PRODUCT VISUALIZATION ENDPOINTS ============
+  
+  // Generate product visualization
+  app.post("/api/admin/ai/visualize", requireAdmin, async (req, res) => {
+    try {
+      const { generateProductVisualization, getRoomTips } = await import('./utils/aiProductViz');
+      const request = {
+        productId: req.body.productId,
+        roomType: req.body.roomType || 'gaming_room',
+        lightingStyle: req.body.lightingStyle,
+        additionalContext: req.body.additionalContext,
+      };
+      const visualization = await generateProductVisualization(request);
+      res.json({
+        visualization,
+        tips: getRoomTips(),
+      });
+    } catch (error: any) {
+      console.error('Error generating product visualization:', error);
+      res.status(500).json({ error: "Failed to generate product visualization" });
+    }
+  });
+
+  // Get visualization history for a product
+  app.get("/api/admin/ai/visualize/:productId", requireAdmin, async (req, res) => {
+    try {
+      const { getVisualizationHistory, getRoomTips } = await import('./utils/aiProductViz');
+      const history = await getVisualizationHistory(req.params.productId);
+      res.json({
+        history,
+        tips: getRoomTips(),
+      });
+    } catch (error: any) {
+      console.error('Error fetching visualization history:', error);
+      res.status(500).json({ error: "Failed to fetch visualization history" });
+    }
+  });
+
+  // ============ AI INFLUENCER OUTREACH ENDPOINTS ============
+  
+  // Generate influencer outreach
+  app.post("/api/admin/ai/influencers/generate", requireAdmin, async (req, res) => {
+    try {
+      const { generateInfluencerOutreach } = await import('./utils/aiInfluencers');
+      const request = {
+        targetPlatforms: req.body.targetPlatforms,
+        budget: req.body.budget,
+        productCategory: req.body.productCategory,
+        generatePitches: req.body.generatePitches,
+      };
+      const analysis = await generateInfluencerOutreach(request);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error generating influencer outreach:', error);
+      res.status(500).json({ error: "Failed to generate influencer outreach" });
+    }
+  });
+
+  // Get latest influencer analysis
+  app.get("/api/admin/ai/influencers", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestInfluencerAnalysis } = await import('./utils/aiInfluencers');
+      const analysis = await getLatestInfluencerAnalysis();
+      res.json(analysis || null);
+    } catch (error: any) {
+      console.error('Error fetching influencer analysis:', error);
+      res.status(500).json({ error: "Failed to fetch influencer analysis" });
+    }
+  });
+
+  // ============ AI SEO ENDPOINTS ============
+  
+  // Analyze SEO
+  app.post("/api/admin/ai/seo/analyze", requireAdmin, async (req, res) => {
+    try {
+      const { analyzeSeo } = await import('./utils/aiSeo');
+      const productIds = req.body.productIds;
+      const analysis = await analyzeSeo(productIds);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error analyzing SEO:', error);
+      res.status(500).json({ error: "Failed to analyze SEO" });
+    }
+  });
+
+  // Get latest SEO analysis
+  app.get("/api/admin/ai/seo", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestSeoAnalysis } = await import('./utils/aiSeo');
+      const analysis = await getLatestSeoAnalysis();
+      res.json(analysis || null);
+    } catch (error: any) {
+      console.error('Error fetching SEO analysis:', error);
+      res.status(500).json({ error: "Failed to fetch SEO analysis" });
+    }
+  });
+
+  // Apply SEO recommendation
+  app.post("/api/admin/ai/seo/apply", requireAdmin, async (req, res) => {
+    try {
+      const { applySeoRecommendation } = await import('./utils/aiSeo');
+      const { productId, recommendation } = req.body;
+      const success = await applySeoRecommendation(productId, recommendation);
+      res.json({ success });
+    } catch (error: any) {
+      console.error('Error applying SEO recommendation:', error);
+      res.status(500).json({ error: "Failed to apply SEO recommendation" });
+    }
+  });
+
+  // ============ AI CAMPAIGNS ENDPOINTS ============
+  
+  // Generate campaign
+  app.post("/api/admin/ai/campaigns/generate", requireAdmin, async (req, res) => {
+    try {
+      const { generateCampaigns } = await import('./utils/aiCampaigns');
+      const request = {
+        goal: req.body.goal || 'sales',
+        productIds: req.body.productIds,
+        occasion: req.body.occasion,
+        discount: req.body.discount,
+        customPrompt: req.body.customPrompt,
+      };
+      const analysis = await generateCampaigns(request);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error generating campaigns:', error);
+      res.status(500).json({ error: "Failed to generate campaigns" });
+    }
+  });
+
+  // Get latest campaigns
+  app.get("/api/admin/ai/campaigns", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestCampaigns } = await import('./utils/aiCampaigns');
+      const campaigns = await getLatestCampaigns();
+      res.json(campaigns || null);
+    } catch (error: any) {
+      console.error('Error fetching campaigns:', error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  // ============ AI PERSONALIZED COUPONS ENDPOINTS ============
+  
+  // Generate personalized coupons
+  app.post("/api/admin/ai/coupons/generate", requireAdmin, async (req, res) => {
+    try {
+      const { generatePersonalizedCoupons } = await import('./utils/aiPersonalizedCoupons');
+      const autoCreate = req.body.autoCreate === true;
+      const analysis = await generatePersonalizedCoupons(autoCreate);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error generating personalized coupons:', error);
+      res.status(500).json({ error: "Failed to generate personalized coupons" });
+    }
+  });
+
+  // Get latest coupon analysis
+  app.get("/api/admin/ai/coupons", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestCouponAnalysis } = await import('./utils/aiPersonalizedCoupons');
+      const analysis = await getLatestCouponAnalysis();
+      res.json(analysis || null);
+    } catch (error: any) {
+      console.error('Error fetching coupon analysis:', error);
+      res.status(500).json({ error: "Failed to fetch coupon analysis" });
+    }
+  });
+
+  // ============ AI SKILL RECOMMENDATIONS ENDPOINTS ============
+  
+  // Analyze skill levels
+  app.post("/api/admin/ai/skills/analyze", requireAdmin, async (req, res) => {
+    try {
+      const { analyzeSkillLevels } = await import('./utils/aiSkillRecommendations');
+      const analysis = await analyzeSkillLevels();
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error analyzing skill levels:', error);
+      res.status(500).json({ error: "Failed to analyze skill levels" });
+    }
+  });
+
+  // Get latest skill analysis
+  app.get("/api/admin/ai/skills", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestSkillAnalysis } = await import('./utils/aiSkillRecommendations');
+      const analysis = await getLatestSkillAnalysis();
+      res.json(analysis || null);
+    } catch (error: any) {
+      console.error('Error fetching skill analysis:', error);
+      res.status(500).json({ error: "Failed to fetch skill analysis" });
+    }
+  });
+
+  // Get recommendations for a skill level (public endpoint)
+  app.get("/api/ai/skill-recommendations/:level", async (req, res) => {
+    try {
+      const { getSkillRecommendations } = await import('./utils/aiSkillRecommendations');
+      const level = req.params.level as 'beginner' | 'intermediate' | 'pro';
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      if (!['beginner', 'intermediate', 'pro'].includes(level)) {
+        return res.status(400).json({ error: "Invalid skill level" });
+      }
+      
+      const recommendations = await getSkillRecommendations(level, limit);
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error('Error fetching skill recommendations:', error);
+      res.status(500).json({ error: "Failed to fetch skill recommendations" });
+    }
+  });
+
+  // ============ AI BUNDLES ENDPOINTS ============
+  
+  // Generate bundles
+  app.post("/api/admin/ai/bundles/generate", requireAdmin, async (req, res) => {
+    try {
+      const { generateBundles } = await import('./utils/aiBundles');
+      const analysis = await generateBundles();
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error generating bundles:', error);
+      res.status(500).json({ error: "Failed to generate bundles" });
+    }
+  });
+
+  // Get latest bundles
+  app.get("/api/admin/ai/bundles", requireAdmin, async (req, res) => {
+    try {
+      const { getLatestBundles } = await import('./utils/aiBundles');
+      const bundles = await getLatestBundles();
+      res.json(bundles || null);
+    } catch (error: any) {
+      console.error('Error fetching bundles:', error);
+      res.status(500).json({ error: "Failed to fetch bundles" });
+    }
+  });
+
+  // ============ AI PRICING ENDPOINTS ============
+  
+  // Run pricing analysis
+  app.post("/api/admin/ai/pricing/analyze", requireAdmin, async (req, res) => {
+    try {
+      const { runPricingAnalysis } = await import('./utils/aiPricing');
+      const autoApply = req.body.autoApply === true;
+      const analysis = await runPricingAnalysis(autoApply);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error running pricing analysis:', error);
+      res.status(500).json({ error: "Failed to run pricing analysis" });
+    }
+  });
+
+  // Get latest pricing analysis
+  app.get("/api/admin/ai/pricing", requireAdmin, async (req, res) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const analysis = await storage.getAIReport(`pricing-${today}`);
+      res.json(analysis || null);
+    } catch (error: any) {
+      console.error('Error fetching pricing analysis:', error);
+      res.status(500).json({ error: "Failed to fetch pricing analysis" });
+    }
+  });
+
+  // Apply individual price adjustment
+  app.post("/api/admin/ai/pricing/apply", requireAdmin, async (req, res) => {
+    try {
+      const { productId, newPrice } = req.body;
+      if (!productId || newPrice === undefined) {
+        return res.status(400).json({ error: "Product ID and new price are required" });
+      }
+      const { applyPriceAdjustment } = await import('./utils/aiPricing');
+      const success = await applyPriceAdjustment(productId, parseFloat(newPrice));
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ error: "Failed to apply price adjustment" });
+      }
+    } catch (error: any) {
+      console.error('Error applying price adjustment:', error);
+      res.status(500).json({ error: "Failed to apply price adjustment" });
+    }
+  });
+
+  // ============ AI SYSTEM MONITORING ENDPOINTS ============
+  
+  // Run system health check
+  app.post("/api/admin/ai/system-check", requireAdmin, async (req, res) => {
+    try {
+      const { runSystemHealthCheck } = await import('./utils/aiSystemMonitor');
+      const autoFix = req.body.autoFix !== false; // Default to true
+      const report = await runSystemHealthCheck(autoFix);
+      res.json(report);
+    } catch (error: any) {
+      console.error('Error running system health check:', error);
+      res.status(500).json({ error: "Failed to run system health check" });
+    }
+  });
+
+  // Get latest health report
+  app.get("/api/admin/ai/system-health", requireAdmin, async (req, res) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const report = await storage.getAIReport(`health-${today}`);
+      res.json(report || null);
+    } catch (error: any) {
+      console.error('Error fetching health report:', error);
+      res.status(500).json({ error: "Failed to fetch health report" });
+    }
+  });
+
   // ============ AI REPORTS ENDPOINTS ============
   
   // Get AI report for a specific date

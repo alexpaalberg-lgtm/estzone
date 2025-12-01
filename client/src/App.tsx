@@ -25,6 +25,15 @@ import AdminCategories from "@/pages/admin/Categories";
 import AdminInventory from "@/pages/admin/Inventory";
 import AdminCoupons from "@/pages/admin/Coupons";
 import AdminAIReports from "@/pages/admin/AIReports";
+import AdminAISystemHealth from "@/pages/admin/AISystemHealth";
+import AdminAIPricing from "@/pages/admin/AIPricing";
+import AdminAIBundles from "@/pages/admin/AIBundles";
+import AdminAISkills from "@/pages/admin/AISkills";
+import AdminAICoupons from "@/pages/admin/AICoupons";
+import AdminAICampaigns from "@/pages/admin/AICampaigns";
+import AdminAISeo from "@/pages/admin/AISeo";
+import AdminAIInfluencers from "@/pages/admin/AIInfluencers";
+import AdminAIProductViz from "@/pages/admin/AIProductViz";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -69,6 +78,15 @@ function Router() {
       <Route path="/admin/inventory" component={AdminInventory} />
       <Route path="/admin/coupons" component={AdminCoupons} />
       <Route path="/admin/ai-reports" component={AdminAIReports} />
+      <Route path="/admin/ai-system" component={AdminAISystemHealth} />
+      <Route path="/admin/ai-pricing" component={AdminAIPricing} />
+      <Route path="/admin/ai-bundles" component={AdminAIBundles} />
+      <Route path="/admin/ai-skills" component={AdminAISkills} />
+      <Route path="/admin/ai-personalized-coupons" component={AdminAICoupons} />
+      <Route path="/admin/ai-campaigns" component={AdminAICampaigns} />
+      <Route path="/admin/ai-seo" component={AdminAISeo} />
+      <Route path="/admin/ai-influencers" component={AdminAIInfluencers} />
+      <Route path="/admin/ai-product-viz" component={AdminAIProductViz} />
       <Route component={NotFound} />
     </Switch>
   );
