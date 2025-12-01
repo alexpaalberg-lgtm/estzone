@@ -182,17 +182,17 @@ export default function Header() {
             </NavigationMenu>
           </nav>
 
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-2.5 sm:gap-1 ml-auto pr-1 sm:pr-0">
             <SearchBar className="hidden lg:block w-56 xl:w-72 2xl:w-96" />
 
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="lg:hidden h-11 w-11 sm:h-10 sm:w-10"
               onClick={() => setSearchSheetOpen(true)}
               data-testid="button-search-mobile"
             >
-              <Search className="h-6 w-6" />
+              <Search className="h-7 w-7 sm:h-6 sm:w-6" />
             </Button>
 
             <Sheet open={searchSheetOpen} onOpenChange={setSearchSheetOpen}>
@@ -244,15 +244,15 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10"
+                  className="relative h-11 w-11 sm:h-10 sm:w-10"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
-                  <Heart className="h-6 w-6" />
+                  <Heart className="h-7 w-7 sm:h-6 sm:w-6" />
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                      className="absolute -top-1.5 -right-1.5 sm:-top-1 sm:-right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
                       data-testid="badge-wishlist-count"
                     >
                       {wishlistItems.length}
@@ -265,11 +265,11 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10"
+                  className="relative h-11 w-11 sm:h-10 sm:w-10"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 >
-                  <Heart className="h-6 w-6" />
+                  <Heart className="h-7 w-7 sm:h-6 sm:w-6" />
                 </Button>
               </Link>
             )}
@@ -280,11 +280,11 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="h-11 w-11 sm:h-10 sm:w-10"
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
-                  <User className="h-6 w-6" />
+                  <User className="h-7 w-7 sm:h-6 sm:w-6" />
                 </Button>
               </Link>
             ) : (
@@ -292,11 +292,11 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="h-11 w-11 sm:h-10 sm:w-10"
                   data-testid="button-login"
                   title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 >
-                  <User className="h-6 w-6" />
+                  <User className="h-7 w-7 sm:h-6 sm:w-6" />
                 </Button>
               </Link>
             )}
