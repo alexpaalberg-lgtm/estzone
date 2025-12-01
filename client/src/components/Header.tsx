@@ -244,11 +244,11 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-9 w-9"
+                  className="relative h-10 w-10"
                   data-testid="button-wishlist"
                   title={language === 'et' ? 'Soovinimekiri' : 'Wishlist'}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className="h-6 w-6" />
                   {wishlistItems && wishlistItems.length > 0 && (
                     <Badge
                       variant="default"
@@ -264,12 +264,12 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-9 w-9"
+                className="relative h-10 w-10"
                 data-testid="button-wishlist"
                 title={language === 'et' ? 'Logi sisse' : 'Sign in for wishlist'}
                 onClick={() => window.location.href = '/api/login'}
               >
-                <Heart className="h-5 w-5" />
+                <Heart className="h-6 w-6" />
               </Button>
             )}
 
@@ -279,23 +279,23 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-10 w-10"
                   data-testid="button-account"
                   title={language === 'et' ? 'Minu konto' : 'My Account'}
                 >
-                  <User className="h-5 w-5" />
+                  <User className="h-6 w-6" />
                 </Button>
               </Link>
             ) : (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className="h-10 w-10"
                 data-testid="button-login"
                 title={language === 'et' ? 'Logi sisse' : 'Sign In'}
                 onClick={() => window.location.href = '/api/login'}
               >
-                <User className="h-5 w-5" />
+                <User className="h-6 w-6" />
               </Button>
             )}
 
@@ -303,11 +303,11 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-9 w-9 mr-1 lg:mr-0"
+              className="relative h-10 w-10 mr-2 lg:mr-0"
               onClick={() => setIsOpen(true)}
               data-testid="button-cart"
             >
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-6 w-6" />
               {totalItems > 0 && (
                 <Badge
                   variant="default"
@@ -322,8 +322,8 @@ export default function Header() {
             {/* Mobile menu button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden h-9 w-9 p-0 border-primary/50" data-testid="button-menu">
-                  <Menu className="h-5 w-5 text-primary" />
+                <Button variant="outline" className="lg:hidden h-10 w-10 p-0 border-primary/50" data-testid="button-menu">
+                  <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
