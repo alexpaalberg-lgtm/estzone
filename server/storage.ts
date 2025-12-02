@@ -19,6 +19,9 @@ import type {
   RecurringOrder, InsertRecurringOrder,
   Coupon, InsertCoupon,
   CouponUsage, InsertCouponUsage,
+  Review, InsertReview,
+  GiftCard, InsertGiftCard,
+  GiftCardTransaction, InsertGiftCardTransaction,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray, gte, lte, or, isNull } from 'drizzle-orm';
 
@@ -136,6 +139,27 @@ export interface IStorage {
   // AI Reports
   getAIReport(date: string): Promise<any | undefined>;
   saveAIReport(date: string, reportData: any): Promise<void>;
+  
+  // Reviews
+  getProductReviews(productId: string): Promise<Review[]>;
+  getUserReviews(userId: string): Promise<Review[]>;
+  getAllReviews(): Promise<Review[]>;
+  getReview(id: string): Promise<Review | undefined>;
+  createReview(review: InsertReview): Promise<Review>;
+  updateReview(id: string, review: Partial<InsertReview>): Promise<Review | undefined>;
+  deleteReview(id: string): Promise<void>;
+  getProductAverageRating(productId: string): Promise<{ average: number; count: number }>;
+  hasUserReviewedProduct(userId: string, productId: string): Promise<boolean>;
+  
+  // Gift Cards
+  getGiftCards(): Promise<GiftCard[]>;
+  getGiftCard(id: string): Promise<GiftCard | undefined>;
+  getGiftCardByCode(code: string): Promise<GiftCard | undefined>;
+  createGiftCard(card: InsertGiftCard): Promise<GiftCard>;
+  updateGiftCardBalance(id: string, newBalance: number): Promise<void>;
+  deactivateGiftCard(id: string): Promise<void>;
+  getGiftCardTransactions(giftCardId: string): Promise<GiftCardTransaction[]>;
+  createGiftCardTransaction(transaction: InsertGiftCardTransaction): Promise<GiftCardTransaction>;
 }
 
 export class DbStorage implements IStorage {
@@ -901,6 +925,129 @@ export class DbStorage implements IStorage {
     } else {
       await db.insert(schema.aiReports).values({ date, reportData });
     }
+  }
+  
+  // Reviews
+  async getProductReviews(productId: string): Promise<Review[]> {
+    return db.select().from(schema.reviews)
+      .where(and(
+        eq(schema.reviews.productId, productId),
+        eq(schema.reviews.isApproved, true)
+      ))
+      .orderBy(desc(schema.reviews.createdAt));
+  }
+  
+  async getUserReviews(userId: string): Promise<Review[]> {
+    return db.select().from(schema.reviews)
+      .where(eq(schema.reviews.userId, userId))
+      .orderBy(desc(schema.reviews.createdAt));
+  }
+  
+  async getAllReviews(): Promise<Review[]> {
+    return db.select().from(schema.reviews)
+      .orderBy(desc(schema.reviews.createdAt));
+  }
+  
+  async getReview(id: string): Promise<Review | undefined> {
+    const [review] = await db.select().from(schema.reviews)
+      .where(eq(schema.reviews.id, id));
+    return review;
+  }
+  
+  async createReview(review: InsertReview): Promise<Review> {
+    const [created] = await db.insert(schema.reviews).values(review).returning();
+    return created;
+  }
+  
+  async updateReview(id: string, review: Partial<InsertReview>): Promise<Review | undefined> {
+    const [updated] = await db.update(schema.reviews)
+      .set(review)
+      .where(eq(schema.reviews.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteReview(id: string): Promise<void> {
+    await db.delete(schema.reviews).where(eq(schema.reviews.id, id));
+  }
+  
+  async getProductAverageRating(productId: string): Promise<{ average: number; count: number }> {
+    const reviews = await db.select().from(schema.reviews)
+      .where(and(
+        eq(schema.reviews.productId, productId),
+        eq(schema.reviews.isApproved, true)
+      ));
+    
+    if (reviews.length === 0) {
+      return { average: 0, count: 0 };
+    }
+    
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return {
+      average: Math.round((sum / reviews.length) * 10) / 10,
+      count: reviews.length,
+    };
+  }
+  
+  async hasUserReviewedProduct(userId: string, productId: string): Promise<boolean> {
+    const [existing] = await db.select().from(schema.reviews)
+      .where(and(
+        eq(schema.reviews.userId, userId),
+        eq(schema.reviews.productId, productId)
+      ));
+    return !!existing;
+  }
+  
+  // Gift Cards
+  async getGiftCards(): Promise<GiftCard[]> {
+    return db.select().from(schema.giftCards)
+      .orderBy(desc(schema.giftCards.createdAt));
+  }
+  
+  async getGiftCard(id: string): Promise<GiftCard | undefined> {
+    const [card] = await db.select().from(schema.giftCards)
+      .where(eq(schema.giftCards.id, id));
+    return card;
+  }
+  
+  async getGiftCardByCode(code: string): Promise<GiftCard | undefined> {
+    const [card] = await db.select().from(schema.giftCards)
+      .where(eq(schema.giftCards.code, code.toUpperCase()));
+    return card;
+  }
+  
+  async createGiftCard(card: InsertGiftCard): Promise<GiftCard> {
+    const [created] = await db.insert(schema.giftCards).values({
+      ...card,
+      code: card.code.toUpperCase(),
+      currentBalance: card.initialValue,
+    }).returning();
+    return created;
+  }
+  
+  async updateGiftCardBalance(id: string, newBalance: number): Promise<void> {
+    await db.update(schema.giftCards)
+      .set({ currentBalance: newBalance.toFixed(2) })
+      .where(eq(schema.giftCards.id, id));
+  }
+  
+  async deactivateGiftCard(id: string): Promise<void> {
+    await db.update(schema.giftCards)
+      .set({ isActive: false })
+      .where(eq(schema.giftCards.id, id));
+  }
+  
+  async getGiftCardTransactions(giftCardId: string): Promise<GiftCardTransaction[]> {
+    return db.select().from(schema.giftCardTransactions)
+      .where(eq(schema.giftCardTransactions.giftCardId, giftCardId))
+      .orderBy(desc(schema.giftCardTransactions.createdAt));
+  }
+  
+  async createGiftCardTransaction(transaction: InsertGiftCardTransaction): Promise<GiftCardTransaction> {
+    const [created] = await db.insert(schema.giftCardTransactions)
+      .values(transaction)
+      .returning();
+    return created;
   }
 }
 

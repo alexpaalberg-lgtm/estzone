@@ -455,3 +455,68 @@ export const insertCouponUsageSchema = createInsertSchema(couponUsage).omit({
 });
 export type InsertCouponUsage = z.infer<typeof insertCouponUsageSchema>;
 export type CouponUsage = typeof couponUsage.$inferSelect;
+
+// Product Reviews
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  rating: integer("rating").notNull(), // 1-5
+  title: text("title"),
+  comment: text("comment"),
+  isVerifiedPurchase: boolean("is_verified_purchase").default(false),
+  isApproved: boolean("is_approved").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+  isVerifiedPurchase: true,
+  isApproved: true,
+}).extend({
+  rating: z.number().min(1).max(5),
+});
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
+
+// Gift Cards
+export const giftCards = pgTable("gift_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 20 }).notNull().unique(),
+  initialValue: decimal("initial_value", { precision: 10, scale: 2 }).notNull(),
+  currentBalance: decimal("current_balance", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default('EUR'),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdByAdminId: varchar("created_by_admin_id"),
+  usedByUserId: varchar("used_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGiftCardSchema = createInsertSchema(giftCards).omit({
+  id: true,
+  currentBalance: true,
+  createdAt: true,
+});
+export type InsertGiftCard = z.infer<typeof insertGiftCardSchema>;
+export type GiftCard = typeof giftCards.$inferSelect;
+
+// Gift Card Transactions
+export const giftCardTransactions = pgTable("gift_card_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  giftCardId: varchar("gift_card_id").notNull().references(() => giftCards.id),
+  orderId: varchar("order_id").references(() => orders.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  balanceBefore: decimal("balance_before", { precision: 10, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+  transactionType: text("transaction_type").notNull(), // 'use' or 'refund'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGiftCardTransactionSchema = createInsertSchema(giftCardTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGiftCardTransaction = z.infer<typeof insertGiftCardTransactionSchema>;
+export type GiftCardTransaction = typeof giftCardTransactions.$inferSelect;
