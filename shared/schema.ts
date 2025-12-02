@@ -698,3 +698,54 @@ export const insertSeasonalThemeSchema = createInsertSchema(seasonalThemes).omit
 });
 export type InsertSeasonalTheme = z.infer<typeof insertSeasonalThemeSchema>;
 export type SeasonalTheme = typeof seasonalThemes.$inferSelect;
+
+// ============================================
+// PUSH NOTIFICATIONS SYSTEM
+// ============================================
+
+// Push Subscriptions - Store user push notification subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // Null for anonymous subscribers
+  endpoint: text("endpoint").notNull().unique(), // Push service endpoint URL
+  p256dh: text("p256dh").notNull(), // Public key for encryption
+  auth: text("auth").notNull(), // Auth secret
+  userAgent: text("user_agent"), // Browser/device info
+  notifyNewProducts: boolean("notify_new_products").default(true),
+  notifyPriceDrops: boolean("notify_price_drops").default(true),
+  notifyWishlist: boolean("notify_wishlist").default(true),
+  notifyOrders: boolean("notify_orders").default(true),
+  notifyPromotions: boolean("notify_promotions").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// Notification History - Track sent notifications
+export const notificationHistory = pgTable("notification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 200 }).notNull(),
+  body: text("body").notNull(),
+  url: varchar("url", { length: 500 }),
+  type: varchar("type", { length: 50 }).notNull().default('general'), // 'new_product', 'price_drop', 'order_update', 'promotion', 'general'
+  targetType: varchar("target_type", { length: 50 }).notNull().default('all'), // 'all', 'user', 'subscribers'
+  targetUserId: varchar("target_user_id").references(() => users.id), // Specific user if targeted
+  sentCount: integer("sent_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  sentBy: varchar("sent_by"), // Admin who sent it
+});
+
+export const insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
+  id: true,
+  sentAt: true,
+});
+export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
+export type NotificationHistory = typeof notificationHistory.$inferSelect;
