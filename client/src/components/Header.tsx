@@ -57,7 +57,7 @@ export default function Header() {
       }
     });
     
-    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories', 'digital-content'];
+    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories', 'campaign'];
     const visible = parents
       .filter(c => prioritySlugs.includes(c.slug))
       .sort((a, b) => prioritySlugs.indexOf(a.slug) - prioritySlugs.indexOf(b.slug));
