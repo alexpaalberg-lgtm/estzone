@@ -142,6 +142,17 @@ const defaultTasks: Record<string, ScheduledTask> = {
     enabled: true,
     runCount: 0,
   },
+  rotatingFlashSales: {
+    id: 'rotatingFlashSales',
+    name: 'Rotating Flash Sales',
+    nameEt: 'Rotatsioonilised välkmüügid',
+    description: 'Automatically apply discounts to random products every 4 days',
+    descriptionEt: 'Rakenda automaatselt allahindlusi juhuslikele toodetele iga 4 päeva tagant',
+    schedule: 'custom',
+    customCron: '0 6 */4 * *',
+    enabled: true,
+    runCount: 0,
+  },
 };
 
 export function getDefaultSettings(): AutomationSettings {
@@ -213,6 +224,9 @@ export async function runTask(taskId: string): Promise<{ success: boolean; messa
         break;
       case 'pointsExpiration':
         result = await runPointsExpiration();
+        break;
+      case 'rotatingFlashSales':
+        result = await runRotatingFlashSales();
         break;
       default:
         result = { success: false, message: 'Unknown task', messageEt: 'Tundmatu ülesanne' };
@@ -443,6 +457,90 @@ async function runPointsExpiration(): Promise<{ success: boolean; message: strin
       success: false,
       message: `Points expiration failed: ${error.message}`,
       messageEt: `Punktide aegumine ebaõnnestus: ${error.message}`,
+    };
+  }
+}
+
+async function runRotatingFlashSales(): Promise<{ success: boolean; message: string; messageEt: string }> {
+  try {
+    const products = await storage.getProducts();
+    const now = new Date();
+    const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
+    
+    const activeProducts = products.filter(p => 
+      p.isActive && 
+      p.stock && p.stock > 0 &&
+      parseFloat(p.price || '0') > 10
+    );
+    
+    if (activeProducts.length === 0) {
+      return {
+        success: true,
+        message: 'No eligible products for flash sales',
+        messageEt: 'Välkmüügiks sobivaid tooteid ei leitud',
+      };
+    }
+    
+    const expiredDiscounts = products.filter(p => 
+      p.discountEndDate && new Date(p.discountEndDate) < now
+    );
+    
+    for (const product of expiredDiscounts) {
+      await storage.updateProduct(product.id, {
+        salePrice: null,
+        discountPercent: null,
+        discountStartDate: null,
+        discountEndDate: null,
+      });
+    }
+    
+    const discountTiers = [10, 15, 20, 25, 30];
+    const numberOfProducts = Math.min(Math.floor(Math.random() * 8) + 5, activeProducts.length);
+    
+    const shuffled = [...activeProducts].sort(() => Math.random() - 0.5);
+    const selectedProducts = shuffled.slice(0, numberOfProducts);
+    
+    const discountedProducts: Array<{name: string; discount: number}> = [];
+    
+    for (const product of selectedProducts) {
+      const discountPercent = discountTiers[Math.floor(Math.random() * discountTiers.length)];
+      const originalPrice = parseFloat(product.price || '0');
+      const salePrice = (originalPrice * (1 - discountPercent / 100)).toFixed(2);
+      
+      await storage.updateProduct(product.id, {
+        salePrice: salePrice,
+        discountPercent: discountPercent,
+        discountStartDate: now,
+        discountEndDate: fourDaysFromNow,
+      });
+      
+      discountedProducts.push({
+        name: product.nameEn || product.nameEt || 'Unknown',
+        discount: discountPercent,
+      });
+    }
+    
+    const flashSaleReport = {
+      timestamp: now,
+      expiresAt: fourDaysFromNow,
+      expiredDiscountsCleared: expiredDiscounts.length,
+      newDiscountsApplied: discountedProducts.length,
+      products: discountedProducts,
+    };
+    
+    await storage.saveAIReport('flash-sale-latest', flashSaleReport);
+    await storage.saveAIReport(`flash-sale-${now.toISOString().split('T')[0]}`, flashSaleReport);
+
+    return {
+      success: true,
+      message: `Flash sales: ${discountedProducts.length} products discounted (10-30% off), ${expiredDiscounts.length} old discounts cleared`,
+      messageEt: `Välkmüük: ${discountedProducts.length} toodet allahindlusega (10-30%), ${expiredDiscounts.length} vana allahindlust eemaldatud`,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Rotating flash sales failed: ${error.message}`,
+      messageEt: `Rotatsioonilised välkmüügid ebaõnnestusid: ${error.message}`,
     };
   }
 }
