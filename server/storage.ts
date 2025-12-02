@@ -27,6 +27,7 @@ import type {
   LoyaltyTransaction, InsertLoyaltyTransaction,
   FrequentlyBoughtTogether, InsertFrequentlyBoughtTogether,
   PaymentTransaction, InsertPaymentTransaction,
+  SeasonalTheme, InsertSeasonalTheme,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray, gte, lte, or, isNull, gt, isNotNull } from 'drizzle-orm';
 
@@ -210,6 +211,14 @@ export interface IStorage {
   }>;
   getRevenueTrends(days: number): Promise<{ date: string; revenue: number; orders: number; gateway: string }[]>;
   syncOrderPayments(): Promise<{ synced: number; errors: number }>;
+  
+  // Seasonal Themes
+  getSeasonalThemes(): Promise<SeasonalTheme[]>;
+  getSeasonalTheme(id: string): Promise<SeasonalTheme | undefined>;
+  getActiveSeasonalTheme(): Promise<SeasonalTheme | undefined>;
+  createSeasonalTheme(theme: InsertSeasonalTheme): Promise<SeasonalTheme>;
+  updateSeasonalTheme(id: string, theme: Partial<InsertSeasonalTheme>): Promise<SeasonalTheme | undefined>;
+  deleteSeasonalTheme(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1685,6 +1694,48 @@ export class DbStorage implements IStorage {
     }
     
     return { synced, errors };
+  }
+  
+  // Seasonal Themes
+  async getSeasonalThemes(): Promise<SeasonalTheme[]> {
+    return db.select().from(schema.seasonalThemes)
+      .orderBy(desc(schema.seasonalThemes.startDate));
+  }
+  
+  async getSeasonalTheme(id: string): Promise<SeasonalTheme | undefined> {
+    const [theme] = await db.select().from(schema.seasonalThemes)
+      .where(eq(schema.seasonalThemes.id, id));
+    return theme;
+  }
+  
+  async getActiveSeasonalTheme(): Promise<SeasonalTheme | undefined> {
+    const now = new Date();
+    const [theme] = await db.select().from(schema.seasonalThemes)
+      .where(and(
+        eq(schema.seasonalThemes.isActive, true),
+        lte(schema.seasonalThemes.startDate, now),
+        gte(schema.seasonalThemes.endDate, now)
+      ))
+      .orderBy(desc(schema.seasonalThemes.startDate))
+      .limit(1);
+    return theme;
+  }
+  
+  async createSeasonalTheme(theme: InsertSeasonalTheme): Promise<SeasonalTheme> {
+    const [created] = await db.insert(schema.seasonalThemes).values(theme).returning();
+    return created;
+  }
+  
+  async updateSeasonalTheme(id: string, theme: Partial<InsertSeasonalTheme>): Promise<SeasonalTheme | undefined> {
+    const [updated] = await db.update(schema.seasonalThemes)
+      .set({ ...theme, updatedAt: new Date() })
+      .where(eq(schema.seasonalThemes.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteSeasonalTheme(id: string): Promise<void> {
+    await db.delete(schema.seasonalThemes).where(eq(schema.seasonalThemes.id, id));
   }
 }
 

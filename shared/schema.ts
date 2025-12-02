@@ -661,3 +661,40 @@ export const insertFinancialDailySummarySchema = createInsertSchema(financialDai
 });
 export type InsertFinancialDailySummary = z.infer<typeof insertFinancialDailySummarySchema>;
 export type FinancialDailySummary = typeof financialDailySummaries.$inferSelect;
+
+// ============================================
+// SEASONAL THEMES SYSTEM
+// ============================================
+
+// Seasonal Themes - Automatic decoration and discount activation by date
+export const seasonalThemes = pgTable("seasonal_themes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(), // Internal name: "Christmas 2025", "Black Friday"
+  nameEn: varchar("name_en", { length: 100 }).notNull(), // Display name in English
+  nameEt: varchar("name_et", { length: 100 }).notNull(), // Display name in Estonian
+  startDate: timestamp("start_date").notNull(), // When theme activates
+  endDate: timestamp("end_date").notNull(), // When theme deactivates
+  decorationType: varchar("decoration_type", { length: 50 }).notNull().default('christmas'), // 'christmas', 'halloween', 'easter', 'valentine', 'blackfriday', 'summer'
+  primaryColor: varchar("primary_color", { length: 20 }).default('#DC2626'), // Theme accent color
+  secondaryColor: varchar("secondary_color", { length: 20 }).default('#15803D'), // Secondary color
+  showSnowflakes: boolean("show_snowflakes").default(false), // Falling snowflakes effect
+  showConfetti: boolean("show_confetti").default(false), // Confetti celebration effect
+  bannerTextEn: text("banner_text_en"), // Top banner message in English
+  bannerTextEt: text("banner_text_et"), // Top banner message in Estonian
+  bannerBgColor: varchar("banner_bg_color", { length: 20 }).default('#DC2626'),
+  discountPercent: integer("discount_percent").default(0), // Store-wide discount during theme
+  discountCategories: text("discount_categories").array(), // Specific category IDs to discount, null = all
+  logoOverride: varchar("logo_override"), // Optional themed logo URL
+  faviconOverride: varchar("favicon_override"), // Optional themed favicon
+  isActive: boolean("is_active").default(true), // Can manually disable
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSeasonalThemeSchema = createInsertSchema(seasonalThemes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSeasonalTheme = z.infer<typeof insertSeasonalThemeSchema>;
+export type SeasonalTheme = typeof seasonalThemes.$inferSelect;

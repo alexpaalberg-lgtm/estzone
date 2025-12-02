@@ -3335,6 +3335,80 @@ Format your response as JSON:
     }
   });
 
+  // === Seasonal Themes API Endpoints ===
+  
+  // Public: Get currently active theme (for frontend decorations)
+  app.get('/api/seasonal-theme/active', async (req, res) => {
+    try {
+      const theme = await storage.getActiveSeasonalTheme();
+      res.json(theme || null);
+    } catch (error: any) {
+      console.error('Error fetching active theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Get all seasonal themes
+  app.get('/api/admin/seasonal-themes', requireAdmin, async (req, res) => {
+    try {
+      const themes = await storage.getSeasonalThemes();
+      res.json(themes);
+    } catch (error: any) {
+      console.error('Error fetching themes:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Get single theme
+  app.get('/api/admin/seasonal-themes/:id', requireAdmin, async (req, res) => {
+    try {
+      const theme = await storage.getSeasonalTheme(req.params.id);
+      if (!theme) {
+        return res.status(404).json({ error: 'Theme not found' });
+      }
+      res.json(theme);
+    } catch (error: any) {
+      console.error('Error fetching theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Create new theme
+  app.post('/api/admin/seasonal-themes', requireAdmin, async (req, res) => {
+    try {
+      const theme = await storage.createSeasonalTheme(req.body);
+      res.json(theme);
+    } catch (error: any) {
+      console.error('Error creating theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Update theme
+  app.patch('/api/admin/seasonal-themes/:id', requireAdmin, async (req, res) => {
+    try {
+      const theme = await storage.updateSeasonalTheme(req.params.id, req.body);
+      if (!theme) {
+        return res.status(404).json({ error: 'Theme not found' });
+      }
+      res.json(theme);
+    } catch (error: any) {
+      console.error('Error updating theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Delete theme
+  app.delete('/api/admin/seasonal-themes/:id', requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteSeasonalTheme(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
