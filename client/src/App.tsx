@@ -38,6 +38,8 @@ import AdminAIProductViz from "@/pages/admin/AIProductViz";
 import AdminAIEmailCampaigns from "@/pages/admin/AIEmailCampaigns";
 import AdminAIAutoProducts from "@/pages/admin/AIAutoProducts";
 import AdminAIAutomation from "@/pages/admin/AIAutomation";
+import AdminGiftCards from "@/pages/admin/GiftCards";
+import AdminReviews from "@/pages/admin/Reviews";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -96,6 +98,8 @@ function Router() {
       <Route path="/admin/ai-email-campaigns" component={AdminAIEmailCampaigns} />
       <Route path="/admin/ai-auto-products" component={AdminAIAutoProducts} />
       <Route path="/admin/ai-automation" component={AdminAIAutomation} />
+      <Route path="/admin/gift-cards" component={AdminGiftCards} />
+      <Route path="/admin/reviews" component={AdminReviews} />
       <Route component={NotFound} />
     </Switch>
   );

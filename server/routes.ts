@@ -593,18 +593,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/products/:id", async (req, res) => {
-    try {
-      const product = await storage.getProduct(req.params.id);
-      if (!product) {
-        return res.status(404).json({ error: "Product not found" });
-      }
-      res.json(product);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch product" });
-    }
-  });
-  
   app.get("/api/products/compare", async (req, res) => {
     try {
       const ids = (req.query.ids as string)?.split(',').filter(Boolean) || [];
@@ -618,6 +606,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching compare products:', error);
       res.status(500).json({ error: "Failed to fetch products for comparison" });
+    }
+  });
+  
+  app.get("/api/products/:id", async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch product" });
     }
   });
   
@@ -2437,6 +2437,26 @@ Format your response as JSON:
       res.json(cards);
     } catch (error: any) {
       console.error('Error fetching gift cards:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get gift card stats
+  app.get('/api/admin/gift-cards/stats', requireAdmin, async (req, res) => {
+    try {
+      const cards = await storage.getGiftCards();
+      const totalCards = cards.length;
+      const activeCards = cards.filter(c => c.isActive).length;
+      const totalValue = cards.reduce((sum, c) => sum + parseFloat(c.initialValue), 0);
+      const totalRedeemed = cards.reduce((sum, c) => sum + (parseFloat(c.initialValue) - parseFloat(c.currentBalance)), 0);
+      res.json({
+        totalCards,
+        activeCards,
+        totalValue: totalValue.toFixed(2),
+        totalRedeemed: totalRedeemed.toFixed(2),
+      });
+    } catch (error: any) {
+      console.error('Error fetching gift card stats:', error);
       res.status(500).json({ error: error.message });
     }
   });
