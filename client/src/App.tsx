@@ -10,6 +10,8 @@ import { CompareProvider } from "@/contexts/CompareContext";
 import FloatingButtons from "@/components/FloatingButtons";
 import ShoppingCart from "@/components/ShoppingCart";
 import CookieConsent from "@/components/CookieConsent";
+import SeasonalThemeDecorations from "@/components/SeasonalThemeDecorations";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -42,6 +44,7 @@ import AdminGiftCards from "@/pages/admin/GiftCards";
 import AdminReviews from "@/pages/admin/Reviews";
 import AdminLoyalty from "@/pages/admin/Loyalty";
 import AdminFinance from "@/pages/admin/Finance";
+import AdminSeasonalThemes from "@/pages/admin/SeasonalThemes";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -104,6 +107,7 @@ function Router() {
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/loyalty" component={AdminLoyalty} />
       <Route path="/admin/finance" component={AdminFinance} />
+      <Route path="/admin/seasonal-themes" component={AdminSeasonalThemes} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -127,9 +131,11 @@ function App() {
             <CartProvider>
               <CompareProvider>
                 <Toaster />
+                <SeasonalThemeDecorations />
                 <Router />
                 <ShoppingCart />
                 <FloatingButtons />
+                <PWAInstallPrompt />
                 <CookieConsent />
               </CompareProvider>
             </CartProvider>
