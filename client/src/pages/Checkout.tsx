@@ -87,6 +87,15 @@ export default function Checkout() {
     descriptionEt?: string;
   } | null>(null);
   
+  // Gift card state
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [giftCardLoading, setGiftCardLoading] = useState(false);
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{
+    code: string;
+    balance: number;
+    amountToApply: number;
+  } | null>(null);
+  
   // Fetch saved addresses for authenticated users
   const { data: savedAddresses } = useQuery<Address[]>({
     queryKey: ['/api/addresses'],
@@ -106,7 +115,11 @@ export default function Checkout() {
   
   // Apply discount to products subtotal (discount reduces taxable amount)
   const discountedProductsTotal = Math.max(0, baseTotalPrice - couponDiscount);
-  const grandTotal = discountedProductsTotal + shippingCost;
+  const subtotalWithShipping = discountedProductsTotal + shippingCost;
+  
+  // Apply gift card discount (reduces final amount to pay)
+  const giftCardAmount = appliedGiftCard ? appliedGiftCard.amountToApply : 0;
+  const grandTotal = Math.max(0, subtotalWithShipping - giftCardAmount);
   
   // Calculate VAT breakdown on discounted amounts
   // Keep values in EUR - formatPrice() will handle conversion to display currency
@@ -158,6 +171,55 @@ export default function Checkout() {
     setCouponCode('');
     toast({
       title: language === 'et' ? 'Kupong eemaldatud' : 'Coupon removed',
+    });
+  };
+  
+  // Validate and apply gift card
+  const handleApplyGiftCard = async () => {
+    if (!giftCardCode.trim()) return;
+    
+    setGiftCardLoading(true);
+    try {
+      const response = await fetch(`/api/gift-cards/check/${giftCardCode.trim().toUpperCase()}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Gift card not found');
+      }
+      
+      const balance = parseFloat(data.balance);
+      // Calculate how much can be applied (max is the remaining order total after coupons)
+      const orderTotalAfterCoupon = discountedProductsTotal + shippingCost;
+      const amountToApply = Math.min(balance, orderTotalAfterCoupon);
+      
+      setAppliedGiftCard({
+        code: data.code,
+        balance: balance,
+        amountToApply: amountToApply,
+      });
+      
+      toast({
+        title: language === 'et' ? 'Kinkekaart lisatud!' : 'Gift card applied!',
+        description: language === 'et' 
+          ? `Jääk: €${balance.toFixed(2)} | Rakendatud: €${amountToApply.toFixed(2)}` 
+          : `Balance: €${balance.toFixed(2)} | Applied: €${amountToApply.toFixed(2)}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: language === 'et' ? 'Vigane kinkekaart' : 'Invalid gift card',
+        description: error.message || (language === 'et' ? 'Kinkekaart ei kehti' : 'Gift card is invalid'),
+        variant: 'destructive',
+      });
+    } finally {
+      setGiftCardLoading(false);
+    }
+  };
+  
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    setGiftCardCode('');
+    toast({
+      title: language === 'et' ? 'Kinkekaart eemaldatud' : 'Gift card removed',
     });
   };
   
@@ -264,6 +326,10 @@ export default function Checkout() {
         items: orderItems, 
         language,
         couponId: appliedCoupon?.id || null,
+        giftCard: appliedGiftCard ? {
+          code: appliedGiftCard.code,
+          amountApplied: appliedGiftCard.amountToApply,
+        } : null,
       });
     },
     onSuccess: () => {
@@ -700,6 +766,53 @@ export default function Checkout() {
                       )}
                     </div>
                     
+                    {/* Gift Card Code Input */}
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium mb-2 block">
+                        {language === 'et' ? 'Kinkekaart' : 'Gift Card'}
+                      </Label>
+                      {appliedGiftCard ? (
+                        <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-md border border-green-500/20">
+                          <div>
+                            <span className="font-mono font-semibold text-green-500">{appliedGiftCard.code}</span>
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              (-€{appliedGiftCard.amountToApply.toFixed(2)})
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveGiftCard}
+                            data-testid="button-remove-gift-card"
+                          >
+                            {language === 'et' ? 'Eemalda' : 'Remove'}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input
+                            value={giftCardCode}
+                            onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                            placeholder={language === 'et' ? 'EZ-XXXX-XXXX-XXXX' : 'EZ-XXXX-XXXX-XXXX'}
+                            className="font-mono"
+                            data-testid="input-gift-card-code"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleApplyGiftCard}
+                            disabled={giftCardLoading || !giftCardCode.trim()}
+                            data-testid="button-apply-gift-card"
+                          >
+                            {giftCardLoading 
+                              ? (language === 'et' ? 'Kontrollin...' : 'Checking...')
+                              : (language === 'et' ? 'Rakenda' : 'Apply')}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Tooted (ilma KM-ta)' : 'Products (ex VAT)'}</span>
@@ -731,6 +844,14 @@ export default function Checkout() {
                             {language === 'et' ? 'Sooduskood' : 'Discount'} ({appliedCoupon.code})
                           </span>
                           <span data-testid="text-discount" className="text-sm">-{formatDualPrice(couponDiscount)}</span>
+                        </div>
+                      )}
+                      {appliedGiftCard && (
+                        <div className="flex justify-between text-green-500 font-medium">
+                          <span>
+                            {language === 'et' ? 'Kinkekaart' : 'Gift Card'} ({appliedGiftCard.code})
+                          </span>
+                          <span data-testid="text-gift-card" className="text-sm">-€{appliedGiftCard.amountToApply.toFixed(2)}</span>
                         </div>
                       )}
                       <Separator />

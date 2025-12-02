@@ -724,7 +724,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.post("/api/orders", async (req, res) => {
     try {
-      const { order, items, language = 'en', couponId } = req.body;
+      const { order, items, language = 'en', couponId, giftCard } = req.body;
+      
+      // Validate gift card if applied
+      let validGiftCard = null;
+      if (giftCard && giftCard.code && giftCard.amountApplied > 0) {
+        const card = await storage.getGiftCardByCode(giftCard.code.toUpperCase());
+        if (!card) {
+          return res.status(400).json({ error: "Gift card not found" });
+        }
+        if (!card.isActive) {
+          return res.status(400).json({ error: "Gift card is inactive" });
+        }
+        if (card.expiresAt && new Date(card.expiresAt) < new Date()) {
+          return res.status(400).json({ error: "Gift card has expired" });
+        }
+        const currentBalance = parseFloat(card.currentBalance);
+        if (currentBalance < giftCard.amountApplied) {
+          return res.status(400).json({ error: "Insufficient gift card balance" });
+        }
+        validGiftCard = { card, amountApplied: giftCard.amountApplied };
+      }
       
       // Validate coupon if discount was applied
       let validCoupon = null;
@@ -776,6 +796,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } catch (couponError) {
           console.error('Error recording coupon usage:', couponError);
+        }
+      }
+      
+      // Apply gift card redemption if used
+      if (validGiftCard) {
+        try {
+          const currentBalance = parseFloat(validGiftCard.card.currentBalance);
+          const newBalance = currentBalance - validGiftCard.amountApplied;
+          
+          await storage.updateGiftCardBalance(validGiftCard.card.id, newBalance);
+          
+          await storage.createGiftCardTransaction({
+            giftCardId: validGiftCard.card.id,
+            orderId: createdOrder.id,
+            amount: validGiftCard.amountApplied.toFixed(2),
+            balanceBefore: currentBalance.toFixed(2),
+            balanceAfter: newBalance.toFixed(2),
+            transactionType: 'redemption',
+          });
+        } catch (giftCardError) {
+          console.error('Error recording gift card usage:', giftCardError);
         }
       }
       
