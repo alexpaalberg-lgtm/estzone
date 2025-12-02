@@ -12,7 +12,7 @@ import { createStripePayment, createPayseraPayment } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isReplitEnvironment, setupSessionOnly } from "./replitAuth";
 import { setupLocalAuth } from "./localAuth";
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -36,10 +36,17 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth
-  await setupAuth(app);
+  // Setup Auth based on environment
+  if (isReplitEnvironment()) {
+    await setupAuth(app);
+    console.log("Replit Auth enabled");
+  } else {
+    // Setup session only for Railway/production environment
+    setupSessionOnly(app);
+    console.log("Session-only mode - Replit Auth disabled (not in Replit environment)");
+  }
   
-  // Setup Local Email/Password Auth
+  // Setup Local Email/Password Auth (always available)
   setupLocalAuth(app);
   
   // Get current authenticated user (supports both Replit Auth and local auth)
