@@ -3259,6 +3259,82 @@ Format your response as JSON:
     }
   });
 
+  // === Financial Dashboard API Endpoints ===
+  
+  // Get financial overview/summary
+  app.get('/api/admin/finance/overview', requireAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      
+      const overview = await storage.getFinancialOverview(start, end);
+      res.json(overview);
+    } catch (error: any) {
+      console.error('Error fetching financial overview:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get payment transactions list
+  app.get('/api/admin/finance/transactions', requireAdmin, async (req, res) => {
+    try {
+      const { gateway, type, status, startDate, endDate, limit } = req.query;
+      
+      const transactions = await storage.getPaymentTransactions({
+        gateway: gateway as string,
+        type: type as string,
+        status: status as string,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+        limit: limit ? parseInt(limit as string) : 100,
+      });
+      
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get revenue trends over time
+  app.get('/api/admin/finance/trends', requireAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const trends = await storage.getRevenueTrends(days);
+      res.json(trends);
+    } catch (error: any) {
+      console.error('Error fetching revenue trends:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Sync orders to payment transactions table
+  app.post('/api/admin/finance/sync', requireAdmin, async (req, res) => {
+    try {
+      const result = await storage.syncOrderPayments();
+      res.json({
+        message: `Synced ${result.synced} payments, ${result.errors} errors`,
+        ...result,
+      });
+    } catch (error: any) {
+      console.error('Error syncing payments:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Record a new payment transaction (for webhooks, etc.)
+  app.post('/api/admin/finance/transactions', requireAdmin, async (req, res) => {
+    try {
+      const transaction = await storage.recordPaymentTransaction(req.body);
+      res.json(transaction);
+    } catch (error: any) {
+      console.error('Error recording transaction:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
