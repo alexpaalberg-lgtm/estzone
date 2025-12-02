@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { RecurringOrder, Product, User as UserType } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import SEO from '@/components/SEO';
+import LoyaltyCard from '@/components/LoyaltyCard';
 import { format } from 'date-fns';
 
 export default function Account() {
@@ -140,6 +141,8 @@ export default function Account() {
             </a>
           </CardContent>
         </Card>
+
+        <LoyaltyCard />
 
         <div className="lg:col-span-2">
           <Tabs defaultValue="recurring" className="w-full">

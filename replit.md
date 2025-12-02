@@ -43,6 +43,16 @@ The platform uses Replit Auth for user authentication via OpenID Connect, allowi
 - Recurring orders for subscription-like purchases
 - Compact header icons for login, wishlist, and account access
 
+### Loyalty & VIP System
+
+The platform includes a comprehensive loyalty points and VIP tier system:
+- **Points Earning**: 10 points per €1 spent (base rate)
+- **Points Redemption**: 100 points = €1 discount
+- **VIP Tiers**: Bronze (€0+), Silver (€500+, 5% discount, 1.25x points), Gold (€1500+, 10% discount, 1.5x points)
+- **LoyaltyCard Component**: Displays current tier, points balance, progress to next tier
+- **Frequently Bought Together**: Tracks products purchased together for recommendations
+- Database tables: vip_tiers, user_loyalty, loyalty_transactions, frequently_bought_together
+
 ### UI/UX Decisions
 
 The design follows a "new-york" style variant with a dark theme featuring gold accents. Typography uses Montserrat for headings and Inter for UI elements. Custom utility classes enhance hover and active states. Mobile UI is optimized with improved navigation and component sizing.

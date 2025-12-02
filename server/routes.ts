@@ -1,6 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema, insertReviewSchema, insertGiftCardSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
@@ -789,10 +792,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record coupon usage only if coupon was validated
       if (validCoupon && order.customerEmail) {
         try {
+          // Calculate discount amount based on coupon type
+          const subtotal = parseFloat(order.subtotal || '0');
+          const discountAmount = (subtotal * validCoupon.discountPercent / 100).toFixed(2);
+          
           await storage.recordCouponUsage({
             couponId: validCoupon.id,
             orderId: createdOrder.id,
             customerEmail: order.customerEmail,
+            discountAmount,
           });
         } catch (couponError) {
           console.error('Error recording coupon usage:', couponError);
@@ -817,6 +825,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } catch (giftCardError) {
           console.error('Error recording gift card usage:', giftCardError);
+        }
+      }
+      
+      // Award loyalty points if user is authenticated
+      if (order.userId) {
+        try {
+          const orderTotal = parseFloat(order.total || '0');
+          
+          // Get user's tier for points multiplier
+          let multiplier = 1;
+          const userLoyalty = await storage.getUserLoyalty(order.userId);
+          if (userLoyalty?.currentTierId) {
+            const tier = await storage.getVipTier(userLoyalty.currentTierId);
+            if (tier) {
+              multiplier = parseFloat(tier.pointsMultiplier || '1');
+            }
+          }
+          
+          // Calculate points: 10 base points per €1, multiplied by tier bonus
+          const basePoints = Math.floor(orderTotal * 10);
+          const totalPoints = Math.floor(basePoints * multiplier);
+          
+          if (totalPoints > 0) {
+            await storage.addLoyaltyPoints(
+              order.userId,
+              totalPoints,
+              'earned',
+              `Earned from order #${createdOrder.orderNumber}`,
+              createdOrder.id
+            );
+            
+            // Update total spend and recalculate tier
+            const currentLoyalty = await storage.getUserLoyalty(order.userId);
+            if (currentLoyalty) {
+              const newTotalSpend = parseFloat(currentLoyalty.totalSpend || '0') + orderTotal;
+              await storage.updateUserLoyalty(order.userId, {
+                totalSpend: newTotalSpend.toFixed(2),
+              });
+              await storage.calculateAndUpdateTier(order.userId);
+            }
+          }
+        } catch (loyaltyError) {
+          console.error('Error awarding loyalty points:', loyaltyError);
+        }
+      }
+      
+      // Track frequently bought together products
+      if (items && items.length > 1) {
+        try {
+          const productIds = items.map((item: { productId: string }) => item.productId);
+          await storage.trackPurchasedTogether(productIds);
+        } catch (fbtError) {
+          console.error('Error tracking frequently bought together:', fbtError);
         }
       }
       
@@ -969,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId) {
         try {
           userInfo = await storage.getUser(userId);
-          userWishlist = await storage.getWishlist(userId);
+          userWishlist = await storage.getWishlistItems(userId);
           userAddresses = await storage.getUserAddresses(userId);
           userRecurringOrders = await storage.getRecurringOrders(userId);
         } catch (e) {
@@ -2009,7 +2070,7 @@ Format your response as JSON:
 
   app.post('/api/admin/ai/email-campaigns/send', requireAdmin, async (req, res) => {
     try {
-      const { sendBulkEmails, EmailCampaign } = await import('./utils/aiEmailCampaigns');
+      const { sendBulkEmails } = await import('./utils/aiEmailCampaigns');
       const { campaignId, targetAudience } = req.body;
       
       // Get the campaign
@@ -2621,6 +2682,266 @@ Format your response as JSON:
       res.json({ success: true, newBalance });
     } catch (error: any) {
       console.error('Error adding balance:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // LOYALTY SYSTEM ROUTES
+  // ============================================
+
+  // Get VIP tiers (public)
+  app.get('/api/loyalty/tiers', async (req, res) => {
+    try {
+      const tiers = await storage.getVipTiers();
+      res.json(tiers);
+    } catch (error: any) {
+      console.error('Error fetching VIP tiers:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's loyalty status
+  app.get('/api/loyalty/status', async (req: any, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = req.user?.claims?.sub || req.user?.id;
+      let loyalty = await storage.getUserLoyalty(userId);
+      
+      // If no loyalty record, create one with default tier
+      if (!loyalty) {
+        const defaultTier = await storage.getVipTierByName('bronze');
+        loyalty = await storage.createUserLoyalty({
+          userId,
+          currentPoints: 0,
+          lifetimePoints: 0,
+          totalSpend: '0.00',
+          currentTierId: defaultTier?.id,
+        });
+      }
+      
+      // Get current tier details
+      const currentTier = loyalty.currentTierId 
+        ? await storage.getVipTier(loyalty.currentTierId)
+        : null;
+      
+      // Get all tiers for progress display
+      const allTiers = await storage.getVipTiers();
+      
+      // Calculate next tier
+      const totalSpend = parseFloat(loyalty.totalSpend || '0');
+      const sortedTiers = allTiers.sort((a, b) => parseFloat(a.minSpend) - parseFloat(b.minSpend));
+      const nextTier = sortedTiers.find(t => parseFloat(t.minSpend) > totalSpend);
+      
+      const progressToNextTier = nextTier 
+        ? {
+            nextTierName: nextTier.nameEn,
+            amountNeeded: parseFloat(nextTier.minSpend) - totalSpend,
+            progress: (totalSpend / parseFloat(nextTier.minSpend)) * 100
+          }
+        : null;
+      
+      res.json({
+        ...loyalty,
+        currentTier,
+        allTiers,
+        progressToNextTier,
+      });
+    } catch (error: any) {
+      console.error('Error fetching loyalty status:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get loyalty transactions history
+  app.get('/api/loyalty/transactions', async (req: any, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const transactions = await storage.getLoyaltyTransactions(userId);
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('Error fetching loyalty transactions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Calculate points preview (for checkout)
+  app.post('/api/loyalty/calculate-points', async (req: any, res) => {
+    try {
+      const { orderTotal } = req.body;
+      
+      if (!orderTotal || orderTotal <= 0) {
+        return res.json({ points: 0, multiplier: 1 });
+      }
+      
+      let multiplier = 1;
+      
+      // Check if user has a tier with bonus multiplier
+      if (req.user) {
+        const userId = req.user?.claims?.sub || req.user?.id;
+        const loyalty = await storage.getUserLoyalty(userId);
+        if (loyalty?.currentTierId) {
+          const tier = await storage.getVipTier(loyalty.currentTierId);
+          if (tier) {
+            multiplier = parseFloat(tier.pointsMultiplier || '1');
+          }
+        }
+      }
+      
+      // Base rate: 10 points per 1€
+      const basePoints = Math.floor(orderTotal * 10);
+      const totalPoints = Math.floor(basePoints * multiplier);
+      
+      res.json({
+        basePoints,
+        multiplier,
+        totalPoints,
+        message: multiplier > 1 
+          ? `You're earning ${multiplier}x points as a VIP member!`
+          : 'Earn 10 points for every €1 spent'
+      });
+    } catch (error: any) {
+      console.error('Error calculating points:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Redeem points for discount
+  app.post('/api/loyalty/redeem', async (req: any, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const { points } = req.body;
+      
+      if (!points || points <= 0) {
+        return res.status(400).json({ error: 'Invalid points amount' });
+      }
+      
+      const userId = req.user?.claims?.sub || req.user?.id;
+      
+      // 100 points = 1€ discount
+      const discountValue = points / 100;
+      
+      const transaction = await storage.redeemLoyaltyPoints(
+        userId,
+        points,
+        `Redeemed ${points} points for €${discountValue.toFixed(2)} discount`
+      );
+      
+      if (!transaction) {
+        return res.status(400).json({ error: 'Insufficient points balance' });
+      }
+      
+      res.json({
+        success: true,
+        discountValue,
+        transaction,
+        message: `Successfully redeemed ${points} points for €${discountValue.toFixed(2)} discount`
+      });
+    } catch (error: any) {
+      console.error('Error redeeming points:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get frequently bought together products
+  app.get('/api/products/:id/frequently-bought-together', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 4;
+      
+      const products = await storage.getFrequentlyBoughtTogether(id, limit);
+      res.json(products);
+    } catch (error: any) {
+      console.error('Error fetching frequently bought together:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all VIP tiers
+  app.get('/api/admin/loyalty/tiers', requireAdmin, async (req, res) => {
+    try {
+      const tiers = await storage.getVipTiers();
+      res.json(tiers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update VIP tier
+  app.patch('/api/admin/loyalty/tiers/:id', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const tier = await storage.updateVipTier(id, req.body);
+      if (!tier) {
+        return res.status(404).json({ error: 'Tier not found' });
+      }
+      res.json(tier);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Add bonus points to user
+  app.post('/api/admin/loyalty/add-points', requireAdmin, async (req, res) => {
+    try {
+      const { userId, points, reason } = req.body;
+      
+      if (!userId || !points) {
+        return res.status(400).json({ error: 'User ID and points are required' });
+      }
+      
+      const transaction = await storage.addLoyaltyPoints(
+        userId,
+        points,
+        'bonus',
+        reason || 'Admin bonus points'
+      );
+      
+      res.json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get loyalty statistics
+  app.get('/api/admin/loyalty/stats', requireAdmin, async (req, res) => {
+    try {
+      const tiers = await storage.getVipTiers();
+      
+      // Get counts for each tier by querying user_loyalty table
+      const tierStats = await Promise.all(
+        tiers.map(async tier => {
+          const countResult = await db.select({ count: sql<number>`count(*)` })
+            .from(schema.userLoyalty)
+            .where(eq(schema.userLoyalty.currentTierId, tier.id));
+          return {
+            tier: tier.nameEn,
+            color: tier.color,
+            count: Number(countResult[0]?.count || 0)
+          };
+        })
+      );
+      
+      // Get total points in circulation
+      const totalPointsResult = await db.select({ 
+        total: sql<number>`COALESCE(SUM(current_points), 0)` 
+      }).from(schema.userLoyalty);
+      
+      res.json({
+        tierStats,
+        totalPointsInCirculation: Number(totalPointsResult[0]?.total || 0),
+      });
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });

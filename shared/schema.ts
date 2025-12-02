@@ -525,3 +525,84 @@ export const insertGiftCardTransactionSchema = createInsertSchema(giftCardTransa
 });
 export type InsertGiftCardTransaction = z.infer<typeof insertGiftCardTransactionSchema>;
 export type GiftCardTransaction = typeof giftCardTransactions.$inferSelect;
+
+// ============================================
+// LOYALTY & VIP SYSTEM
+// ============================================
+
+// VIP Tiers configuration
+export const vipTiers = pgTable("vip_tiers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 50 }).notNull().unique(), // bronze, silver, gold
+  nameEn: varchar("name_en", { length: 100 }).notNull(),
+  nameEt: varchar("name_et", { length: 100 }).notNull(),
+  minSpend: decimal("min_spend", { precision: 10, scale: 2 }).notNull(), // Minimum total spend to reach tier
+  discountPercent: integer("discount_percent").notNull().default(0), // Permanent discount for this tier
+  pointsMultiplier: decimal("points_multiplier", { precision: 3, scale: 2 }).notNull().default('1.00'), // Points earning multiplier
+  color: varchar("color", { length: 20 }).default('#CD7F32'), // Display color (bronze, silver, gold hex)
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+});
+
+export const insertVipTierSchema = createInsertSchema(vipTiers).omit({
+  id: true,
+});
+export type InsertVipTier = z.infer<typeof insertVipTierSchema>;
+export type VipTier = typeof vipTiers.$inferSelect;
+
+// User Loyalty tracking
+export const userLoyalty = pgTable("user_loyalty", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  currentPoints: integer("current_points").notNull().default(0),
+  lifetimePoints: integer("lifetime_points").notNull().default(0), // Total points ever earned
+  totalSpend: decimal("total_spend", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  currentTierId: varchar("current_tier_id").references(() => vipTiers.id),
+  tierUpdatedAt: timestamp("tier_updated_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserLoyaltySchema = createInsertSchema(userLoyalty).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUserLoyalty = z.infer<typeof insertUserLoyaltySchema>;
+export type UserLoyalty = typeof userLoyalty.$inferSelect;
+
+// Loyalty Points Transactions (earn/spend history)
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  orderId: varchar("order_id").references(() => orders.id),
+  points: integer("points").notNull(), // Positive for earned, negative for spent
+  type: varchar("type", { length: 20 }).notNull(), // 'earned', 'redeemed', 'expired', 'bonus', 'adjustment'
+  description: text("description"),
+  balanceBefore: integer("balance_before").notNull(),
+  balanceAfter: integer("balance_after").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLoyaltyTransactionSchema = createInsertSchema(loyaltyTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSchema>;
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+
+// Frequently Bought Together (for product recommendations)
+export const frequentlyBoughtTogether = pgTable("frequently_bought_together", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  relatedProductId: varchar("related_product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  purchaseCount: integer("purchase_count").notNull().default(1), // How many times bought together
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFrequentlyBoughtTogetherSchema = createInsertSchema(frequentlyBoughtTogether).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertFrequentlyBoughtTogether = z.infer<typeof insertFrequentlyBoughtTogetherSchema>;
+export type FrequentlyBoughtTogether = typeof frequentlyBoughtTogether.$inferSelect;

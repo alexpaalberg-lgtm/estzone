@@ -22,6 +22,10 @@ import type {
   Review, InsertReview,
   GiftCard, InsertGiftCard,
   GiftCardTransaction, InsertGiftCardTransaction,
+  VipTier, InsertVipTier,
+  UserLoyalty, InsertUserLoyalty,
+  LoyaltyTransaction, InsertLoyaltyTransaction,
+  FrequentlyBoughtTogether, InsertFrequentlyBoughtTogether,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray, gte, lte, or, isNull } from 'drizzle-orm';
 
@@ -160,6 +164,30 @@ export interface IStorage {
   deactivateGiftCard(id: string): Promise<void>;
   getGiftCardTransactions(giftCardId: string): Promise<GiftCardTransaction[]>;
   createGiftCardTransaction(transaction: InsertGiftCardTransaction): Promise<GiftCardTransaction>;
+  
+  // VIP Tiers & Loyalty
+  getVipTiers(): Promise<VipTier[]>;
+  getVipTier(id: string): Promise<VipTier | undefined>;
+  getVipTierByName(name: string): Promise<VipTier | undefined>;
+  createVipTier(tier: InsertVipTier): Promise<VipTier>;
+  updateVipTier(id: string, tier: Partial<InsertVipTier>): Promise<VipTier | undefined>;
+  
+  // User Loyalty
+  getUserLoyalty(userId: string): Promise<UserLoyalty | undefined>;
+  createUserLoyalty(loyalty: InsertUserLoyalty): Promise<UserLoyalty>;
+  updateUserLoyalty(userId: string, loyalty: Partial<InsertUserLoyalty>): Promise<UserLoyalty | undefined>;
+  addLoyaltyPoints(userId: string, points: number, type: string, description: string, orderId?: string): Promise<LoyaltyTransaction>;
+  redeemLoyaltyPoints(userId: string, points: number, description: string): Promise<LoyaltyTransaction | undefined>;
+  calculateAndUpdateTier(userId: string): Promise<VipTier | undefined>;
+  
+  // Loyalty Transactions
+  getLoyaltyTransactions(userId: string): Promise<LoyaltyTransaction[]>;
+  getLoyaltyTransaction(id: string): Promise<LoyaltyTransaction | undefined>;
+  
+  // Frequently Bought Together
+  getFrequentlyBoughtTogether(productId: string, limit?: number): Promise<Product[]>;
+  updateFrequentlyBoughtTogether(productId: string, relatedProductId: string): Promise<void>;
+  trackPurchasedTogether(productIds: string[]): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1048,6 +1076,231 @@ export class DbStorage implements IStorage {
       .values(transaction)
       .returning();
     return created;
+  }
+  
+  // VIP Tiers & Loyalty
+  async getVipTiers(): Promise<VipTier[]> {
+    return db.select().from(schema.vipTiers)
+      .where(eq(schema.vipTiers.isActive, true))
+      .orderBy(schema.vipTiers.sortOrder);
+  }
+  
+  async getVipTier(id: string): Promise<VipTier | undefined> {
+    const [tier] = await db.select().from(schema.vipTiers)
+      .where(eq(schema.vipTiers.id, id));
+    return tier;
+  }
+  
+  async getVipTierByName(name: string): Promise<VipTier | undefined> {
+    const [tier] = await db.select().from(schema.vipTiers)
+      .where(eq(schema.vipTiers.name, name.toLowerCase()));
+    return tier;
+  }
+  
+  async createVipTier(tier: InsertVipTier): Promise<VipTier> {
+    const [created] = await db.insert(schema.vipTiers).values(tier).returning();
+    return created;
+  }
+  
+  async updateVipTier(id: string, tier: Partial<InsertVipTier>): Promise<VipTier | undefined> {
+    const [updated] = await db.update(schema.vipTiers)
+      .set(tier)
+      .where(eq(schema.vipTiers.id, id))
+      .returning();
+    return updated;
+  }
+  
+  // User Loyalty
+  async getUserLoyalty(userId: string): Promise<UserLoyalty | undefined> {
+    const [loyalty] = await db.select().from(schema.userLoyalty)
+      .where(eq(schema.userLoyalty.userId, userId));
+    return loyalty;
+  }
+  
+  async createUserLoyalty(loyalty: InsertUserLoyalty): Promise<UserLoyalty> {
+    const [created] = await db.insert(schema.userLoyalty).values(loyalty).returning();
+    return created;
+  }
+  
+  async updateUserLoyalty(userId: string, loyalty: Partial<InsertUserLoyalty>): Promise<UserLoyalty | undefined> {
+    const [updated] = await db.update(schema.userLoyalty)
+      .set({ ...loyalty, updatedAt: new Date() })
+      .where(eq(schema.userLoyalty.userId, userId))
+      .returning();
+    return updated;
+  }
+  
+  async addLoyaltyPoints(userId: string, points: number, type: string, description: string, orderId?: string): Promise<LoyaltyTransaction> {
+    // Get or create user loyalty record
+    let userLoyalty = await this.getUserLoyalty(userId);
+    
+    if (!userLoyalty) {
+      // Get default tier (bronze)
+      const defaultTier = await this.getVipTierByName('bronze');
+      userLoyalty = await this.createUserLoyalty({
+        userId,
+        currentPoints: 0,
+        lifetimePoints: 0,
+        totalSpend: '0.00',
+        currentTierId: defaultTier?.id,
+      });
+    }
+    
+    const balanceBefore = userLoyalty.currentPoints;
+    const balanceAfter = balanceBefore + points;
+    
+    // Create transaction record
+    const [transaction] = await db.insert(schema.loyaltyTransactions).values({
+      userId,
+      orderId,
+      points,
+      type,
+      description,
+      balanceBefore,
+      balanceAfter,
+    }).returning();
+    
+    // Update user loyalty
+    await this.updateUserLoyalty(userId, {
+      currentPoints: balanceAfter,
+      lifetimePoints: userLoyalty.lifetimePoints + (points > 0 ? points : 0),
+    });
+    
+    // Check if tier upgrade is needed
+    await this.calculateAndUpdateTier(userId);
+    
+    return transaction;
+  }
+  
+  async redeemLoyaltyPoints(userId: string, points: number, description: string): Promise<LoyaltyTransaction | undefined> {
+    const userLoyalty = await this.getUserLoyalty(userId);
+    
+    if (!userLoyalty || userLoyalty.currentPoints < points) {
+      return undefined; // Not enough points
+    }
+    
+    const balanceBefore = userLoyalty.currentPoints;
+    const balanceAfter = balanceBefore - points;
+    
+    // Create transaction record
+    const [transaction] = await db.insert(schema.loyaltyTransactions).values({
+      userId,
+      points: -points, // Negative for redemption
+      type: 'redeemed',
+      description,
+      balanceBefore,
+      balanceAfter,
+    }).returning();
+    
+    // Update user loyalty
+    await this.updateUserLoyalty(userId, {
+      currentPoints: balanceAfter,
+    });
+    
+    return transaction;
+  }
+  
+  async calculateAndUpdateTier(userId: string): Promise<VipTier | undefined> {
+    const userLoyalty = await this.getUserLoyalty(userId);
+    if (!userLoyalty) return undefined;
+    
+    const totalSpend = parseFloat(userLoyalty.totalSpend || '0');
+    
+    // Get all active tiers ordered by minSpend descending
+    const tiers = await db.select().from(schema.vipTiers)
+      .where(eq(schema.vipTiers.isActive, true))
+      .orderBy(desc(schema.vipTiers.minSpend));
+    
+    // Find the highest tier the user qualifies for
+    let newTier: VipTier | undefined;
+    for (const tier of tiers) {
+      if (totalSpend >= parseFloat(tier.minSpend)) {
+        newTier = tier;
+        break;
+      }
+    }
+    
+    // If no tier found, use the lowest tier
+    if (!newTier && tiers.length > 0) {
+      newTier = tiers[tiers.length - 1];
+    }
+    
+    // Update user's tier if changed
+    if (newTier && userLoyalty.currentTierId !== newTier.id) {
+      await this.updateUserLoyalty(userId, {
+        currentTierId: newTier.id,
+        tierUpdatedAt: new Date(),
+      });
+    }
+    
+    return newTier;
+  }
+  
+  // Loyalty Transactions
+  async getLoyaltyTransactions(userId: string): Promise<LoyaltyTransaction[]> {
+    return db.select().from(schema.loyaltyTransactions)
+      .where(eq(schema.loyaltyTransactions.userId, userId))
+      .orderBy(desc(schema.loyaltyTransactions.createdAt));
+  }
+  
+  async getLoyaltyTransaction(id: string): Promise<LoyaltyTransaction | undefined> {
+    const [transaction] = await db.select().from(schema.loyaltyTransactions)
+      .where(eq(schema.loyaltyTransactions.id, id));
+    return transaction;
+  }
+  
+  // Frequently Bought Together
+  async getFrequentlyBoughtTogether(productId: string, limit: number = 4): Promise<Product[]> {
+    const relations = await db.select().from(schema.frequentlyBoughtTogether)
+      .where(eq(schema.frequentlyBoughtTogether.productId, productId))
+      .orderBy(desc(schema.frequentlyBoughtTogether.purchaseCount))
+      .limit(limit);
+    
+    if (relations.length === 0) return [];
+    
+    const relatedIds = relations.map(r => r.relatedProductId);
+    return db.select().from(schema.products)
+      .where(and(
+        inArray(schema.products.id, relatedIds),
+        eq(schema.products.isActive, true)
+      ));
+  }
+  
+  async updateFrequentlyBoughtTogether(productId: string, relatedProductId: string): Promise<void> {
+    // Check if relation exists
+    const [existing] = await db.select().from(schema.frequentlyBoughtTogether)
+      .where(and(
+        eq(schema.frequentlyBoughtTogether.productId, productId),
+        eq(schema.frequentlyBoughtTogether.relatedProductId, relatedProductId)
+      ));
+    
+    if (existing) {
+      // Increment count
+      await db.update(schema.frequentlyBoughtTogether)
+        .set({ 
+          purchaseCount: existing.purchaseCount + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.frequentlyBoughtTogether.id, existing.id));
+    } else {
+      // Create new relation
+      await db.insert(schema.frequentlyBoughtTogether).values({
+        productId,
+        relatedProductId,
+        purchaseCount: 1,
+      });
+    }
+  }
+  
+  async trackPurchasedTogether(productIds: string[]): Promise<void> {
+    // Create relations between all products in the order
+    for (let i = 0; i < productIds.length; i++) {
+      for (let j = 0; j < productIds.length; j++) {
+        if (i !== j) {
+          await this.updateFrequentlyBoughtTogether(productIds[i], productIds[j]);
+        }
+      }
+    }
   }
 }
 
