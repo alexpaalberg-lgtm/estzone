@@ -102,6 +102,20 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
+  // Start automation scheduler on server boot
+  try {
+    const { startAutomationScheduler, getAutomationSettings } = await import('./utils/automationScheduler');
+    const settings = await getAutomationSettings();
+    if (settings.enabled) {
+      startAutomationScheduler();
+      log('[AUTOMATION] Scheduler auto-started on server boot');
+    } else {
+      log('[AUTOMATION] Scheduler disabled in settings');
+    }
+  } catch (error) {
+    console.error('[AUTOMATION] Failed to start scheduler:', error);
+  }
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
