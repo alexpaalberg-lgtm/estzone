@@ -41,6 +41,7 @@ import AdminAIAutomation from "@/pages/admin/AIAutomation";
 import AdminGiftCards from "@/pages/admin/GiftCards";
 import AdminReviews from "@/pages/admin/Reviews";
 import AdminLoyalty from "@/pages/admin/Loyalty";
+import AdminFinance from "@/pages/admin/Finance";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -102,6 +103,7 @@ function Router() {
       <Route path="/admin/gift-cards" component={AdminGiftCards} />
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/loyalty" component={AdminLoyalty} />
+      <Route path="/admin/finance" component={AdminFinance} />
       <Route component={NotFound} />
     </Switch>
   );
