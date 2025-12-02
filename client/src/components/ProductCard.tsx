@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart, Truck, Sparkles } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Sparkles, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import PlatformIcon from '@/components/PlatformIcon';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Product, Wishlist } from '@shared/schema';
+import { RatingBadge } from '@/components/ProductReviews';
 
 interface ProductCardProps {
   product: Product;
@@ -177,9 +178,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <div className="p-3 sm:p-4 flex flex-col flex-1 bg-gradient-to-t from-card via-card to-transparent">
-          <h3 className="font-bold text-sm sm:text-base leading-tight mb-2 line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem] group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.id}`}>
+          <h3 className="font-bold text-sm sm:text-base leading-tight mb-1 line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem] group-hover:text-primary transition-colors" data-testid={`text-product-name-${product.id}`}>
             {name}
           </h3>
+          
+          <div className="mb-1">
+            <RatingBadge productId={product.id} compact />
+          </div>
           
           <div className="flex items-baseline gap-1.5 sm:gap-2 mb-2">
             {salePrice ? (

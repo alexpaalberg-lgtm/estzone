@@ -13,9 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play, Heart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ChevronRight, Truck, Shield, RotateCcw, CreditCard, Play, Heart, Scale } from "lucide-react";
 import { useState, useEffect } from "react";
 import ProductCard from "@/components/ProductCard";
+import ProductReviews, { RatingBadge } from "@/components/ProductReviews";
 
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
@@ -277,7 +278,7 @@ export default function ProductDetail() {
             {/* Product Info */}
             <div className="space-y-6">
               <div>
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   <h1 className="text-4xl font-bold" data-testid="text-product-name">
                     {productName}
                   </h1>
@@ -285,6 +286,7 @@ export default function ProductDetail() {
                     <PlatformIcon platformInfo={platformInfo} size="md" data-testid="badge-platform" />
                   )}
                 </div>
+                <RatingBadge productId={product.id} />
                 
                 <div className="flex items-center gap-4 mb-4">
                   {salePrice ? (
@@ -414,6 +416,11 @@ export default function ProductDetail() {
                 <p>{language === 'et' ? 'SKU:' : 'SKU:'} <span className="text-foreground" data-testid="text-sku">{product.sku}</span></p>
               </div>
             </div>
+          </div>
+          
+          {/* Reviews Section */}
+          <div className="mt-16 border-t pt-8">
+            <ProductReviews productId={product.id} />
           </div>
           
           {/* Related Products Section */}
