@@ -1071,6 +1071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userWishlist: any[] = [];
       let userAddresses: any[] = [];
       let userRecurringOrders: any[] = [];
+      let userLoyalty: any = null;
       
       if (req.user?.claims?.sub) {
         userId = req.user.claims.sub;
@@ -1084,6 +1085,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userWishlist = await storage.getWishlistItems(userId);
           userAddresses = await storage.getUserAddresses(userId);
           userRecurringOrders = await storage.getRecurringOrders(userId);
+          
+          // Fetch loyalty/VIP info for chat context
+          const loyalty = await db.select().from(schema.userLoyalty).where(eq(schema.userLoyalty.userId, userId)).limit(1);
+          if (loyalty.length > 0) {
+            const userLoyaltyData = loyalty[0];
+            const tiers = await db.select().from(schema.vipTiers).orderBy(schema.vipTiers.minSpent);
+            const currentTier = tiers.find(t => t.id === userLoyaltyData.tierId);
+            const nextTierIndex = tiers.findIndex(t => t.id === userLoyaltyData.tierId) + 1;
+            const nextTier = nextTierIndex < tiers.length ? tiers[nextTierIndex] : null;
+            
+            // Calculate expiring points
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+            const expiringTransactions = await db.select()
+              .from(schema.loyaltyTransactions)
+              .where(sql`${schema.loyaltyTransactions.userId} = ${userId} 
+                AND ${schema.loyaltyTransactions.points} > 0 
+                AND ${schema.loyaltyTransactions.expiresAt} IS NOT NULL 
+                AND ${schema.loyaltyTransactions.expiresAt} <= ${thirtyDaysFromNow}`);
+            const expiringPoints = expiringTransactions.reduce((sum, t) => sum + t.points, 0);
+            const earliestExpiry = expiringTransactions.length > 0 
+              ? Math.min(...expiringTransactions.map(t => new Date(t.expiresAt!).getTime()))
+              : 0;
+            const expiringDays = earliestExpiry ? Math.ceil((earliestExpiry - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+            
+            if (currentTier) {
+              userLoyalty = {
+                tierName: currentTier.name,
+                tierNameEt: currentTier.nameEt,
+                currentPoints: userLoyaltyData.currentPoints,
+                expiringPoints: Math.max(0, expiringPoints),
+                expiringDays,
+                discountPercent: parseFloat(currentTier.discountPercent),
+                pointsMultiplier: parseFloat(currentTier.pointsMultiplier),
+                totalSpent: userLoyaltyData.totalSpent,
+                nextTierName: nextTier?.name,
+                nextTierNameEt: nextTier?.nameEt,
+                spendToNextTier: nextTier ? (parseFloat(nextTier.minSpent) - parseFloat(userLoyaltyData.totalSpent)).toFixed(2) : undefined
+              };
+            }
+          }
         } catch (e) {
           console.log('Could not fetch user context for chat:', e);
         }
@@ -1189,6 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           wishlist: userWishlist,
           addresses: userAddresses,
           recurringOrders: userRecurringOrders,
+          loyalty: userLoyalty,
         },
         (chunk) => {
           // Send SSE chunk

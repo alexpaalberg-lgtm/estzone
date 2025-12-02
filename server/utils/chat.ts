@@ -6,7 +6,21 @@ const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
 });
 
-const MODEL = "gpt-5";
+const MODEL = "gpt-4o-mini";
+
+interface LoyaltyInfo {
+  tierName: string;
+  tierNameEt: string;
+  currentPoints: number;
+  expiringPoints: number;
+  expiringDays: number;
+  discountPercent: number;
+  pointsMultiplier: number;
+  totalSpent: string;
+  nextTierName?: string;
+  nextTierNameEt?: string;
+  spendToNextTier?: string;
+}
 
 interface ChatContext {
   products?: Product[];
@@ -20,6 +34,7 @@ interface ChatContext {
   wishlist?: Wishlist[];
   addresses?: Address[];
   recurringOrders?: RecurringOrder[];
+  loyalty?: LoyaltyInfo;
 }
 
 interface Persona {
@@ -562,6 +577,41 @@ Klient saab hallata korduvaid tellimusi: ${baseUrl}/account`
 
 Customer can manage recurring orders at: ${baseUrl}/account`;
       contextInfo += recurringInfo;
+    }
+    
+    // Add loyalty/VIP tier information
+    if (context.loyalty) {
+      const l = context.loyalty;
+      const loyaltyInfo = language === 'et'
+        ? `\n\n## VIP LOJAALSUSPROGRAMM
+- **VIP Tase**: ${l.tierNameEt} ${l.tierName === 'Gold' ? '(Kuldne VIP!)' : l.tierName === 'Silver' ? '(Hõbedane VIP!)' : ''}
+- **Punktide saldo**: ${l.currentPoints.toLocaleString()} punkti
+${l.expiringPoints > 0 ? `- **Aeguvad punktid**: ${l.expiringPoints} punkti aegub ${l.expiringDays} päeva pärast! Tuleta kliendile meelde!` : ''}
+- **Püsikliendi soodustus**: ${l.discountPercent}% kõigilt ostudelt
+- **Punktide boonuskorrutaja**: ${l.pointsMultiplier}x (teenib ${l.pointsMultiplier * 10} punkti iga € kohta)
+- **Kogu kulutatud summa**: €${l.totalSpent}
+${l.nextTierName ? `- **Järgmine tase**: ${l.nextTierNameEt} - veel €${l.spendToNextTier} ostu vaja!` : '- Klient on juba kõrgeimal tasemel!'}
+
+KASUTA SEDA INFOT:
+- Mainig VIP soodustust ("Sinu ${l.discountPercent}% VIP soodustus rakendub automaatselt!")
+- Tuleta meelde aeguvaid punkte ("Sul on ${l.expiringPoints} punkti mis aeguvad varsti!")
+- Julgusta järgmise taseme saavutamist kui asjakohane
+- 100 punkti = €1 soodustus kassas`
+        : `\n\n## VIP LOYALTY PROGRAM
+- **VIP Tier**: ${l.tierName} ${l.tierName === 'Gold' ? '(Gold VIP!)' : l.tierName === 'Silver' ? '(Silver VIP!)' : ''}
+- **Points Balance**: ${l.currentPoints.toLocaleString()} points
+${l.expiringPoints > 0 ? `- **Expiring Points**: ${l.expiringPoints} points expire in ${l.expiringDays} days! Remind customer!` : ''}
+- **Loyalty Discount**: ${l.discountPercent}% off all purchases
+- **Points Multiplier**: ${l.pointsMultiplier}x (earns ${l.pointsMultiplier * 10} points per €)
+- **Total Spent**: €${l.totalSpent}
+${l.nextTierName ? `- **Next Tier**: ${l.nextTierName} - needs €${l.spendToNextTier} more to reach!` : '- Customer is already at highest tier!'}
+
+USE THIS INFO:
+- Mention VIP discount ("Your ${l.discountPercent}% VIP discount applies automatically!")
+- Remind about expiring points ("You have ${l.expiringPoints} points expiring soon!")
+- Encourage reaching next tier when relevant
+- 100 points = €1 discount at checkout`;
+      contextInfo += loyaltyInfo;
     }
   }
   
