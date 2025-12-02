@@ -164,13 +164,27 @@ export default function Header() {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid w-[400px] gap-2 p-4">
+                        {/* Kampaania as header - first item */}
+                        {moreCategories.length > 0 && moreCategories[0].slug === 'campaign' && (
+                          <>
+                            <Link href={`/products/${moreCategories[0].slug}`}>
+                              <div 
+                                className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 font-medium"
+                                data-testid={`link-more-category-${moreCategories[0].slug}`}
+                              >
+                                {language === 'et' ? moreCategories[0].nameEt : moreCategories[0].nameEn}
+                              </div>
+                            </Link>
+                            <div className="h-px bg-border" />
+                          </>
+                        )}
                         <div className="grid grid-cols-2 gap-1">
-                          {moreCategories.map((cat) => {
+                          {moreCategories.slice(moreCategories[0]?.slug === 'campaign' ? 1 : 0).map((cat) => {
                             const catName = language === 'et' ? cat.nameEt : cat.nameEn;
                             return (
                               <Link key={cat.id} href={`/products/${cat.slug}`}>
                                 <div
-                                  className="block px-4 py-2 rounded-md hover-elevate active-elevate-2"
+                                  className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 text-sm text-muted-foreground"
                                   data-testid={`link-more-category-${cat.slug}`}
                                 >
                                   {catName}
@@ -405,13 +419,30 @@ export default function Header() {
                       <p className="px-4 py-1 text-xs text-muted-foreground font-medium">
                         {language === 'et' ? 'Rohkem' : 'More'}
                       </p>
-                      {moreCategories.map((cat) => {
+                      {/* Kampaania first with special styling */}
+                      {moreCategories[0]?.slug === 'campaign' && (
+                        <Link href={`/products/${moreCategories[0].slug}`}>
+                          <Button 
+                            variant="ghost" 
+                            className="w-full justify-start font-bold text-primary"
+                            data-testid={`mobile-link-${moreCategories[0].slug}`}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                          >
+                            {language === 'et' ? moreCategories[0].nameEt : moreCategories[0].nameEn}
+                          </Button>
+                        </Link>
+                      )}
+                      {/* Other categories */}
+                      {moreCategories.slice(moreCategories[0]?.slug === 'campaign' ? 1 : 0).map((cat) => {
                         const catName = language === 'et' ? cat.nameEt : cat.nameEn;
                         return (
                           <Link key={cat.id} href={`/products/${cat.slug}`}>
                             <Button 
                               variant="ghost" 
-                              className="w-full justify-start font-medium"
+                              className="w-full justify-start text-muted-foreground"
                               data-testid={`mobile-link-${cat.slug}`}
                               onClick={() => {
                                 setMobileMenuOpen(false);
