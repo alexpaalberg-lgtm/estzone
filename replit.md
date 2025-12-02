@@ -77,6 +77,18 @@ The admin panel includes a comprehensive financial tracking system across all pa
 - Database tables: payment_transactions (unified tracking across all gateways)
 - Access: Admin-only via /admin/finance
 
+### Automated Flash Sales System
+
+The platform includes an automated rotating flash sales system managed by the automation scheduler:
+- **Rotation Cycle**: Every 4 days, new products are automatically selected for flash sales
+- **Schedule**: Runs daily at 2 AM to check for expired discounts and apply new rotations
+- **Product Selection**: 10-15 random eligible products (active, in stock, price > €10)
+- **Discount Range**: Random discounts of 15%, 20%, 25%, or 30% applied
+- **Auto-Cleanup**: Expired discounts are automatically cleared every day
+- **Tracking**: Flash sale reports saved to AI reports system (flash-sale-latest, flash-sale-{date})
+- **Fields Used**: Products use salePrice, discountPercent, discountStartDate, discountEndDate columns
+- Access: Automation panel at /admin/automation, can be triggered manually
+
 ## Temporarily Hidden Campaign Products (Montonio Compliance)
 
 **Date Hidden**: December 2, 2024

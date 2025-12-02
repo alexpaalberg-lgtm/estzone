@@ -148,8 +148,8 @@ const defaultTasks: Record<string, ScheduledTask> = {
     nameEt: 'Rotatsioonilised välkmüügid',
     description: 'Automatically apply discounts to random products every 4 days',
     descriptionEt: 'Rakenda automaatselt allahindlusi juhuslikele toodetele iga 4 päeva tagant',
-    schedule: 'custom',
-    customCron: '0 6 */4 * *',
+    schedule: 'daily',
+    hour: 2,
     enabled: true,
     runCount: 0,
   },
@@ -466,25 +466,13 @@ async function runRotatingFlashSales(): Promise<{ success: boolean; message: str
     const products = await storage.getProducts();
     const now = new Date();
     const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
-    
-    const activeProducts = products.filter(p => 
-      p.isActive && 
-      p.stock && p.stock > 0 &&
-      parseFloat(p.price || '0') > 10
-    );
-    
-    if (activeProducts.length === 0) {
-      return {
-        success: true,
-        message: 'No eligible products for flash sales',
-        messageEt: 'Välkmüügiks sobivaid tooteid ei leitud',
-      };
-    }
+    const fourDaysAgo = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
     
     const expiredDiscounts = products.filter(p => 
       p.discountEndDate && new Date(p.discountEndDate) < now
     );
     
+    let expiredCleared = 0;
     for (const product of expiredDiscounts) {
       await storage.updateProduct(product.id, {
         salePrice: null,
@@ -492,15 +480,43 @@ async function runRotatingFlashSales(): Promise<{ success: boolean; message: str
         discountStartDate: null,
         discountEndDate: null,
       });
+      expiredCleared++;
     }
     
-    const discountTiers = [10, 15, 20, 25, 30];
-    const numberOfProducts = Math.min(Math.floor(Math.random() * 8) + 5, activeProducts.length);
+    const lastReport = await storage.getAIReport('flash-sale-latest');
+    const lastRotationTime = lastReport?.timestamp ? new Date(lastReport.timestamp) : null;
+    
+    if (lastRotationTime && lastRotationTime > fourDaysAgo) {
+      const daysRemaining = Math.ceil((lastRotationTime.getTime() + 4 * 24 * 60 * 60 * 1000 - now.getTime()) / (24 * 60 * 60 * 1000));
+      return {
+        success: true,
+        message: `Flash sales: ${expiredCleared} expired discounts cleared. Next rotation in ${daysRemaining} days`,
+        messageEt: `Välkmüük: ${expiredCleared} aegunud allahindlust eemaldatud. Järgmine rotatsioon ${daysRemaining} päeva pärast`,
+      };
+    }
+    
+    const activeProducts = products.filter(p => 
+      p.isActive && 
+      p.stock && p.stock > 0 &&
+      parseFloat(p.price || '0') > 10 &&
+      !p.discountEndDate
+    );
+    
+    if (activeProducts.length === 0) {
+      return {
+        success: true,
+        message: `No eligible products for flash sales. ${expiredCleared} expired discounts cleared`,
+        messageEt: `Välkmüügiks sobivaid tooteid ei leitud. ${expiredCleared} aegunud allahindlust eemaldatud`,
+      };
+    }
+    
+    const discountTiers = [15, 20, 25, 30];
+    const numberOfProducts = Math.min(Math.floor(Math.random() * 6) + 10, activeProducts.length);
     
     const shuffled = [...activeProducts].sort(() => Math.random() - 0.5);
     const selectedProducts = shuffled.slice(0, numberOfProducts);
     
-    const discountedProducts: Array<{name: string; discount: number}> = [];
+    const discountedProducts: Array<{id: number; name: string; discount: number; originalPrice: string; salePrice: string}> = [];
     
     for (const product of selectedProducts) {
       const discountPercent = discountTiers[Math.floor(Math.random() * discountTiers.length)];
@@ -515,15 +531,18 @@ async function runRotatingFlashSales(): Promise<{ success: boolean; message: str
       });
       
       discountedProducts.push({
+        id: product.id,
         name: product.nameEn || product.nameEt || 'Unknown',
         discount: discountPercent,
+        originalPrice: product.price || '0',
+        salePrice: salePrice,
       });
     }
     
     const flashSaleReport = {
       timestamp: now,
       expiresAt: fourDaysFromNow,
-      expiredDiscountsCleared: expiredDiscounts.length,
+      expiredDiscountsCleared: expiredCleared,
       newDiscountsApplied: discountedProducts.length,
       products: discountedProducts,
     };
@@ -531,12 +550,15 @@ async function runRotatingFlashSales(): Promise<{ success: boolean; message: str
     await storage.saveAIReport('flash-sale-latest', flashSaleReport);
     await storage.saveAIReport(`flash-sale-${now.toISOString().split('T')[0]}`, flashSaleReport);
 
+    console.log(`[AUTOMATION] Flash sale rotation: ${discountedProducts.length} products discounted for 4 days`);
+
     return {
       success: true,
-      message: `Flash sales: ${discountedProducts.length} products discounted (10-30% off), ${expiredDiscounts.length} old discounts cleared`,
-      messageEt: `Välkmüük: ${discountedProducts.length} toodet allahindlusega (10-30%), ${expiredDiscounts.length} vana allahindlust eemaldatud`,
+      message: `Flash sales: ${discountedProducts.length} products discounted (15-30% off), ${expiredCleared} old discounts cleared. Expires ${fourDaysFromNow.toLocaleDateString()}`,
+      messageEt: `Välkmüük: ${discountedProducts.length} toodet allahindlusega (15-30%), ${expiredCleared} vana allahindlust eemaldatud. Aegub ${fourDaysFromNow.toLocaleDateString('et-EE')}`,
     };
   } catch (error: any) {
+    console.error('[AUTOMATION] Rotating flash sales error:', error);
     return {
       success: false,
       message: `Rotating flash sales failed: ${error.message}`,
