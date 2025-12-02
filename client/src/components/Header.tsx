@@ -164,22 +164,15 @@ export default function Header() {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid w-[400px] gap-2 p-4">
-                        {/* Kampaania as header - first item */}
-                        {moreCategories.length > 0 && moreCategories[0].slug === 'campaign' && (
-                          <>
-                            <Link href={`/products/${moreCategories[0].slug}`}>
-                              <div 
-                                className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 font-medium"
-                                data-testid={`link-more-category-${moreCategories[0].slug}`}
-                              >
-                                {language === 'et' ? moreCategories[0].nameEt : moreCategories[0].nameEn}
-                              </div>
-                            </Link>
-                            <div className="h-px bg-border" />
-                          </>
-                        )}
+                        {/* Rohkem as header - like Tarvikud */}
+                        <div 
+                          className="block px-4 py-2 font-medium"
+                        >
+                          {language === 'et' ? 'Rohkem' : 'More'}
+                        </div>
+                        <div className="h-px bg-border" />
                         <div className="grid grid-cols-2 gap-1">
-                          {moreCategories.slice(moreCategories[0]?.slug === 'campaign' ? 1 : 0).map((cat) => {
+                          {moreCategories.map((cat) => {
                             const catName = language === 'et' ? cat.nameEt : cat.nameEn;
                             return (
                               <Link key={cat.id} href={`/products/${cat.slug}`}>
@@ -413,47 +406,38 @@ export default function Header() {
                     );
                   })}
                   
-                  {/* More categories section */}
+                  {/* More categories section - styled like Tarvikud */}
                   {moreCategories.length > 0 && (
-                    <div className="border-t border-border mt-2 pt-2">
-                      <p className="px-4 py-1 text-xs text-muted-foreground font-medium">
+                    <div className="space-y-1">
+                      {/* Rohkem as bold header like Tarvikud */}
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start font-medium"
+                        data-testid="mobile-link-more"
+                      >
                         {language === 'et' ? 'Rohkem' : 'More'}
-                      </p>
-                      {/* Kampaania first with special styling */}
-                      {moreCategories[0]?.slug === 'campaign' && (
-                        <Link href={`/products/${moreCategories[0].slug}`}>
-                          <Button 
-                            variant="ghost" 
-                            className="w-full justify-start font-bold text-primary"
-                            data-testid={`mobile-link-${moreCategories[0].slug}`}
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                          >
-                            {language === 'et' ? moreCategories[0].nameEt : moreCategories[0].nameEn}
-                          </Button>
-                        </Link>
-                      )}
-                      {/* Other categories */}
-                      {moreCategories.slice(moreCategories[0]?.slug === 'campaign' ? 1 : 0).map((cat) => {
-                        const catName = language === 'et' ? cat.nameEt : cat.nameEn;
-                        return (
-                          <Link key={cat.id} href={`/products/${cat.slug}`}>
-                            <Button 
-                              variant="ghost" 
-                              className="w-full justify-start text-muted-foreground"
-                              data-testid={`mobile-link-${cat.slug}`}
-                              onClick={() => {
-                                setMobileMenuOpen(false);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                            >
-                              {catName}
-                            </Button>
-                          </Link>
-                        );
-                      })}
+                      </Button>
+                      {/* All categories as subcategories - indented and muted */}
+                      <div className="ml-4 space-y-1">
+                        {moreCategories.map((cat) => {
+                          const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                          return (
+                            <Link key={cat.id} href={`/products/${cat.slug}`}>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start text-sm text-muted-foreground"
+                                data-testid={`mobile-link-${cat.slug}`}
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                              >
+                                {catName}
+                              </Button>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                   
