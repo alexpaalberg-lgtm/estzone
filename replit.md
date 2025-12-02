@@ -48,16 +48,26 @@ The platform uses Replit Auth for user authentication via OpenID Connect, allowi
 The platform includes a comprehensive loyalty points and VIP tier system:
 - **Points Earning**: 10 points per €1 spent (base rate), multiplied by tier bonus
 - **Points Redemption**: 100 points = €1 discount at checkout via slider interface
+- **Points Expiration**: 6-month expiration with 30-day warning, daily automated cleanup
 - **VIP Tiers**: Bronze (€0+), Silver (€500+, 5% discount, 1.25x points), Gold (€1500+, 10% discount, 1.5x points)
-- **LoyaltyCard Component**: Displays current tier, points balance, progress to next tier on Account page
+- **LoyaltyCard Component**: Displays current tier, points balance, progress to next tier, expiring points warnings
 - **Frequently Bought Together**: Shows bundle recommendations on product detail pages with "Add All to Cart"
-- **Admin Loyalty Panel**: Manage users, view/adjust points, see transaction history, tier distribution
+- **Admin Loyalty Panel**: Manage users, view/adjust points, see transaction history, tier distribution, customer leaderboard (admin-only)
 - Database tables: vip_tiers, user_loyalty, loyalty_transactions, frequently_bought_together
+
+### Unified Financial Dashboard
+
+The admin panel includes a comprehensive financial tracking system across all payment gateways:
+- **KPI Cards**: Total Revenue, Refunds, Net Revenue, VAT Collected (24%), Transactions, Average Order Value
+- **Revenue Trends**: Stacked area chart showing daily revenue breakdown by gateway (Stripe, PayPal, Montonio, Paysera)
+- **Gateway Analytics**: Pie chart, bar chart, and detailed table comparing gateway performance
+- **Transaction List**: Filterable by gateway and transaction type (payment/refund/chargeback) with customer details
+- **Sync Functionality**: Import existing orders into the unified payment_transactions table
+- Database tables: payment_transactions (unified tracking across all gateways)
+- Access: Admin-only via /admin/finance
 
 ## Future Features (Deferred)
 
-- **Points Expiration**: Consider adding 6-month expiration for unused points
-- **Leaderboard**: User ranking by lifetime points for gamification
 - **Merge & Fan Products**: New category for merchandise and fan items
 - **Seasonal Themes**: Christmas/holiday themes with special discounts (temporary visual changes)
 - **Courier API Integration**: Automatic shipment creation via Omniva/DPD APIs (waiting for credentials)
