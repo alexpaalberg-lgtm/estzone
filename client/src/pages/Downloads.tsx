@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import estonianPoster from "@assets/generated_images/estonian_estzone_gaming_store_poster.png";
 import englishPoster from "@assets/generated_images/english_poster_with_more_text.png";
-import facebookCover from "@assets/generated_images/estzone_facebook_cover_photo.png";
+import facebookCover from "@assets/generated_images/estzone_facebook_cover_wider_version.png";
 
 export default function Downloads() {
   const handleDownload = (url: string, filename: string) => {
