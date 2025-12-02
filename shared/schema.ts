@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, json, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, numeric, boolean, timestamp, json, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -608,3 +608,56 @@ export const insertFrequentlyBoughtTogetherSchema = createInsertSchema(frequentl
 });
 export type InsertFrequentlyBoughtTogether = z.infer<typeof insertFrequentlyBoughtTogetherSchema>;
 export type FrequentlyBoughtTogether = typeof frequentlyBoughtTogether.$inferSelect;
+
+// Payment Transactions - Unified view of all payment gateway activities
+export const paymentTransactions = pgTable("payment_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").references(() => orders.id),
+  externalId: varchar("external_id"), // Stripe charge ID, PayPal transaction ID, etc.
+  gateway: varchar("gateway", { length: 20 }).notNull(), // 'stripe', 'paypal', 'montonio', 'paysera'
+  type: varchar("type", { length: 20 }).notNull(), // 'payment', 'refund', 'payout', 'fee', 'chargeback'
+  status: varchar("status", { length: 20 }).notNull(), // 'pending', 'completed', 'failed', 'cancelled'
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(), // Original amount
+  currency: varchar("currency", { length: 3 }).notNull().default('EUR'),
+  amountEur: numeric("amount_eur", { precision: 10, scale: 2 }).notNull(), // Normalized to EUR
+  fee: numeric("fee", { precision: 10, scale: 2 }).default('0.00'), // Gateway fee
+  netAmount: numeric("net_amount", { precision: 10, scale: 2 }), // Amount after fees
+  vatAmount: numeric("vat_amount", { precision: 10, scale: 2 }).default('0.00'), // VAT collected
+  exchangeRate: numeric("exchange_rate", { precision: 10, scale: 6 }).default('1.000000'),
+  customerEmail: varchar("customer_email"),
+  customerName: varchar("customer_name"),
+  description: text("description"),
+  metadata: jsonb("metadata"), // Additional gateway-specific data
+  processedAt: timestamp("processed_at"), // When gateway processed it
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPaymentTransactionSchema = createInsertSchema(paymentTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertPaymentTransaction = z.infer<typeof insertPaymentTransactionSchema>;
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+
+// Daily Financial Summaries - Cached rollups for faster dashboard loading
+export const financialDailySummaries = pgTable("financial_daily_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull(),
+  gateway: varchar("gateway", { length: 20 }).notNull(), // 'stripe', 'paypal', 'montonio', 'paysera', 'all'
+  totalRevenue: numeric("total_revenue", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalRefunds: numeric("total_refunds", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalFees: numeric("total_fees", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  netRevenue: numeric("net_revenue", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalVat: numeric("total_vat", { precision: 12, scale: 2 }).notNull().default('0.00'),
+  transactionCount: integer("transaction_count").notNull().default(0),
+  orderCount: integer("order_count").notNull().default(0),
+  averageOrderValue: numeric("average_order_value", { precision: 10, scale: 2 }).default('0.00'),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFinancialDailySummarySchema = createInsertSchema(financialDailySummaries).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertFinancialDailySummary = z.infer<typeof insertFinancialDailySummarySchema>;
+export type FinancialDailySummary = typeof financialDailySummaries.$inferSelect;
