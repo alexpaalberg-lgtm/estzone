@@ -65,7 +65,7 @@ export default function FAQ() {
           },
           {
             question: 'Mis garantii toodetele kehtib?',
-            answer: 'Konsoolidel on 2-aastane garantii, kontrolleritel 1 aasta, kõrvaklappidel 1-2 aastat ja tarvikutel 6-12 kuud.'
+            answer: 'Kõigil toodetel on 1-aastane garantii, mis katab tootmisdefekte.'
           },
           {
             question: 'Mida teha kui toode on defektne?',
@@ -142,7 +142,7 @@ export default function FAQ() {
           },
           {
             question: 'What warranty applies to products?',
-            answer: 'Consoles have a 2-year warranty, controllers 1 year, headsets 1-2 years, and accessories 6-12 months.'
+            answer: 'All products come with a 1-year warranty covering manufacturing defects.'
           },
           {
             question: 'What if my product is defective?',

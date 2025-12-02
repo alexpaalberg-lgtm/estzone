@@ -406,7 +406,7 @@ export default function ProductDetail() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
                   <Shield className="h-5 w-5 text-primary shrink-0" />
-                  <span>{language === 'et' ? '24-kuuline garantii' : '24-month warranty'}</span>
+                  <span>{language === 'et' ? '1-aastane garantii' : '1-year warranty'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg bg-card border">
                   <RotateCcw className="h-5 w-5 text-primary shrink-0" />

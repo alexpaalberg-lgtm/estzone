@@ -55,7 +55,7 @@ Products must be returned in original condition and packaging. Return shipping c
         },
         {
           title: '6. Warranty',
-          content: `All products come with a minimum 2-year legal warranty as required by EU law. This warranty covers manufacturing defects but does not cover damage caused by misuse, accidents, or normal wear and tear.
+          content: `All products come with a 1-year warranty. This warranty covers manufacturing defects but does not cover damage caused by misuse, accidents, or normal wear and tear.
 
 For warranty claims, contact our customer support with proof of purchase.`
         },
@@ -232,7 +232,7 @@ You will receive email confirmation when refund is processed.`
 3. We will arrange free return shipping
 4. Choose: replacement or full refund
 
-The 2-year legal warranty applies to all products.`
+The 1-year warranty applies to all products.`
         },
         {
           title: '7. Non-Returnable Items',
@@ -409,7 +409,7 @@ Tooted tuleb tagastada originaalseisundis ja -pakendis. Tagastamise saatmiskulud
         },
         {
           title: '6. Garantii',
-          content: `Kõigil toodetel on EL seadusega nõutud minimaalselt 2-aastane seadusjärgne garantii. See garantii katab tootmisvead, kuid ei kata kasutamisest, õnnetustest või tavapärasest kulumisest tingitud kahjustusi.
+          content: `Kõigil toodetel on 1-aastane garantii. See garantii katab tootmisvead, kuid ei kata kasutamisest, õnnetustest või tavapärasest kulumisest tingitud kahjustusi.
 
 Garantiinõuete esitamiseks võtke ühendust meie klienditoega, esitades ostutõendi.`
         },
@@ -586,7 +586,7 @@ Saate e-kirja kinnituse, kui tagasimakse on töödeldud.`
 3. Korraldame tasuta tagastussaatmise
 4. Valige: asendus või täielik tagasimakse
 
-Kõigile toodetele kehtib 2-aastane seadusjärgne garantii.`
+Kõigile toodetele kehtib 1-aastane garantii.`
         },
         {
           title: '7. Mittetagastatavad tooted',

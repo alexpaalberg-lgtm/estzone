@@ -135,7 +135,7 @@ export default function ShoppingCart() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Shield className="h-3.5 w-3.5 text-primary" />
-                    <span>{language === 'et' ? '24-kuuline garantii' : '24-month warranty'}</span>
+                    <span>{language === 'et' ? '1-aastane garantii' : '1-year warranty'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CreditCard className="h-3.5 w-3.5 text-primary" />
