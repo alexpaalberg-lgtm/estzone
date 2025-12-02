@@ -14,6 +14,16 @@ import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./payp
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
 import { setupAuth, isAuthenticated, isReplitEnvironment, setupSessionOnly } from "./replitAuth";
 import { setupLocalAuth } from "./localAuth";
+import webpush from "web-push";
+
+// Configure web-push with VAPID keys
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:info@estzone.eu',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.isAdmin) {
@@ -3405,6 +3415,277 @@ Format your response as JSON:
       res.json({ success: true });
     } catch (error: any) {
       console.error('Error deleting theme:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // PUSH NOTIFICATIONS API
+  // ============================================
+  
+  // Get VAPID public key for client-side subscription
+  app.get('/api/push/vapid-public-key', (req, res) => {
+    res.json({ publicKey: process.env.VITE_VAPID_PUBLIC_KEY || '' });
+  });
+  
+  // Subscribe to push notifications
+  app.post('/api/push/subscribe', async (req: any, res) => {
+    try {
+      const { subscription, preferences } = req.body;
+      
+      if (!subscription || !subscription.endpoint || !subscription.keys) {
+        return res.status(400).json({ error: 'Invalid subscription data' });
+      }
+      
+      const userId = req.user?.claims?.sub || req.user?.id || null;
+      
+      const pushSubscription = await storage.createPushSubscription({
+        userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        userAgent: req.headers['user-agent'] || null,
+        notifyNewProducts: preferences?.newProducts ?? true,
+        notifyPriceDrops: preferences?.priceDrops ?? true,
+        notifyWishlist: preferences?.wishlist ?? true,
+        notifyOrders: preferences?.orders ?? true,
+        notifyPromotions: preferences?.promotions ?? true,
+      });
+      
+      res.json({ success: true, id: pushSubscription.id });
+    } catch (error: any) {
+      console.error('Error subscribing to push:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Unsubscribe from push notifications
+  app.post('/api/push/unsubscribe', async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      
+      if (!endpoint) {
+        return res.status(400).json({ error: 'Endpoint required' });
+      }
+      
+      await storage.deletePushSubscription(endpoint);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error unsubscribing from push:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update notification preferences
+  app.patch('/api/push/preferences', async (req: any, res) => {
+    try {
+      const { endpoint, preferences } = req.body;
+      
+      if (!endpoint) {
+        return res.status(400).json({ error: 'Endpoint required' });
+      }
+      
+      const existing = await storage.getPushSubscriptionByEndpoint(endpoint);
+      if (!existing) {
+        return res.status(404).json({ error: 'Subscription not found' });
+      }
+      
+      const updated = await storage.updatePushSubscription(existing.id, {
+        notifyNewProducts: preferences?.newProducts ?? existing.notifyNewProducts,
+        notifyPriceDrops: preferences?.priceDrops ?? existing.notifyPriceDrops,
+        notifyWishlist: preferences?.wishlist ?? existing.notifyWishlist,
+        notifyOrders: preferences?.orders ?? existing.notifyOrders,
+        notifyPromotions: preferences?.promotions ?? existing.notifyPromotions,
+      });
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating preferences:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get subscription status
+  app.post('/api/push/status', async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      
+      if (!endpoint) {
+        return res.status(400).json({ subscribed: false });
+      }
+      
+      const subscription = await storage.getPushSubscriptionByEndpoint(endpoint);
+      
+      if (subscription) {
+        res.json({
+          subscribed: true,
+          preferences: {
+            newProducts: subscription.notifyNewProducts,
+            priceDrops: subscription.notifyPriceDrops,
+            wishlist: subscription.notifyWishlist,
+            orders: subscription.notifyOrders,
+            promotions: subscription.notifyPromotions,
+          }
+        });
+      } else {
+        res.json({ subscribed: false });
+      }
+    } catch (error: any) {
+      console.error('Error checking status:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Get all subscriptions
+  app.get('/api/admin/push/subscriptions', requireAdmin, async (req, res) => {
+    try {
+      const subscriptions = await storage.getPushSubscriptions();
+      res.json(subscriptions);
+    } catch (error: any) {
+      console.error('Error getting subscriptions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Get notification history
+  app.get('/api/admin/push/history', requireAdmin, async (req, res) => {
+    try {
+      const history = await storage.getNotificationHistory(100);
+      res.json(history);
+    } catch (error: any) {
+      console.error('Error getting history:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Send notification to all subscribers
+  app.post('/api/admin/push/send', requireAdmin, async (req: any, res) => {
+    try {
+      const { title, body, url, type = 'general', targetType = 'all' } = req.body;
+      
+      if (!title || !body) {
+        return res.status(400).json({ error: 'Title and body required' });
+      }
+      
+      // Get subscribers based on notification type
+      let subscriptions = await storage.getPushSubscriptions({ notifyType: type === 'general' ? 'promotions' : type.replace('_', '') });
+      
+      if (subscriptions.length === 0) {
+        return res.json({ sent: 0, failed: 0, message: 'No subscribers found' });
+      }
+      
+      const payload = JSON.stringify({
+        title,
+        body,
+        url: url || '/',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        type,
+      });
+      
+      let sentCount = 0;
+      let failedCount = 0;
+      
+      for (const sub of subscriptions) {
+        try {
+          await webpush.sendNotification({
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            }
+          }, payload);
+          sentCount++;
+        } catch (error: any) {
+          console.error('Push failed for:', sub.endpoint, error.message);
+          failedCount++;
+          
+          // Remove invalid subscriptions (410 Gone or 404 Not Found)
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            await storage.deletePushSubscription(sub.endpoint);
+          }
+        }
+      }
+      
+      // Log notification history
+      await storage.createNotificationHistory({
+        title,
+        body,
+        url,
+        type,
+        targetType,
+        sentCount,
+        failedCount,
+        sentBy: req.session.adminEmail || 'admin',
+      });
+      
+      res.json({ sent: sentCount, failed: failedCount, total: subscriptions.length });
+    } catch (error: any) {
+      console.error('Error sending notifications:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Send notification to specific user
+  app.post('/api/admin/push/send-to-user', requireAdmin, async (req: any, res) => {
+    try {
+      const { userId, title, body, url, type = 'general' } = req.body;
+      
+      if (!userId || !title || !body) {
+        return res.status(400).json({ error: 'User ID, title and body required' });
+      }
+      
+      const subscriptions = await storage.getPushSubscriptions({ userId });
+      
+      if (subscriptions.length === 0) {
+        return res.json({ sent: 0, failed: 0, message: 'User has no push subscriptions' });
+      }
+      
+      const payload = JSON.stringify({
+        title,
+        body,
+        url: url || '/',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        type,
+      });
+      
+      let sentCount = 0;
+      let failedCount = 0;
+      
+      for (const sub of subscriptions) {
+        try {
+          await webpush.sendNotification({
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            }
+          }, payload);
+          sentCount++;
+        } catch (error: any) {
+          failedCount++;
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            await storage.deletePushSubscription(sub.endpoint);
+          }
+        }
+      }
+      
+      await storage.createNotificationHistory({
+        title,
+        body,
+        url,
+        type,
+        targetType: 'user',
+        targetUserId: userId,
+        sentCount,
+        failedCount,
+        sentBy: req.session.adminEmail || 'admin',
+      });
+      
+      res.json({ sent: sentCount, failed: failedCount });
+    } catch (error: any) {
+      console.error('Error sending to user:', error);
       res.status(500).json({ error: error.message });
     }
   });

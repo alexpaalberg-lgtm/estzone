@@ -28,6 +28,8 @@ import type {
   FrequentlyBoughtTogether, InsertFrequentlyBoughtTogether,
   PaymentTransaction, InsertPaymentTransaction,
   SeasonalTheme, InsertSeasonalTheme,
+  PushSubscription, InsertPushSubscription,
+  NotificationHistory, InsertNotificationHistory,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray, gte, lte, or, isNull, gt, isNotNull } from 'drizzle-orm';
 
@@ -219,6 +221,17 @@ export interface IStorage {
   createSeasonalTheme(theme: InsertSeasonalTheme): Promise<SeasonalTheme>;
   updateSeasonalTheme(id: string, theme: Partial<InsertSeasonalTheme>): Promise<SeasonalTheme | undefined>;
   deleteSeasonalTheme(id: string): Promise<void>;
+  
+  // Push Notifications
+  getPushSubscriptions(filters?: { userId?: string; notifyType?: string }): Promise<PushSubscription[]>;
+  getPushSubscriptionByEndpoint(endpoint: string): Promise<PushSubscription | undefined>;
+  createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
+  updatePushSubscription(id: string, subscription: Partial<InsertPushSubscription>): Promise<PushSubscription | undefined>;
+  deletePushSubscription(endpoint: string): Promise<void>;
+  
+  // Notification History
+  getNotificationHistory(limit?: number): Promise<NotificationHistory[]>;
+  createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory>;
 }
 
 export class DbStorage implements IStorage {
@@ -1736,6 +1749,83 @@ export class DbStorage implements IStorage {
   
   async deleteSeasonalTheme(id: string): Promise<void> {
     await db.delete(schema.seasonalThemes).where(eq(schema.seasonalThemes.id, id));
+  }
+  
+  // Push Notifications
+  async getPushSubscriptions(filters?: { userId?: string; notifyType?: string }): Promise<PushSubscription[]> {
+    let query = db.select().from(schema.pushSubscriptions);
+    
+    if (filters?.userId) {
+      return db.select().from(schema.pushSubscriptions)
+        .where(eq(schema.pushSubscriptions.userId, filters.userId))
+        .orderBy(desc(schema.pushSubscriptions.createdAt));
+    }
+    
+    if (filters?.notifyType) {
+      const notifyField = {
+        'new_products': schema.pushSubscriptions.notifyNewProducts,
+        'price_drops': schema.pushSubscriptions.notifyPriceDrops,
+        'wishlist': schema.pushSubscriptions.notifyWishlist,
+        'orders': schema.pushSubscriptions.notifyOrders,
+        'promotions': schema.pushSubscriptions.notifyPromotions,
+      }[filters.notifyType];
+      
+      if (notifyField) {
+        return db.select().from(schema.pushSubscriptions)
+          .where(eq(notifyField, true))
+          .orderBy(desc(schema.pushSubscriptions.createdAt));
+      }
+    }
+    
+    return db.select().from(schema.pushSubscriptions)
+      .orderBy(desc(schema.pushSubscriptions.createdAt));
+  }
+  
+  async getPushSubscriptionByEndpoint(endpoint: string): Promise<PushSubscription | undefined> {
+    const [subscription] = await db.select().from(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.endpoint, endpoint));
+    return subscription;
+  }
+  
+  async createPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription> {
+    const [created] = await db.insert(schema.pushSubscriptions)
+      .values(subscription)
+      .onConflictDoUpdate({
+        target: schema.pushSubscriptions.endpoint,
+        set: {
+          ...subscription,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return created;
+  }
+  
+  async updatePushSubscription(id: string, subscription: Partial<InsertPushSubscription>): Promise<PushSubscription | undefined> {
+    const [updated] = await db.update(schema.pushSubscriptions)
+      .set({ ...subscription, updatedAt: new Date() })
+      .where(eq(schema.pushSubscriptions.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.endpoint, endpoint));
+  }
+  
+  // Notification History
+  async getNotificationHistory(limit: number = 100): Promise<NotificationHistory[]> {
+    return db.select().from(schema.notificationHistory)
+      .orderBy(desc(schema.notificationHistory.sentAt))
+      .limit(limit);
+  }
+  
+  async createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory> {
+    const [created] = await db.insert(schema.notificationHistory)
+      .values(notification)
+      .returning();
+    return created;
   }
 }
 
