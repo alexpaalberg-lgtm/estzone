@@ -26,6 +26,7 @@ import type {
   UserLoyalty, InsertUserLoyalty,
   LoyaltyTransaction, InsertLoyaltyTransaction,
   FrequentlyBoughtTogether, InsertFrequentlyBoughtTogether,
+  PaymentTransaction, InsertPaymentTransaction,
 } from '@shared/schema';
 import { eq, desc, and, sql, inArray, gte, lte, or, isNull, gt, isNotNull } from 'drizzle-orm';
 
@@ -191,6 +192,24 @@ export interface IStorage {
   getFrequentlyBoughtTogether(productId: string, limit?: number): Promise<Product[]>;
   updateFrequentlyBoughtTogether(productId: string, relatedProductId: string): Promise<void>;
   trackPurchasedTogether(productIds: string[]): Promise<void>;
+  
+  // Financial Tracking
+  recordPaymentTransaction(transaction: InsertPaymentTransaction): Promise<PaymentTransaction>;
+  getPaymentTransactions(filters?: { gateway?: string; type?: string; status?: string; startDate?: Date; endDate?: Date; limit?: number }): Promise<PaymentTransaction[]>;
+  getFinancialOverview(startDate?: Date, endDate?: Date): Promise<{
+    totalRevenue: number;
+    totalRefunds: number;
+    totalFees: number;
+    netRevenue: number;
+    totalVat: number;
+    transactionCount: number;
+    orderCount: number;
+    averageOrderValue: number;
+    byGateway: { gateway: string; revenue: number; count: number }[];
+    byStatus: { status: string; count: number }[];
+  }>;
+  getRevenueTrends(days: number): Promise<{ date: string; revenue: number; orders: number; gateway: string }[]>;
+  syncOrderPayments(): Promise<{ synced: number; errors: number }>;
 }
 
 export class DbStorage implements IStorage {
@@ -1412,6 +1431,260 @@ export class DbStorage implements IStorage {
         }
       }
     }
+  }
+  
+  // Financial Tracking
+  async recordPaymentTransaction(transaction: InsertPaymentTransaction): Promise<PaymentTransaction> {
+    const [created] = await db.insert(schema.paymentTransactions).values(transaction).returning();
+    return created;
+  }
+  
+  async getPaymentTransactions(filters?: { 
+    gateway?: string; 
+    type?: string; 
+    status?: string; 
+    startDate?: Date; 
+    endDate?: Date; 
+    limit?: number 
+  }): Promise<PaymentTransaction[]> {
+    const conditions = [];
+    
+    if (filters?.gateway) {
+      conditions.push(eq(schema.paymentTransactions.gateway, filters.gateway));
+    }
+    if (filters?.type) {
+      conditions.push(eq(schema.paymentTransactions.type, filters.type));
+    }
+    if (filters?.status) {
+      conditions.push(eq(schema.paymentTransactions.status, filters.status));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(schema.paymentTransactions.createdAt, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(schema.paymentTransactions.createdAt, filters.endDate));
+    }
+    
+    let query = db.select().from(schema.paymentTransactions)
+      .orderBy(desc(schema.paymentTransactions.createdAt));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    
+    return query;
+  }
+  
+  async getFinancialOverview(startDate?: Date, endDate?: Date): Promise<{
+    totalRevenue: number;
+    totalRefunds: number;
+    totalFees: number;
+    netRevenue: number;
+    totalVat: number;
+    transactionCount: number;
+    orderCount: number;
+    averageOrderValue: number;
+    byGateway: { gateway: string; revenue: number; count: number }[];
+    byStatus: { status: string; count: number }[];
+  }> {
+    const conditions = [];
+    
+    if (startDate) {
+      conditions.push(gte(schema.paymentTransactions.createdAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(schema.paymentTransactions.createdAt, endDate));
+    }
+    
+    // Get all transactions in range
+    let transactions: PaymentTransaction[];
+    if (conditions.length > 0) {
+      transactions = await db.select().from(schema.paymentTransactions)
+        .where(and(...conditions));
+    } else {
+      transactions = await db.select().from(schema.paymentTransactions);
+    }
+    
+    // Calculate totals
+    let totalRevenue = 0;
+    let totalRefunds = 0;
+    let totalFees = 0;
+    let totalVat = 0;
+    const uniqueOrderIds = new Set<string>();
+    const gatewayMap = new Map<string, { revenue: number; count: number }>();
+    const statusMap = new Map<string, number>();
+    
+    for (const tx of transactions) {
+      const amount = parseFloat(tx.amountEur);
+      const fee = parseFloat(tx.fee || '0');
+      const vat = parseFloat(tx.vatAmount || '0');
+      
+      if (tx.type === 'payment' && tx.status === 'completed') {
+        totalRevenue += amount;
+        totalVat += vat;
+        if (tx.orderId) uniqueOrderIds.add(tx.orderId);
+      } else if (tx.type === 'refund') {
+        totalRefunds += Math.abs(amount);
+      }
+      
+      totalFees += fee;
+      
+      // By gateway
+      const gatewayStats = gatewayMap.get(tx.gateway) || { revenue: 0, count: 0 };
+      if (tx.type === 'payment' && tx.status === 'completed') {
+        gatewayStats.revenue += amount;
+      }
+      gatewayStats.count++;
+      gatewayMap.set(tx.gateway, gatewayStats);
+      
+      // By status
+      statusMap.set(tx.status, (statusMap.get(tx.status) || 0) + 1);
+    }
+    
+    const netRevenue = totalRevenue - totalRefunds - totalFees;
+    const orderCount = uniqueOrderIds.size;
+    const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+    
+    return {
+      totalRevenue,
+      totalRefunds,
+      totalFees,
+      netRevenue,
+      totalVat,
+      transactionCount: transactions.length,
+      orderCount,
+      averageOrderValue,
+      byGateway: Array.from(gatewayMap.entries()).map(([gateway, stats]) => ({
+        gateway,
+        revenue: stats.revenue,
+        count: stats.count,
+      })),
+      byStatus: Array.from(statusMap.entries()).map(([status, count]) => ({
+        status,
+        count,
+      })),
+    };
+  }
+  
+  async getRevenueTrends(days: number): Promise<{ date: string; revenue: number; orders: number; gateway: string }[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const transactions = await db.select().from(schema.paymentTransactions)
+      .where(and(
+        gte(schema.paymentTransactions.createdAt, startDate),
+        eq(schema.paymentTransactions.type, 'payment'),
+        eq(schema.paymentTransactions.status, 'completed')
+      ));
+    
+    // Group by date and gateway
+    const dailyMap = new Map<string, Map<string, { revenue: number; orders: Set<string> }>>();
+    
+    for (const tx of transactions) {
+      const dateStr = tx.createdAt.toISOString().split('T')[0];
+      
+      if (!dailyMap.has(dateStr)) {
+        dailyMap.set(dateStr, new Map());
+      }
+      
+      const gatewayMap = dailyMap.get(dateStr)!;
+      if (!gatewayMap.has(tx.gateway)) {
+        gatewayMap.set(tx.gateway, { revenue: 0, orders: new Set() });
+      }
+      
+      const stats = gatewayMap.get(tx.gateway)!;
+      stats.revenue += parseFloat(tx.amountEur);
+      if (tx.orderId) stats.orders.add(tx.orderId);
+    }
+    
+    // Convert to array
+    const results: { date: string; revenue: number; orders: number; gateway: string }[] = [];
+    
+    for (const [date, gatewayMap] of dailyMap) {
+      for (const [gateway, stats] of gatewayMap) {
+        results.push({
+          date,
+          revenue: stats.revenue,
+          orders: stats.orders.size,
+          gateway,
+        });
+      }
+    }
+    
+    // Sort by date
+    results.sort((a, b) => a.date.localeCompare(b.date));
+    
+    return results;
+  }
+  
+  async syncOrderPayments(): Promise<{ synced: number; errors: number }> {
+    // Sync completed orders to payment_transactions table
+    let synced = 0;
+    let errors = 0;
+    
+    // Get all completed orders that don't have payment transactions yet
+    const orders = await db.select().from(schema.orders)
+      .where(and(
+        eq(schema.orders.paymentStatus, 'paid'),
+        isNotNull(schema.orders.stripePaymentIntentId)
+      ));
+    
+    for (const order of orders) {
+      try {
+        // Check if already synced
+        const [existing] = await db.select().from(schema.paymentTransactions)
+          .where(eq(schema.paymentTransactions.orderId, order.id));
+        
+        if (existing) continue;
+        
+        // Get customer info
+        let customerEmail = '';
+        let customerName = '';
+        if (order.userId) {
+          const [user] = await db.select().from(schema.users)
+            .where(eq(schema.users.id, order.userId));
+          if (user) {
+            customerEmail = user.email || '';
+            customerName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+          }
+        }
+        
+        // Create payment transaction record
+        const total = parseFloat(order.total);
+        const vatAmount = total * 0.24 / 1.24; // Extract VAT from total (24% VAT included)
+        
+        await db.insert(schema.paymentTransactions).values({
+          orderId: order.id,
+          externalId: order.stripePaymentIntentId,
+          gateway: order.paymentMethod === 'paypal' ? 'paypal' : 
+                   order.paymentMethod === 'montonio' ? 'montonio' : 'stripe',
+          type: 'payment',
+          status: 'completed',
+          amount: order.total,
+          currency: 'EUR',
+          amountEur: order.total,
+          fee: '0.00', // Would need Stripe API to get actual fee
+          netAmount: order.total,
+          vatAmount: vatAmount.toFixed(2),
+          customerEmail,
+          customerName,
+          description: `Order #${order.id}`,
+          processedAt: order.createdAt,
+        });
+        
+        synced++;
+      } catch (error) {
+        console.error(`Error syncing order ${order.id}:`, error);
+        errors++;
+      }
+    }
+    
+    return { synced, errors };
   }
 }
 
