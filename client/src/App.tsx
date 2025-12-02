@@ -45,6 +45,7 @@ import AdminReviews from "@/pages/admin/Reviews";
 import AdminLoyalty from "@/pages/admin/Loyalty";
 import AdminFinance from "@/pages/admin/Finance";
 import AdminSeasonalThemes from "@/pages/admin/SeasonalThemes";
+import AdminPushNotifications from "@/pages/admin/PushNotifications";
 import Legal from "@/pages/Legal";
 import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
@@ -108,6 +109,7 @@ function Router() {
       <Route path="/admin/loyalty" component={AdminLoyalty} />
       <Route path="/admin/finance" component={AdminFinance} />
       <Route path="/admin/seasonal-themes" component={AdminSeasonalThemes} />
+      <Route path="/admin/push-notifications" component={AdminPushNotifications} />
       <Route component={NotFound} />
     </Switch>
   );

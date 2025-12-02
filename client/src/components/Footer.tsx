@@ -4,6 +4,7 @@ import { SiStripe, SiVisa, SiMastercard, SiFacebook, SiInstagram, SiX } from 're
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { PushNotifications } from '@/components/PushNotifications';
 
 export default function Footer() {
   const { language, setLanguage, t } = useLanguage();
@@ -61,7 +62,7 @@ export default function Footer() {
               <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16236733</p>
             </div>
             
-            {/* Social Media Links */}
+            {/* Social Media Links & Notifications */}
             <div className="flex items-center gap-4 mb-6">
               <a 
                 href="https://facebook.com/estzone" 
@@ -93,6 +94,9 @@ export default function Footer() {
               >
                 <SiX className="h-6 w-6 text-muted-foreground hover:text-foreground" />
               </a>
+              <div className="p-0.5 bg-muted rounded-md">
+                <PushNotifications />
+              </div>
             </div>
             
             <div className="space-y-3">

@@ -49,6 +49,3 @@ integrations = ["javascript_database:1.0.0", "javascript_stripe:1.0.0", "javascr
 
 [userenv.shared]
 VITE_GA_MEASUREMENT_ID = "G-FJVN07916H"
-VAPID_PUBLIC_KEY = "BMIGKR1-ACZw-i3DVvJOoZzSekcEp57OnTaXxQ2H2yNoK08j-3YZ5uYlceD8NE7zLpp-7j2CYyE47IMaVkfMltY"
-VAPID_PRIVATE_KEY = "DJbOR0rR1KAgEyVRjp20wiOq2kO4o7bLnioy7dekhYU"
-VITE_VAPID_PUBLIC_KEY = "BMIGKR1-ACZw-i3DVvJOoZzSekcEp57OnTaXxQ2H2yNoK08j-3YZ5uYlceD8NE7zLpp-7j2CYyE47IMaVkfMltY"
