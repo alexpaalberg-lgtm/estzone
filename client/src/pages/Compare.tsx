@@ -71,7 +71,7 @@ export default function Compare() {
     <div className="container mx-auto px-4 py-8" data-testid="page-compare">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/shop">
+          <Link href="/products">
             <Button variant="ghost" size="sm" data-testid="button-back-shop">
               <ArrowLeft className="h-4 w-4 mr-2" />
               {language === 'et' ? 'Tagasi poodi' : 'Back to Shop'}
@@ -108,7 +108,7 @@ export default function Compare() {
                 : 'Add products to compare them side by side.'}
             </p>
           </div>
-          <Link href="/shop">
+          <Link href="/products">
             <Button data-testid="button-browse-products">
               {language === 'et' ? 'Sirvi tooteid' : 'Browse Products'}
             </Button>
@@ -170,7 +170,7 @@ export default function Compare() {
                 })}
                 {Array.from({ length: emptySlots }).map((_, i) => (
                   <th key={`empty-${i}`} className="align-top">
-                    <Link href="/shop">
+                    <Link href="/products">
                       <Card className="p-4 h-full min-h-[200px] flex flex-col items-center justify-center text-muted-foreground hover-elevate cursor-pointer">
                         <Plus className="h-8 w-8 mb-2" />
                         <span className="text-sm">
