@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { Award, Star, TrendingUp, Gift, Clock, History } from 'lucide-react';
+import { Award, Star, TrendingUp, Gift, Clock, History, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { et, enUS } from 'date-fns/locale';
 
 interface VipTier {
   id: string;
@@ -42,6 +44,11 @@ interface LoyaltyStatus {
     amountNeeded: number;
     progress: number;
   } | null;
+  expiringPoints?: {
+    total: number;
+    nearestExpiry: string | null;
+    details: { points: number; expiresAt: string }[];
+  };
 }
 
 export default function LoyaltyCard() {
@@ -147,6 +154,32 @@ export default function LoyaltyCard() {
           </div>
         </div>
 
+        {loyaltyStatus.expiringPoints && loyaltyStatus.expiringPoints.total > 0 && (
+          <Alert className="bg-amber-500/10 border-amber-500/30">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-sm">
+              <span className="font-semibold text-amber-600">
+                {loyaltyStatus.expiringPoints.total.toLocaleString()} {language === 'et' ? 'punkti' : 'points'}
+              </span>
+              {' '}
+              {language === 'et' ? 'aegub' : 'expiring'}
+              {loyaltyStatus.expiringPoints.nearestExpiry && (
+                <span className="text-muted-foreground ml-1">
+                  {formatDistanceToNow(new Date(loyaltyStatus.expiringPoints.nearestExpiry), { 
+                    addSuffix: true, 
+                    locale: language === 'et' ? et : enUS 
+                  })}
+                </span>
+              )}
+              <span className="block text-xs text-muted-foreground mt-1">
+                {language === 'et' 
+                  ? 'Kasuta enne kui need aeguvad!' 
+                  : 'Use them before they expire!'}
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {loyaltyStatus.progressToNextTier && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -241,11 +274,17 @@ export default function LoyaltyCard() {
           )}
         </Accordion>
 
-        <div className="text-center pt-2 border-t">
+        <div className="text-center pt-2 border-t space-y-1">
           <p className="text-xs text-muted-foreground">
             {language === 'et' 
-              ? '10 punkti = €0.10 • Teeni 10 punkti iga €1 eest'
-              : '10 points = €0.10 • Earn 10 points per €1 spent'
+              ? '100 punkti = €1 • Teeni 10 punkti iga €1 eest'
+              : '100 points = €1 • Earn 10 points per €1 spent'
+            }
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            {language === 'et' 
+              ? 'Punktid aeguvad 6 kuu pärast'
+              : 'Points expire after 6 months'
             }
           </p>
         </div>

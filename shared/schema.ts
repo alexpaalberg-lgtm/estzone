@@ -581,6 +581,8 @@ export const loyaltyTransactions = pgTable("loyalty_transactions", {
   description: text("description"),
   balanceBefore: integer("balance_before").notNull(),
   balanceAfter: integer("balance_after").notNull(),
+  expiresAt: timestamp("expires_at"), // Points expire 6 months after earning
+  isExpired: boolean("is_expired").default(false), // Flag when points have been expired
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

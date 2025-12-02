@@ -27,7 +27,7 @@ import type {
   LoyaltyTransaction, InsertLoyaltyTransaction,
   FrequentlyBoughtTogether, InsertFrequentlyBoughtTogether,
 } from '@shared/schema';
-import { eq, desc, and, sql, inArray, gte, lte, or, isNull } from 'drizzle-orm';
+import { eq, desc, and, sql, inArray, gte, lte, or, isNull, gt, isNotNull } from 'drizzle-orm';
 
 export interface IStorage {
   // Users
@@ -183,6 +183,9 @@ export interface IStorage {
   // Loyalty Transactions
   getLoyaltyTransactions(userId: string): Promise<LoyaltyTransaction[]>;
   getLoyaltyTransaction(id: string): Promise<LoyaltyTransaction | undefined>;
+  expireOldPoints(): Promise<{ expiredCount: number; usersAffected: number }>;
+  getExpiringPoints(userId: string, withinDays?: number): Promise<{ points: number; expiresAt: Date | null }[]>;
+  getAllUsersLoyalty(): Promise<(UserLoyalty & { user?: User })[]>;
   
   // Frequently Bought Together
   getFrequentlyBoughtTogether(productId: string, limit?: number): Promise<Product[]>;
@@ -1149,6 +1152,9 @@ export class DbStorage implements IStorage {
     const balanceBefore = userLoyalty.currentPoints;
     const balanceAfter = balanceBefore + points;
     
+    // Set expiration date: 6 months from now for earned points
+    const expiresAt = points > 0 ? new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000) : null;
+    
     // Create transaction record
     const [transaction] = await db.insert(schema.loyaltyTransactions).values({
       userId,
@@ -1158,6 +1164,8 @@ export class DbStorage implements IStorage {
       description,
       balanceBefore,
       balanceAfter,
+      expiresAt,
+      isExpired: false,
     }).returning();
     
     // Update user loyalty
@@ -1247,6 +1255,109 @@ export class DbStorage implements IStorage {
     const [transaction] = await db.select().from(schema.loyaltyTransactions)
       .where(eq(schema.loyaltyTransactions.id, id));
     return transaction;
+  }
+  
+  async expireOldPoints(): Promise<{ expiredCount: number; usersAffected: number }> {
+    const now = new Date();
+    
+    // Find all unexpired transactions with positive points that have passed their expiration date
+    const expiredTransactions = await db.select().from(schema.loyaltyTransactions)
+      .where(and(
+        gt(schema.loyaltyTransactions.points, 0),
+        eq(schema.loyaltyTransactions.isExpired, false),
+        lte(schema.loyaltyTransactions.expiresAt, now),
+        isNotNull(schema.loyaltyTransactions.expiresAt)
+      ));
+    
+    if (expiredTransactions.length === 0) {
+      return { expiredCount: 0, usersAffected: 0 };
+    }
+    
+    // Group by user to process each user's expired points
+    const userExpiredPoints = new Map<string, number>();
+    for (const tx of expiredTransactions) {
+      const current = userExpiredPoints.get(tx.userId) || 0;
+      userExpiredPoints.set(tx.userId, current + tx.points);
+    }
+    
+    let expiredCount = 0;
+    
+    // Process each user's expired points
+    for (const [userId, expiredPoints] of userExpiredPoints) {
+      const userLoyalty = await this.getUserLoyalty(userId);
+      if (!userLoyalty) continue;
+      
+      // Calculate how many points to actually expire (can't expire more than current balance)
+      const pointsToExpire = Math.min(expiredPoints, userLoyalty.currentPoints);
+      if (pointsToExpire <= 0) continue;
+      
+      const balanceBefore = userLoyalty.currentPoints;
+      const balanceAfter = balanceBefore - pointsToExpire;
+      
+      // Create expiration transaction
+      await db.insert(schema.loyaltyTransactions).values({
+        userId,
+        points: -pointsToExpire,
+        type: 'expired',
+        description: `${pointsToExpire} punkti aegus / ${pointsToExpire} points expired (6 months)`,
+        balanceBefore,
+        balanceAfter,
+        isExpired: false,
+      });
+      
+      // Update user balance
+      await this.updateUserLoyalty(userId, {
+        currentPoints: balanceAfter,
+      });
+      
+      expiredCount += pointsToExpire;
+    }
+    
+    // Mark original transactions as expired
+    const expiredIds = expiredTransactions.map(tx => tx.id);
+    await db.update(schema.loyaltyTransactions)
+      .set({ isExpired: true })
+      .where(inArray(schema.loyaltyTransactions.id, expiredIds));
+    
+    return { 
+      expiredCount, 
+      usersAffected: userExpiredPoints.size 
+    };
+  }
+  
+  async getExpiringPoints(userId: string, withinDays: number = 30): Promise<{ points: number; expiresAt: Date | null }[]> {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+    
+    const expiringTransactions = await db.select({
+      points: schema.loyaltyTransactions.points,
+      expiresAt: schema.loyaltyTransactions.expiresAt,
+    }).from(schema.loyaltyTransactions)
+      .where(and(
+        eq(schema.loyaltyTransactions.userId, userId),
+        gt(schema.loyaltyTransactions.points, 0),
+        eq(schema.loyaltyTransactions.isExpired, false),
+        gte(schema.loyaltyTransactions.expiresAt, now),
+        lte(schema.loyaltyTransactions.expiresAt, futureDate)
+      ))
+      .orderBy(schema.loyaltyTransactions.expiresAt);
+    
+    return expiringTransactions;
+  }
+  
+  async getAllUsersLoyalty(): Promise<(UserLoyalty & { user?: User })[]> {
+    const loyaltyRecords = await db.select().from(schema.userLoyalty)
+      .orderBy(desc(schema.userLoyalty.currentPoints));
+    
+    // Get user info for each loyalty record
+    const results: (UserLoyalty & { user?: User })[] = [];
+    for (const loyalty of loyaltyRecords) {
+      const [user] = await db.select().from(schema.users)
+        .where(eq(schema.users.id, loyalty.userId));
+      results.push({ ...loyalty, user });
+    }
+    
+    return results;
   }
   
   // Frequently Bought Together

@@ -2785,11 +2785,21 @@ Format your response as JSON:
           }
         : null;
       
+      // Get points expiring within 30 days
+      const expiringPointsData = await storage.getExpiringPoints(userId, 30);
+      const expiringTotal = expiringPointsData.reduce((sum, ep) => sum + ep.points, 0);
+      const nearestExpiry = expiringPointsData.length > 0 ? expiringPointsData[0].expiresAt : null;
+      
       res.json({
         ...loyalty,
         currentTier,
         allTiers,
         progressToNextTier,
+        expiringPoints: {
+          total: expiringTotal,
+          nearestExpiry,
+          details: expiringPointsData,
+        },
       });
     } catch (error: any) {
       console.error('Error fetching loyalty status:', error);
@@ -3062,6 +3072,92 @@ Format your response as JSON:
       res.json(transactions);
     } catch (error: any) {
       console.error('Error fetching loyalty transactions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Customer Leaderboard (ranking by points/spend)
+  app.get('/api/admin/loyalty/leaderboard', requireAdmin, async (req, res) => {
+    try {
+      const sortBy = req.query.sortBy as string || 'currentPoints';
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Get all users with loyalty data
+      const users = await db.select({
+        id: schema.userLoyalty.id,
+        userId: schema.userLoyalty.userId,
+        currentPoints: schema.userLoyalty.currentPoints,
+        lifetimePoints: schema.userLoyalty.lifetimePoints,
+        totalSpend: schema.userLoyalty.totalSpend,
+        currentTierId: schema.userLoyalty.currentTierId,
+        tierUpdatedAt: schema.userLoyalty.tierUpdatedAt,
+        createdAt: schema.userLoyalty.createdAt,
+        user: {
+          id: schema.users.id,
+          email: schema.users.email,
+          firstName: schema.users.firstName,
+          lastName: schema.users.lastName,
+        },
+      })
+      .from(schema.userLoyalty)
+      .leftJoin(schema.users, eq(schema.userLoyalty.userId, schema.users.id))
+      .orderBy(
+        sortBy === 'totalSpend' 
+          ? desc(schema.userLoyalty.totalSpend)
+          : sortBy === 'lifetimePoints'
+            ? desc(schema.userLoyalty.lifetimePoints)
+            : desc(schema.userLoyalty.currentPoints)
+      )
+      .limit(limit);
+      
+      // Get tiers for enrichment
+      const tiers = await storage.getVipTiers();
+      const tiersMap = new Map(tiers.map(t => [t.id, t]));
+      
+      // Add rank and tier info, flatten structure for frontend
+      const leaderboard = users.map((u, index) => {
+        const tier = u.currentTierId ? tiersMap.get(u.currentTierId) : null;
+        return {
+          rank: index + 1,
+          userId: u.userId,
+          email: u.user?.email || '',
+          firstName: u.user?.firstName || null,
+          lastName: u.user?.lastName || null,
+          currentPoints: u.currentPoints,
+          lifetimePoints: u.lifetimePoints,
+          totalSpend: u.totalSpend,
+          tierName: tier?.nameEn || 'Bronze',
+          tierColor: tier?.color || '#CD7F32',
+        };
+      });
+      
+      res.json({
+        leaderboard,
+        totalUsers: leaderboard.length,
+        sortBy,
+      });
+    } catch (error: any) {
+      console.error('Error fetching leaderboard:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Manually trigger points expiration check
+  app.post('/api/admin/loyalty/expire-points', requireAdmin, async (req, res) => {
+    try {
+      const result = await storage.expireOldPoints();
+      res.json({
+        success: true,
+        ...result,
+        message: result.expiredCount > 0 
+          ? `Expired ${result.expiredCount} points from ${result.usersAffected} users`
+          : 'No points to expire',
+        messageEt: result.expiredCount > 0 
+          ? `${result.expiredCount} punkti aegus ${result.usersAffected} kasutajalt`
+          : 'Aegunud punkte ei leitud',
+      });
+    } catch (error: any) {
+      console.error('Error expiring points:', error);
       res.status(500).json({ error: error.message });
     }
   });

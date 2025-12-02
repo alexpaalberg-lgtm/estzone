@@ -120,6 +120,17 @@ const defaultTasks: Record<string, ScheduledTask> = {
     enabled: true,
     runCount: 0,
   },
+  pointsExpiration: {
+    id: 'pointsExpiration',
+    name: 'Points Expiration Check',
+    nameEt: 'Punktide aegumise kontroll',
+    description: 'Expire loyalty points that are older than 6 months',
+    descriptionEt: 'Aeguvad lojaalsuspunktid, mis on vanemad kui 6 kuud',
+    schedule: 'daily',
+    hour: 1,
+    enabled: true,
+    runCount: 0,
+  },
   autoProducts: {
     id: 'autoProducts',
     name: 'Auto Product Addition',
@@ -199,6 +210,9 @@ export async function runTask(taskId: string): Promise<{ success: boolean; messa
         break;
       case 'autoProducts':
         result = await runAutoProducts();
+        break;
+      case 'pointsExpiration':
+        result = await runPointsExpiration();
         break;
       default:
         result = { success: false, message: 'Unknown task', messageEt: 'Tundmatu ülesanne' };
@@ -409,6 +423,28 @@ async function runAutoProducts(): Promise<{ success: boolean; message: string; m
     message: `Auto products: ${result.productsAdded} new products added`,
     messageEt: `Autotooted: ${result.productsAdded} uut toodet lisatud`,
   };
+}
+
+async function runPointsExpiration(): Promise<{ success: boolean; message: string; messageEt: string }> {
+  try {
+    const result = await storage.expireOldPoints();
+    
+    return {
+      success: true,
+      message: result.expiredCount > 0 
+        ? `Points expiration: ${result.expiredCount} points expired from ${result.usersAffected} users`
+        : 'No points to expire',
+      messageEt: result.expiredCount > 0 
+        ? `Punktide aegumine: ${result.expiredCount} punkti aegus ${result.usersAffected} kasutajalt`
+        : 'Aegunud punkte ei leitud',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Points expiration failed: ${error.message}`,
+      messageEt: `Punktide aegumine ebaõnnestus: ${error.message}`,
+    };
+  }
 }
 
 function shouldRunTask(task: ScheduledTask, now: Date): boolean {

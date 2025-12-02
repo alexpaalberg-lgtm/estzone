@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Trophy, Users, TrendingUp, Award, Search, Filter, Gift, Plus, Minus, History, Crown, Sparkles, Medal } from 'lucide-react';
+import { Trophy, Users, TrendingUp, Award, Search, Filter, Gift, Plus, Minus, History, Crown, Sparkles, Medal, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -75,6 +75,19 @@ interface LoyaltyStats {
   }[];
 }
 
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  currentPoints: number;
+  lifetimePoints: number;
+  totalSpend: string;
+  tierName: string;
+  tierColor: string;
+}
+
 function getTierIcon(tierName: string) {
   switch (tierName?.toLowerCase()) {
     case 'gold':
@@ -96,6 +109,7 @@ export default function AdminLoyalty() {
   const [adjustPoints, setAdjustPoints] = useState('');
   const [adjustType, setAdjustType] = useState<'add' | 'subtract'>('add');
   const [adjustReason, setAdjustReason] = useState('');
+  const [leaderboardSort, setLeaderboardSort] = useState<'points' | 'spend' | 'tier'>('points');
   
   const { data: stats, isLoading: statsLoading } = useQuery<LoyaltyStats>({
     queryKey: ['/api/admin/loyalty/stats-full'],
@@ -120,6 +134,19 @@ export default function AdminLoyalty() {
   const { data: transactions } = useQuery<LoyaltyTransaction[]>({
     queryKey: ['/api/admin/loyalty/transactions'],
   });
+  
+  const { data: leaderboardData, isLoading: leaderboardLoading } = useQuery<{ leaderboard: LeaderboardEntry[], totalUsers: number, sortBy: string }>({
+    queryKey: ['/api/admin/loyalty/leaderboard', leaderboardSort],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/loyalty/leaderboard?sortBy=${leaderboardSort}&limit=50`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch leaderboard');
+      return response.json();
+    },
+  });
+  
+  const leaderboard = leaderboardData?.leaderboard;
   
   const adjustPointsMutation = useMutation({
     mutationFn: (data: { userId: string; points: number; type: string; description: string }) =>
@@ -305,6 +332,10 @@ export default function AdminLoyalty() {
               <Users className="h-4 w-4" />
               Members
             </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Leaderboard
+            </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               Transaction History
@@ -422,6 +453,115 @@ export default function AdminLoyalty() {
                               >
                                 Adjust Points
                               </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="leaderboard" className="mt-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row gap-4 justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      Customer Leaderboard
+                    </CardTitle>
+                    <CardDescription>Top customers ranked by loyalty metrics</CardDescription>
+                  </div>
+                  <Select value={leaderboardSort} onValueChange={(v) => setLeaderboardSort(v as 'points' | 'spend' | 'tier')}>
+                    <SelectTrigger className="w-[180px]" data-testid="select-leaderboard-sort">
+                      <SelectValue placeholder="Sort by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="points">Sort by Points</SelectItem>
+                      <SelectItem value="spend">Sort by Spend</SelectItem>
+                      <SelectItem value="tier">Sort by Tier</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {leaderboardLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px]">Rank</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>VIP Tier</TableHead>
+                        <TableHead className="text-right">Current Points</TableHead>
+                        <TableHead className="text-right">Lifetime Points</TableHead>
+                        <TableHead className="text-right">Total Spend</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {!leaderboard || leaderboard.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No customers found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        leaderboard.map((entry) => (
+                          <TableRow key={entry.userId} data-testid={`row-leaderboard-${entry.rank}`}>
+                            <TableCell>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                                entry.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
+                                entry.rank === 2 ? 'bg-slate-400/20 text-slate-400' :
+                                entry.rank === 3 ? 'bg-amber-700/20 text-amber-700' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {entry.rank <= 3 ? (
+                                  <Trophy className={`h-4 w-4 ${
+                                    entry.rank === 1 ? 'text-yellow-500' :
+                                    entry.rank === 2 ? 'text-slate-400' :
+                                    'text-amber-700'
+                                  }`} />
+                                ) : (
+                                  entry.rank
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">
+                                  {entry.firstName} {entry.lastName}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{entry.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline"
+                                style={{ 
+                                  borderColor: entry.tierColor,
+                                  color: entry.tierColor,
+                                  backgroundColor: entry.tierColor + '10'
+                                }}
+                                className="gap-1"
+                              >
+                                {getTierIcon(entry.tierName)}
+                                {entry.tierName}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-medium">
+                              {entry.currentPoints.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              {entry.lifetimePoints.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-medium">
+                              €{parseFloat(entry.totalSpend).toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))
