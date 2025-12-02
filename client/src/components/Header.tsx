@@ -57,11 +57,22 @@ export default function Header() {
       }
     });
     
-    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories', 'campaign'];
+    const prioritySlugs = ['consoles', 'games', 'headsets', 'vr-headsets', 'accessories'];
     const visible = parents
       .filter(c => prioritySlugs.includes(c.slug))
       .sort((a, b) => prioritySlugs.indexOf(a.slug) - prioritySlugs.indexOf(b.slug));
-    const more = parents.filter(c => !prioritySlugs.includes(c.slug));
+    
+    const morePrioritySlugs = ['campaign', 'merchandise', 'streaming', 'mice-keyboards', 'gaming-furniture'];
+    const more = parents
+      .filter(c => !prioritySlugs.includes(c.slug))
+      .sort((a, b) => {
+        const aIndex = morePrioritySlugs.indexOf(a.slug);
+        const bIndex = morePrioritySlugs.indexOf(b.slug);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
     
     return { parentCategories: parents, subcategoriesByParent: subMap, visibleCategories: visible, moreCategories: more };
   }, [categories]);
@@ -152,20 +163,22 @@ export default function Header() {
                       {language === 'et' ? 'Rohkem' : 'More'}
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="grid w-[300px] gap-1 p-4">
-                        {moreCategories.map((cat) => {
-                          const catName = language === 'et' ? cat.nameEt : cat.nameEn;
-                          return (
-                            <Link key={cat.id} href={`/products/${cat.slug}`}>
-                              <div
-                                className="block px-4 py-2 rounded-md hover-elevate active-elevate-2"
-                                data-testid={`link-more-category-${cat.slug}`}
-                              >
-                                {catName}
-                              </div>
-                            </Link>
-                          );
-                        })}
+                      <div className="grid w-[400px] gap-2 p-4">
+                        <div className="grid grid-cols-2 gap-1">
+                          {moreCategories.map((cat) => {
+                            const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                            return (
+                              <Link key={cat.id} href={`/products/${cat.slug}`}>
+                                <div
+                                  className="block px-4 py-2 rounded-md hover-elevate active-elevate-2"
+                                  data-testid={`link-more-category-${cat.slug}`}
+                                >
+                                  {catName}
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
                       </div>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
@@ -385,6 +398,33 @@ export default function Header() {
                       </div>
                     );
                   })}
+                  
+                  {/* More categories section */}
+                  {moreCategories.length > 0 && (
+                    <div className="border-t border-border mt-2 pt-2">
+                      <p className="px-4 py-1 text-xs text-muted-foreground font-medium">
+                        {language === 'et' ? 'Rohkem' : 'More'}
+                      </p>
+                      {moreCategories.map((cat) => {
+                        const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                        return (
+                          <Link key={cat.id} href={`/products/${cat.slug}`}>
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start font-medium"
+                              data-testid={`mobile-link-${cat.slug}`}
+                              onClick={() => {
+                                setMobileMenuOpen(false);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                            >
+                              {catName}
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                   
                   <Link href="/blog">
                     <Button 
