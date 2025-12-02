@@ -43,6 +43,17 @@ The platform uses Replit Auth for user authentication via OpenID Connect, allowi
 - Recurring orders for subscription-like purchases
 - Compact header icons for login, wishlist, and account access
 
+### PWA & Push Notifications
+
+The platform includes full Progressive Web App (PWA) support and push notifications:
+- **PWA Features**: Install prompt, offline caching via service worker, home screen icons (192x192, 512x512)
+- **Push Subscriptions**: Users can subscribe to notifications from the footer bell icon
+- **Notification Preferences**: Toggle per-category settings (new products, sales, wishlist alerts, order updates)
+- **Admin Push Panel**: Send targeted notifications to all subscribers from /admin/push-notifications
+- **Notification History**: Track all sent notifications with timestamps, titles, and recipient counts
+- **VAPID Keys**: Web Push protocol uses VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VITE_VAPID_PUBLIC_KEY environment secrets
+- Database tables: push_subscriptions, notification_history
+
 ### Loyalty & VIP System
 
 The platform includes a comprehensive loyalty points and VIP tier system:
