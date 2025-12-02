@@ -71,6 +71,12 @@ export default function ProductDetail() {
     enabled: !!productId,
   });
   
+  // Fetch frequently bought together products
+  const { data: frequentlyBought } = useQuery<Product[]>({
+    queryKey: ['/api/products', productId, 'frequently-bought-together'],
+    enabled: !!productId,
+  });
+  
   // Check if product is in wishlist
   const { data: wishlistCheck } = useQuery<{ inWishlist: boolean }>({
     queryKey: ['/api/wishlist/check', productId],
@@ -422,6 +428,99 @@ export default function ProductDetail() {
           <div className="mt-16 border-t pt-8">
             <ProductReviews productId={product.id} />
           </div>
+          
+          {/* Frequently Bought Together Section */}
+          {frequentlyBought && frequentlyBought.length > 0 && (
+            <div className="mt-16 border-t pt-8" data-testid="section-frequently-bought">
+              <h2 className="text-2xl font-bold mb-6">
+                {language === 'et' ? 'Sageli ostetakse koos' : 'Frequently Bought Together'}
+              </h2>
+              <div className="bg-card border rounded-lg p-6">
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                  {/* Current product */}
+                  <div className="text-center">
+                    <img
+                      src={product.images?.[0] || '/placeholder.png'}
+                      alt={language === 'et' ? product.nameEt : product.nameEn}
+                      className="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
+                    />
+                    <p className="text-sm font-medium line-clamp-2 max-w-[120px]">
+                      {language === 'et' ? product.nameEt : product.nameEn}
+                    </p>
+                    <p className="text-primary font-semibold">
+                      {formatPrice(parseFloat(product.salePrice || product.price))}
+                    </p>
+                  </div>
+                  
+                  {/* Plus signs and frequently bought products */}
+                  {frequentlyBought.slice(0, 3).map((fbtProduct) => (
+                    <div key={fbtProduct.id} className="flex items-center gap-4">
+                      <div className="text-2xl text-muted-foreground">+</div>
+                      <Link href={`/product/${fbtProduct.id}`}>
+                        <div className="text-center hover-elevate cursor-pointer rounded-lg p-2 -m-2">
+                          <img
+                            src={fbtProduct.images?.[0] || '/placeholder.png'}
+                            alt={language === 'et' ? fbtProduct.nameEt : fbtProduct.nameEn}
+                            className="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
+                          />
+                          <p className="text-sm font-medium line-clamp-2 max-w-[120px]">
+                            {language === 'et' ? fbtProduct.nameEt : fbtProduct.nameEn}
+                          </p>
+                          <p className="text-primary font-semibold">
+                            {formatPrice(parseFloat(fbtProduct.salePrice || fbtProduct.price))}
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Bundle price and add all button */}
+                <div className="mt-6 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'et' ? 'Paketi hind' : 'Bundle Price'}
+                    </p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatPrice(
+                        parseFloat(product.salePrice || product.price) +
+                        frequentlyBought.slice(0, 3).reduce((sum, p) => sum + parseFloat(p.salePrice || p.price), 0)
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    onClick={() => {
+                      addItem({
+                        id: product.id,
+                        name: language === 'et' ? product.nameEt : product.nameEn,
+                        price: parseFloat(product.salePrice || product.price),
+                        image: product.images?.[0] || '/placeholder.png',
+                      });
+                      frequentlyBought.slice(0, 3).forEach((fbtProduct) => {
+                        addItem({
+                          id: fbtProduct.id,
+                          name: language === 'et' ? fbtProduct.nameEt : fbtProduct.nameEn,
+                          price: parseFloat(fbtProduct.salePrice || fbtProduct.price),
+                          image: fbtProduct.images?.[0] || '/placeholder.png',
+                        });
+                      });
+                      toast({
+                        title: language === 'et' ? 'Pakett lisatud' : 'Bundle Added',
+                        description: language === 'et' 
+                          ? 'Kõik tooted lisati ostukorvi'
+                          : 'All products added to cart',
+                      });
+                    }}
+                    data-testid="button-add-bundle"
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    {language === 'et' ? 'Lisa kõik ostukorvi' : 'Add All to Cart'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Related Products Section */}
           {relatedProducts && relatedProducts.length > 0 && (

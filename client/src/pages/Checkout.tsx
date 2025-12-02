@@ -24,9 +24,35 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { calculateVatBreakdown } from "@/lib/vat";
-import { ShoppingBag, Package, CreditCard, MapPin, Plus } from "lucide-react";
+import { ShoppingBag, Package, CreditCard, MapPin, Plus, Award, Sparkles } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Link } from "wouter";
 import type { Address } from "@shared/schema";
+
+interface LoyaltyStatus {
+  id: string;
+  userId: string;
+  currentTierId: string | null;
+  currentPoints: number;
+  lifetimePoints: number;
+  totalSpend: string;
+  currentTier: {
+    id: string;
+    nameEn: string;
+    nameEt: string;
+    discountPercent: string;
+    pointsMultiplier: string;
+    color: string;
+  } | null;
+  nextTier: {
+    id: string;
+    nameEn: string;
+    nameEt: string;
+    minSpend: string;
+  } | null;
+  nextTierProgress: number;
+  spendToNextTier: number;
+}
 
 const platformColors: Record<string, string> = {
   'PS5': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -96,6 +122,20 @@ export default function Checkout() {
     amountToApply: number;
   } | null>(null);
   
+  // Loyalty points state
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [appliedLoyalty, setAppliedLoyalty] = useState<{
+    pointsRedeemed: number;
+    discountValue: number;
+  } | null>(null);
+  
+  // Fetch user's loyalty status
+  const { data: loyaltyStatus, refetch: refetchLoyalty } = useQuery<LoyaltyStatus>({
+    queryKey: ['/api/loyalty/status'],
+    enabled: isAuthenticated,
+  });
+  
   // Fetch saved addresses for authenticated users
   const { data: savedAddresses } = useQuery<Address[]>({
     queryKey: ['/api/addresses'],
@@ -117,9 +157,13 @@ export default function Checkout() {
   const discountedProductsTotal = Math.max(0, baseTotalPrice - couponDiscount);
   const subtotalWithShipping = discountedProductsTotal + shippingCost;
   
+  // Apply loyalty points discount (100 points = €1)
+  const loyaltyDiscount = appliedLoyalty ? appliedLoyalty.discountValue : 0;
+  const afterLoyaltyDiscount = Math.max(0, subtotalWithShipping - loyaltyDiscount);
+  
   // Apply gift card discount (reduces final amount to pay)
   const giftCardAmount = appliedGiftCard ? appliedGiftCard.amountToApply : 0;
-  const grandTotal = Math.max(0, subtotalWithShipping - giftCardAmount);
+  const grandTotal = Math.max(0, afterLoyaltyDiscount - giftCardAmount);
   
   // Calculate VAT breakdown on discounted amounts
   // Keep values in EUR - formatPrice() will handle conversion to display currency
@@ -223,6 +267,42 @@ export default function Checkout() {
     });
   };
   
+  // Calculate max loyalty discount based on available points
+  const availablePoints = loyaltyStatus?.currentPoints || 0;
+  const maxPointsValue = availablePoints / 100; // 100 points = €1
+  const maxRedeemablePoints = Math.min(
+    availablePoints,
+    Math.floor((discountedProductsTotal + shippingCost) * 100) // Can't redeem more than order total
+  );
+  
+  // Apply loyalty points - just calculate locally, actual redemption happens on order creation
+  const handleApplyLoyalty = () => {
+    if (pointsToRedeem <= 0 || pointsToRedeem > availablePoints) return;
+    
+    // Calculate discount value locally (100 points = €1)
+    const discountValue = pointsToRedeem / 100;
+    
+    setAppliedLoyalty({
+      pointsRedeemed: pointsToRedeem,
+      discountValue: discountValue,
+    });
+    
+    toast({
+      title: language === 'et' ? 'Punktid rakendatud!' : 'Points applied!',
+      description: language === 'et' 
+        ? `${pointsToRedeem} punkti = ${formatPrice(discountValue)} allahindlus`
+        : `${pointsToRedeem} points = ${formatPrice(discountValue)} discount`,
+    });
+  };
+  
+  const handleRemoveLoyalty = () => {
+    setAppliedLoyalty(null);
+    setPointsToRedeem(0);
+    toast({
+      title: language === 'et' ? 'Punktid eemaldatud' : 'Points removed',
+    });
+  };
+  
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -291,6 +371,7 @@ export default function Checkout() {
       const orderData = {
         customerEmail: data.email,
         customerName: `${data.firstName} ${data.lastName}`,
+        userId: user?.id || null,
         shippingMethod: data.shippingMethod,
         shippingFirstName: data.firstName,
         shippingLastName: data.lastName,
@@ -305,6 +386,7 @@ export default function Checkout() {
         shippingCost: shippingVat.subtotalExVat.toFixed(2),
         vatAmount: totalVat.vatAmount.toFixed(2),
         discountAmount: appliedCoupon ? appliedCoupon.discountAmount : '0.00',
+        loyaltyDiscount: appliedLoyalty ? appliedLoyalty.discountValue.toFixed(2) : '0.00',
         couponCode: appliedCoupon?.code || null,
         total: grandTotal.toFixed(2),
         currency: 'EUR',
@@ -330,10 +412,15 @@ export default function Checkout() {
           code: appliedGiftCard.code,
           amountApplied: appliedGiftCard.amountToApply,
         } : null,
+        loyaltyPoints: appliedLoyalty ? {
+          pointsRedeemed: appliedLoyalty.pointsRedeemed,
+          discountValue: appliedLoyalty.discountValue,
+        } : null,
       });
     },
     onSuccess: () => {
       clearCart();
+      queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
       toast({
         title: language === 'et' ? 'Tellimus edastatud!' : 'Order placed!',
         description: language === 'et' ? 'Saadame teile kinnituskirja' : 'We will send you a confirmation email',
@@ -813,6 +900,85 @@ export default function Checkout() {
                       )}
                     </div>
                     
+                    {/* Loyalty Points Redemption - Only for authenticated users with points */}
+                    {isAuthenticated && loyaltyStatus && availablePoints > 0 && (
+                      <div className="mb-4">
+                        <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Award className="h-4 w-4 text-primary" />
+                          {language === 'et' ? 'Lojaalsuspunktid' : 'Loyalty Points'}
+                        </Label>
+                        {appliedLoyalty ? (
+                          <div className="flex items-center justify-between p-3 bg-primary/10 rounded-md border border-primary/20">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <span className="font-semibold text-primary">{appliedLoyalty.pointsRedeemed} {language === 'et' ? 'punkti' : 'points'}</span>
+                              <span className="text-sm text-muted-foreground">
+                                (-{formatPrice(appliedLoyalty.discountValue)})
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRemoveLoyalty}
+                              data-testid="button-remove-loyalty"
+                            >
+                              {language === 'et' ? 'Eemalda' : 'Remove'}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 p-3 bg-muted/50 rounded-md border">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                {language === 'et' ? 'Saadaval' : 'Available'}: 
+                                <span className="font-semibold text-foreground ml-1">{availablePoints.toLocaleString()}</span> 
+                                {language === 'et' ? ' punkti' : ' points'}
+                              </span>
+                              <span className="text-muted-foreground">
+                                = {formatPrice(maxPointsValue)}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>{language === 'et' ? 'Kasuta punktid' : 'Use points'}</span>
+                                <span className="font-mono font-semibold">
+                                  {pointsToRedeem} = {formatPrice(pointsToRedeem / 100)}
+                                </span>
+                              </div>
+                              <Slider
+                                value={[pointsToRedeem]}
+                                onValueChange={(value) => setPointsToRedeem(value[0])}
+                                max={maxRedeemablePoints}
+                                step={100}
+                                className="w-full"
+                                data-testid="slider-loyalty-points"
+                              />
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>0</span>
+                                <span>{language === 'et' ? 'Max' : 'Max'}: {maxRedeemablePoints.toLocaleString()}</span>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={handleApplyLoyalty}
+                              disabled={loyaltyLoading || pointsToRedeem <= 0}
+                              data-testid="button-apply-loyalty"
+                            >
+                              {loyaltyLoading 
+                                ? (language === 'et' ? 'Rakendan...' : 'Applying...')
+                                : (language === 'et' ? `Kasuta ${pointsToRedeem} punkti` : `Use ${pointsToRedeem} points`)}
+                            </Button>
+                            <p className="text-xs text-muted-foreground text-center">
+                              {language === 'et' ? `100 punkti = ${formatPrice(1)} allahindlus` : `100 points = ${formatPrice(1)} discount`}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{language === 'et' ? 'Tooted (ilma KM-ta)' : 'Products (ex VAT)'}</span>
@@ -844,6 +1010,15 @@ export default function Checkout() {
                             {language === 'et' ? 'Sooduskood' : 'Discount'} ({appliedCoupon.code})
                           </span>
                           <span data-testid="text-discount" className="text-sm">-{formatDualPrice(couponDiscount)}</span>
+                        </div>
+                      )}
+                      {appliedLoyalty && (
+                        <div className="flex justify-between text-primary font-medium">
+                          <span className="flex items-center gap-1">
+                            <Award className="h-3 w-3" />
+                            {language === 'et' ? 'Lojaalsuspunktid' : 'Loyalty Points'} ({appliedLoyalty.pointsRedeemed})
+                          </span>
+                          <span data-testid="text-loyalty" className="text-sm">-€{appliedLoyalty.discountValue.toFixed(2)}</span>
                         </div>
                       )}
                       {appliedGiftCard && (

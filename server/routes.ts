@@ -727,7 +727,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.post("/api/orders", async (req, res) => {
     try {
-      const { order, items, language = 'en', couponId, giftCard } = req.body;
+      const { order, items, language = 'en', couponId, giftCard, loyaltyPoints } = req.body;
+      
+      // Validate loyalty points if applied
+      let validLoyaltyRedemption = null;
+      if (loyaltyPoints && loyaltyPoints.pointsRedeemed > 0 && order.userId) {
+        const userLoyalty = await storage.getUserLoyalty(order.userId);
+        if (!userLoyalty) {
+          return res.status(400).json({ error: "User loyalty account not found" });
+        }
+        if (userLoyalty.currentPoints < loyaltyPoints.pointsRedeemed) {
+          return res.status(400).json({ error: "Insufficient loyalty points" });
+        }
+        validLoyaltyRedemption = {
+          userId: order.userId,
+          pointsToRedeem: loyaltyPoints.pointsRedeemed,
+          discountValue: loyaltyPoints.discountValue,
+        };
+      }
       
       // Validate gift card if applied
       let validGiftCard = null;
@@ -825,6 +842,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } catch (giftCardError) {
           console.error('Error recording gift card usage:', giftCardError);
+        }
+      }
+      
+      // Redeem loyalty points if used
+      if (validLoyaltyRedemption) {
+        try {
+          const transaction = await storage.redeemLoyaltyPoints(
+            validLoyaltyRedemption.userId,
+            validLoyaltyRedemption.pointsToRedeem,
+            `Redeemed ${validLoyaltyRedemption.pointsToRedeem} points for €${validLoyaltyRedemption.discountValue.toFixed(2)} discount on order #${createdOrder.orderNumber}`
+          );
+          
+          if (!transaction) {
+            console.error('Failed to redeem loyalty points - insufficient balance');
+          }
+        } catch (loyaltyRedeemError) {
+          console.error('Error redeeming loyalty points:', loyaltyRedeemError);
         }
       }
       
