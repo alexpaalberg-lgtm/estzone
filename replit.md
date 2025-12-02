@@ -77,12 +77,12 @@ The admin panel includes a comprehensive financial tracking system across all pa
 - Database tables: payment_transactions (unified tracking across all gateways)
 - Access: Admin-only via /admin/finance
 
-## Temporarily Hidden Products (Montonio Compliance)
+## Temporarily Hidden Campaign Products (Montonio Compliance)
 
 **Date Hidden**: December 2, 2024
-**Reason**: Montonio requested removal of digital content from store
+**Reason**: Montonio requested removal of campaign products from store
 
-The following 50 digital products are hidden (is_active = false) and can be restored by setting is_active = true for SKUs starting with 'DIG-':
+The following 50 campaign products are hidden (is_active = false) and can be restored by setting is_active = true for SKUs starting with 'DIG-':
 
 ### Console Gift Cards (11 products)
 - DIG-PSN-10, DIG-PSN-25, DIG-PSN-50, DIG-PSN-100 (PlayStation Store €10-€100)
