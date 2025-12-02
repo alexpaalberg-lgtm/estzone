@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { CompareProvider } from "@/contexts/CompareContext";
 import FloatingButtons from "@/components/FloatingButtons";
 import ShoppingCart from "@/components/ShoppingCart";
 import CookieConsent from "@/components/CookieConsent";
@@ -42,6 +43,7 @@ import FAQ from "@/pages/FAQ";
 import Wishlist from "@/pages/Wishlist";
 import Account from "@/pages/Account";
 import Auth from "@/pages/Auth";
+import Compare from "@/pages/Compare";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -68,6 +70,7 @@ function Router() {
       <Route path="/shipping-policy" component={() => <Legal type="shipping" />} />
       <Route path="/faq" component={FAQ} />
       <Route path="/wishlist" component={Wishlist} />
+      <Route path="/compare" component={Compare} />
       <Route path="/account" component={Account} />
       <Route path="/auth" component={Auth} />
       <Route path="/login" component={Auth} />
@@ -114,11 +117,13 @@ function App() {
         <LanguageProvider>
           <CurrencyProvider>
             <CartProvider>
-              <Toaster />
-              <Router />
-              <ShoppingCart />
-              <FloatingButtons />
-              <CookieConsent />
+              <CompareProvider>
+                <Toaster />
+                <Router />
+                <ShoppingCart />
+                <FloatingButtons />
+                <CookieConsent />
+              </CompareProvider>
             </CartProvider>
           </CurrencyProvider>
         </LanguageProvider>

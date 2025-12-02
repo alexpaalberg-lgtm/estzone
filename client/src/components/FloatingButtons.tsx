@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, X, ChevronUp, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, X, ChevronUp, RotateCcw, Scale } from "lucide-react";
 import ChatPanel, { ChatPanelRef } from "@/components/ChatPanel";
+import { useCompare } from "@/contexts/CompareContext";
 import {
   Tooltip,
   TooltipContent,
@@ -127,6 +130,38 @@ function ChatWindow({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CompareFloatingButton() {
+  const { compareCount } = useCompare();
+  
+  if (compareCount === 0) return null;
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link href="/compare">
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shadow-lg bg-background/95 backdrop-blur-sm border-border hover:bg-muted relative"
+            data-testid="button-floating-compare"
+          >
+            <Scale className="h-5 w-5 sm:h-6 sm:w-6" />
+            <Badge 
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground"
+              data-testid="badge-compare-count"
+            >
+              {compareCount}
+            </Badge>
+          </Button>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="left">
+        Compare ({compareCount})
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function FloatingButtons() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -143,6 +178,7 @@ export default function FloatingButtons() {
       style={{ zIndex: 99999, pointerEvents: 'auto' }}
     >
       <ScrollToTopButton />
+      <CompareFloatingButton />
       
       {!isChatOpen && (
         <ChatLauncherButton onClick={() => setIsChatOpen(true)} />

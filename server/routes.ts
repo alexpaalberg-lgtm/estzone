@@ -605,6 +605,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/products/compare", async (req, res) => {
+    try {
+      const ids = (req.query.ids as string)?.split(',').filter(Boolean) || [];
+      if (ids.length === 0) {
+        return res.json([]);
+      }
+      const products = await Promise.all(
+        ids.map(id => storage.getProduct(id))
+      );
+      res.json(products.filter(Boolean));
+    } catch (error) {
+      console.error('Error fetching compare products:', error);
+      res.status(500).json({ error: "Failed to fetch products for comparison" });
+    }
+  });
+  
   app.post("/api/products", async (req, res) => {
     try {
       const validated = insertProductSchema.parse(req.body);

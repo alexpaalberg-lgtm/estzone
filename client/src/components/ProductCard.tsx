@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart, Truck, Sparkles, Star } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Sparkles, Star, Scale } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Product, Wishlist } from '@shared/schema';
 import { RatingBadge } from '@/components/ProductReviews';
+import { useCompare } from '@/contexts/CompareContext';
 
 interface ProductCardProps {
   product: Product;
@@ -25,6 +26,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const { addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
   
   const name = language === 'et' ? product.nameEt : product.nameEn;
   const price = parseFloat(product.price);
@@ -86,6 +88,35 @@ export default function ProductCard({ product }: ProductCardProps) {
       removeFromWishlistMutation.mutate();
     } else {
       addToWishlistMutation.mutate();
+    }
+  };
+  
+  const inCompare = isInCompare(product.id);
+  
+  const handleCompareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (inCompare) {
+      removeFromCompare(product.id);
+      toast({
+        title: language === 'et' ? 'Eemaldatud võrdlusest' : 'Removed from compare',
+        description: name,
+      });
+    } else {
+      const added = addToCompare(product.id);
+      if (added) {
+        toast({
+          title: language === 'et' ? 'Lisatud võrdlusesse' : 'Added to compare',
+          description: name,
+        });
+      } else {
+        toast({
+          title: language === 'et' ? 'Võrdlus on täis' : 'Compare list is full',
+          description: language === 'et' ? 'Maksimaalselt 4 toodet' : 'Maximum 4 products',
+          variant: 'destructive',
+        });
+      }
     }
   };
   
@@ -159,22 +190,37 @@ export default function ProductCard({ product }: ProductCardProps) {
               </Badge>
             )}
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className={`absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm transition-colors ${isInWishlist ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'}`}
-            onClick={handleWishlistClick}
-            disabled={addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
-            data-testid={`button-wishlist-${product.id}`}
-            title={isAuthenticated 
-              ? (isInWishlist 
-                ? (language === 'et' ? 'Eemalda soovinimekirjast' : 'Remove from wishlist')
-                : (language === 'et' ? 'Lisa soovinimekirja' : 'Add to wishlist'))
-              : (language === 'et' ? 'Logi sisse soovinimekirja kasutamiseks' : 'Sign in to use wishlist')
-            }
-          >
-            <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
-          </Button>
+          <div className="absolute bottom-2 left-2 right-2 flex justify-between">
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`bg-background/80 backdrop-blur-sm transition-colors ${isInWishlist ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'}`}
+              onClick={handleWishlistClick}
+              disabled={addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
+              data-testid={`button-wishlist-${product.id}`}
+              title={isAuthenticated 
+                ? (isInWishlist 
+                  ? (language === 'et' ? 'Eemalda soovinimekirjast' : 'Remove from wishlist')
+                  : (language === 'et' ? 'Lisa soovinimekirja' : 'Add to wishlist'))
+                : (language === 'et' ? 'Logi sisse soovinimekirja kasutamiseks' : 'Sign in to use wishlist')
+              }
+            >
+              <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`bg-background/80 backdrop-blur-sm transition-colors ${inCompare ? 'text-primary' : 'hover:text-primary'}`}
+              onClick={handleCompareClick}
+              data-testid={`button-compare-${product.id}`}
+              title={inCompare 
+                ? (language === 'et' ? 'Eemalda võrdlusest' : 'Remove from compare')
+                : (language === 'et' ? 'Lisa võrdlusesse' : 'Add to compare')
+              }
+            >
+              <Scale className={`h-4 w-4 ${inCompare ? 'fill-current' : ''}`} />
+            </Button>
+          </div>
         </div>
 
         <div className="p-3 sm:p-4 flex flex-col flex-1 bg-gradient-to-t from-card via-card to-transparent">
