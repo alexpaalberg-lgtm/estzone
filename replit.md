@@ -66,6 +66,40 @@ The admin panel includes a comprehensive financial tracking system across all pa
 - Database tables: payment_transactions (unified tracking across all gateways)
 - Access: Admin-only via /admin/finance
 
+## Temporarily Hidden Products (Montonio Compliance)
+
+**Date Hidden**: December 2, 2024
+**Reason**: Montonio requested removal of digital content from store
+
+The following 50 digital products are hidden (is_active = false) and can be restored by setting is_active = true for SKUs starting with 'DIG-':
+
+### Console Gift Cards (11 products)
+- DIG-PSN-10, DIG-PSN-25, DIG-PSN-50, DIG-PSN-100 (PlayStation Store €10-€100)
+- DIG-XBX-10, DIG-XBX-25, DIG-XBX-50, DIG-XBX-100 (Xbox €10-€100)
+- DIG-NIN-15, DIG-NIN-25, DIG-NIN-50 (Nintendo eShop €15-€50)
+
+### Subscriptions (12 products)
+- DIG-PSP-E1M, DIG-PSP-E3M, DIG-PSP-E12M (PS Plus Essential 1/3/12 months)
+- DIG-PSP-X12M, DIG-PSP-P12M (PS Plus Extra/Premium 12 months)
+- DIG-XGP-C1M, DIG-XGP-C12M (Xbox Game Pass Core 1/12 months)
+- DIG-XGP-U1M, DIG-XGP-U3M (Xbox Game Pass Ultimate 1/3 months)
+- DIG-NSO-1M, DIG-NSO-12M, DIG-NSO-F12M (Nintendo Online 1/12 months + Family)
+
+### In-Game Currency (19 products)
+- DIG-VBK-1K, DIG-VBK-2.8K, DIG-VBK-5K, DIG-VBK-13.5K (Fortnite V-Bucks)
+- DIG-FCP-1K, DIG-FCP-2.2K, DIG-FCP-4.6K (EA Sports FC Points)
+- DIG-COD-1.1K, DIG-COD-2.4K, DIG-COD-5K (Call of Duty Points)
+- DIG-RBX-800, DIG-RBX-2K, DIG-RBX-4.5K (Roblox Robux)
+- DIG-GEN-330, DIG-GEN-1090, DIG-GEN-3880 (Genshin Impact Genesis Crystals)
+- DIG-MNC-320, DIG-MNC-1720, DIG-MNC-3500 (Minecraft Minecoins)
+
+### PC & Universal (8 products)
+- DIG-STM-10, DIG-STM-20, DIG-STM-50, DIG-STM-100 (Steam Wallet €10-€100)
+- DIG-BNT-20, DIG-BNT-50 (Battle.net Balance €20/€50)
+- DIG-EAP-1M, DIG-EAP-12M (EA Play 1/12 months)
+
+**To restore**: Run SQL: `UPDATE products SET is_active = true WHERE sku LIKE 'DIG-%';`
+
 ## Future Features (Deferred)
 
 - **Merge & Fan Products**: New category for merchandise and fan items
