@@ -41,7 +41,6 @@ interface UserLoyaltyDetails {
     email: string;
     firstName: string | null;
     lastName: string | null;
-    username: string | null;
   };
   tier: VipTier | null;
 }
@@ -99,7 +98,7 @@ export default function AdminLoyalty() {
   const [adjustReason, setAdjustReason] = useState('');
   
   const { data: stats, isLoading: statsLoading } = useQuery<LoyaltyStats>({
-    queryKey: ['/api/admin/loyalty/stats'],
+    queryKey: ['/api/admin/loyalty/stats-full'],
   });
   
   const { data: tiers } = useQuery<VipTier[]>({
@@ -108,6 +107,14 @@ export default function AdminLoyalty() {
   
   const { data: users, isLoading: usersLoading } = useQuery<UserLoyaltyDetails[]>({
     queryKey: ['/api/admin/loyalty/users', selectedTier],
+    queryFn: async () => {
+      const url = selectedTier && selectedTier !== 'all'
+        ? `/api/admin/loyalty/users?tier=${selectedTier}`
+        : '/api/admin/loyalty/users';
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
   });
   
   const { data: transactions } = useQuery<LoyaltyTransaction[]>({
@@ -118,7 +125,9 @@ export default function AdminLoyalty() {
     mutationFn: (data: { userId: string; points: number; type: string; description: string }) =>
       apiRequest('POST', '/api/admin/loyalty/adjust-points', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/loyalty'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/loyalty/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/loyalty/stats-full'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/loyalty/transactions'] });
       setIsAdjustOpen(false);
       setSelectedUser(null);
       setAdjustPoints('');

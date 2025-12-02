@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema, insertReviewSchema, insertGiftCardSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
@@ -2976,6 +2976,182 @@ Format your response as JSON:
         totalPointsInCirculation: Number(totalPointsResult[0]?.total || 0),
       });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all loyalty users with details
+  app.get('/api/admin/loyalty/users', requireAdmin, async (req, res) => {
+    try {
+      const tierFilter = req.query.tier as string;
+      
+      // Build base query
+      const baseQuery = db.select({
+        id: schema.userLoyalty.id,
+        userId: schema.userLoyalty.userId,
+        currentPoints: schema.userLoyalty.currentPoints,
+        lifetimePoints: schema.userLoyalty.lifetimePoints,
+        totalSpend: schema.userLoyalty.totalSpend,
+        currentTierId: schema.userLoyalty.currentTierId,
+        tierUpdatedAt: schema.userLoyalty.tierUpdatedAt,
+        user: {
+          id: schema.users.id,
+          email: schema.users.email,
+          firstName: schema.users.firstName,
+          lastName: schema.users.lastName,
+        },
+      })
+      .from(schema.userLoyalty)
+      .leftJoin(schema.users, eq(schema.userLoyalty.userId, schema.users.id));
+      
+      // Apply tier filter at database level if specified
+      let users;
+      if (tierFilter && tierFilter !== 'all') {
+        users = await baseQuery.where(eq(schema.userLoyalty.currentTierId, tierFilter));
+      } else {
+        users = await baseQuery;
+      }
+      
+      // Get tiers for enrichment
+      const tiers = await storage.getVipTiers();
+      const tiersMap = new Map(tiers.map(t => [t.id, t]));
+      
+      const usersWithTiers = users.map(u => ({
+        ...u,
+        tier: u.currentTierId ? tiersMap.get(u.currentTierId) || null : null,
+      }));
+      
+      res.json(usersWithTiers);
+    } catch (error: any) {
+      console.error('Error fetching loyalty users:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get loyalty transactions
+  app.get('/api/admin/loyalty/transactions', requireAdmin, async (req, res) => {
+    try {
+      const transactions = await db.select({
+        id: schema.loyaltyTransactions.id,
+        userId: schema.loyaltyTransactions.userId,
+        orderId: schema.loyaltyTransactions.orderId,
+        points: schema.loyaltyTransactions.points,
+        type: schema.loyaltyTransactions.type,
+        description: schema.loyaltyTransactions.description,
+        balanceBefore: schema.loyaltyTransactions.balanceBefore,
+        balanceAfter: schema.loyaltyTransactions.balanceAfter,
+        createdAt: schema.loyaltyTransactions.createdAt,
+        user: {
+          email: schema.users.email,
+          firstName: schema.users.firstName,
+          lastName: schema.users.lastName,
+        },
+      })
+      .from(schema.loyaltyTransactions)
+      .leftJoin(schema.users, eq(schema.loyaltyTransactions.userId, schema.users.id))
+      .orderBy(desc(schema.loyaltyTransactions.createdAt))
+      .limit(100);
+      
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('Error fetching loyalty transactions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Adjust points (add or subtract)
+  app.post('/api/admin/loyalty/adjust-points', requireAdmin, async (req, res) => {
+    try {
+      const { userId, points, type, description } = req.body;
+      
+      // Validate required fields
+      if (!userId || typeof userId !== 'string') {
+        return res.status(400).json({ error: 'Valid user ID is required' });
+      }
+      
+      if (points === undefined || points === null || typeof points !== 'number' || !Number.isInteger(points)) {
+        return res.status(400).json({ error: 'Points must be a valid integer' });
+      }
+      
+      if (!description || typeof description !== 'string' || description.trim().length === 0) {
+        return res.status(400).json({ error: 'Description is required' });
+      }
+      
+      // Validate type if provided
+      const validTypes = ['bonus', 'adjustment', 'earned', 'redeemed', 'expired'];
+      const transactionType = type || (points > 0 ? 'bonus' : 'adjustment');
+      if (!validTypes.includes(transactionType)) {
+        return res.status(400).json({ error: `Type must be one of: ${validTypes.join(', ')}` });
+      }
+      
+      const transaction = await storage.addLoyaltyPoints(
+        userId,
+        points, // Can be negative for subtraction
+        transactionType,
+        description.trim()
+      );
+      
+      res.json(transaction);
+    } catch (error: any) {
+      console.error('Error adjusting points:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update admin loyalty stats to match frontend expectations
+  app.get('/api/admin/loyalty/stats-full', requireAdmin, async (req, res) => {
+    try {
+      const tiers = await storage.getVipTiers();
+      
+      // Get counts for each tier
+      const tierDistribution = await Promise.all(
+        tiers.map(async tier => {
+          const countResult = await db.select({ count: sql<number>`count(*)` })
+            .from(schema.userLoyalty)
+            .where(eq(schema.userLoyalty.currentTierId, tier.id));
+          return {
+            tierId: tier.id,
+            tierName: tier.nameEn,
+            color: tier.color || '#CD7F32',
+            count: Number(countResult[0]?.count || 0)
+          };
+        })
+      );
+      
+      // Get total users
+      const totalUsersResult = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.userLoyalty);
+      
+      // Get total points issued (sum of lifetime_points)
+      const totalIssuedResult = await db.select({ 
+        total: sql<number>`COALESCE(SUM(lifetime_points), 0)` 
+      }).from(schema.userLoyalty);
+      
+      // Get total points redeemed (sum of negative transactions)
+      const totalRedeemedResult = await db.select({ 
+        total: sql<number>`COALESCE(ABS(SUM(CASE WHEN points < 0 THEN points ELSE 0 END)), 0)` 
+      }).from(schema.loyaltyTransactions);
+      
+      // Get current points in circulation
+      const currentPointsResult = await db.select({ 
+        total: sql<number>`COALESCE(SUM(current_points), 0)` 
+      }).from(schema.userLoyalty);
+      
+      const totalUsers = Number(totalUsersResult[0]?.count || 0);
+      const totalPointsIssued = Number(totalIssuedResult[0]?.total || 0);
+      const totalPointsRedeemed = Number(totalRedeemedResult[0]?.total || 0);
+      
+      res.json({
+        totalUsers,
+        totalPointsIssued,
+        totalPointsRedeemed,
+        averagePointsPerUser: totalUsers > 0 
+          ? Math.round(Number(currentPointsResult[0]?.total || 0) / totalUsers) 
+          : 0,
+        tierDistribution,
+      });
+    } catch (error: any) {
+      console.error('Error fetching loyalty stats:', error);
       res.status(500).json({ error: error.message });
     }
   });

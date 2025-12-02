@@ -46,12 +46,23 @@ The platform uses Replit Auth for user authentication via OpenID Connect, allowi
 ### Loyalty & VIP System
 
 The platform includes a comprehensive loyalty points and VIP tier system:
-- **Points Earning**: 10 points per €1 spent (base rate)
-- **Points Redemption**: 100 points = €1 discount
+- **Points Earning**: 10 points per €1 spent (base rate), multiplied by tier bonus
+- **Points Redemption**: 100 points = €1 discount at checkout via slider interface
 - **VIP Tiers**: Bronze (€0+), Silver (€500+, 5% discount, 1.25x points), Gold (€1500+, 10% discount, 1.5x points)
-- **LoyaltyCard Component**: Displays current tier, points balance, progress to next tier
-- **Frequently Bought Together**: Tracks products purchased together for recommendations
+- **LoyaltyCard Component**: Displays current tier, points balance, progress to next tier on Account page
+- **Frequently Bought Together**: Shows bundle recommendations on product detail pages with "Add All to Cart"
+- **Admin Loyalty Panel**: Manage users, view/adjust points, see transaction history, tier distribution
 - Database tables: vip_tiers, user_loyalty, loyalty_transactions, frequently_bought_together
+
+## Future Features (Deferred)
+
+- **Points Expiration**: Consider adding 6-month expiration for unused points
+- **Leaderboard**: User ranking by lifetime points for gamification
+- **Merge & Fan Products**: New category for merchandise and fan items
+- **Seasonal Themes**: Christmas/holiday themes with special discounts (temporary visual changes)
+- **Courier API Integration**: Automatic shipment creation via Omniva/DPD APIs (waiting for credentials)
+- **Pre-order System**: For upcoming products (when needed)
+- **Trade-in Program**: For used gaming equipment
 
 ### UI/UX Decisions
 
