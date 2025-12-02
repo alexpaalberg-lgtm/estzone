@@ -146,7 +146,7 @@ export interface IStorage {
   getAllReviews(): Promise<Review[]>;
   getReview(id: string): Promise<Review | undefined>;
   createReview(review: InsertReview): Promise<Review>;
-  updateReview(id: string, review: Partial<InsertReview>): Promise<Review | undefined>;
+  updateReview(id: string, review: { isApproved?: boolean; title?: string; comment?: string }): Promise<Review | undefined>;
   deleteReview(id: string): Promise<void>;
   getProductAverageRating(productId: string): Promise<{ average: number; count: number }>;
   hasUserReviewedProduct(userId: string, productId: string): Promise<boolean>;
@@ -959,7 +959,7 @@ export class DbStorage implements IStorage {
     return created;
   }
   
-  async updateReview(id: string, review: Partial<InsertReview>): Promise<Review | undefined> {
+  async updateReview(id: string, review: { isApproved?: boolean; title?: string; comment?: string }): Promise<Review | undefined> {
     const [updated] = await db.update(schema.reviews)
       .set(review)
       .where(eq(schema.reviews.id, id))

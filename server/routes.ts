@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema, insertReviewSchema, insertGiftCardSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingOptions } from "./utils/shipping";
@@ -2174,6 +2174,376 @@ Format your response as JSON:
       stopAutomationScheduler();
       res.json({ success: true, message: 'Automation scheduler stopped' });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // REVIEWS SYSTEM
+  // ============================================
+
+  // Get reviews for a product (public)
+  app.get('/api/products/:productId/reviews', async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const reviews = await storage.getProductReviews(productId);
+      const rating = await storage.getProductAverageRating(productId);
+      res.json({ reviews, ...rating });
+    } catch (error: any) {
+      console.error('Error fetching reviews:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get average rating for a product (public, lightweight)
+  app.get('/api/products/:productId/rating', async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const rating = await storage.getProductAverageRating(productId);
+      res.json(rating);
+    } catch (error: any) {
+      console.error('Error fetching rating:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Submit a review (authenticated users only)
+  app.post('/api/products/:productId/reviews', requireAuth, async (req: any, res) => {
+    try {
+      const { productId } = req.params;
+      const userId = req.userId;
+      
+      // Check if user already reviewed this product
+      const hasReviewed = await storage.hasUserReviewedProduct(userId, productId);
+      if (hasReviewed) {
+        return res.status(400).json({ error: 'You have already reviewed this product' });
+      }
+      
+      // Check if this is a verified purchase
+      const orders = await storage.getOrders({ userId });
+      let isVerifiedPurchase = false;
+      for (const order of orders) {
+        const items = await storage.getOrderItems(order.id);
+        if (items.some(item => item.productId === productId)) {
+          isVerifiedPurchase = true;
+          break;
+        }
+      }
+      
+      const parsed = insertReviewSchema.safeParse({
+        ...req.body,
+        productId,
+        userId,
+        isVerifiedPurchase,
+        isApproved: true, // Auto-approve for now
+      });
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid review data', details: parsed.error.flatten() });
+      }
+      
+      const review = await storage.createReview(parsed.data);
+      res.status(201).json(review);
+    } catch (error: any) {
+      console.error('Error creating review:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's own reviews (authenticated)
+  app.get('/api/user/reviews', requireAuth, async (req: any, res) => {
+    try {
+      const reviews = await storage.getUserReviews(req.userId);
+      res.json(reviews);
+    } catch (error: any) {
+      console.error('Error fetching user reviews:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete own review (authenticated)
+  app.delete('/api/reviews/:id', requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const review = await storage.getReview(id);
+      
+      if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
+      
+      if (review.userId !== req.userId) {
+        return res.status(403).json({ error: 'Not authorized to delete this review' });
+      }
+      
+      await storage.deleteReview(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting review:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all reviews
+  app.get('/api/admin/reviews', requireAdmin, async (req, res) => {
+    try {
+      const reviews = await storage.getAllReviews();
+      res.json(reviews);
+    } catch (error: any) {
+      console.error('Error fetching all reviews:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update review (approve/disapprove)
+  app.patch('/api/admin/reviews/:id', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isApproved } = req.body;
+      
+      const updated = await storage.updateReview(id, { isApproved });
+      if (!updated) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating review:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Delete any review
+  app.delete('/api/admin/reviews/:id', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteReview(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting review:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // GIFT CARDS SYSTEM
+  // ============================================
+
+  // Generate unique gift card code
+  function generateGiftCardCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'EZ-';
+    for (let i = 0; i < 12; i++) {
+      if (i > 0 && i % 4 === 0) code += '-';
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  // Check gift card balance (public)
+  app.get('/api/gift-cards/check/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      const card = await storage.getGiftCardByCode(code);
+      
+      if (!card) {
+        return res.status(404).json({ error: 'Gift card not found' });
+      }
+      
+      if (!card.isActive) {
+        return res.status(400).json({ error: 'Gift card is inactive' });
+      }
+      
+      if (card.expiresAt && new Date(card.expiresAt) < new Date()) {
+        return res.status(400).json({ error: 'Gift card has expired' });
+      }
+      
+      res.json({
+        valid: true,
+        balance: parseFloat(card.currentBalance),
+        currency: card.currency,
+      });
+    } catch (error: any) {
+      console.error('Error checking gift card:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Apply gift card to order (during checkout)
+  app.post('/api/gift-cards/apply', async (req, res) => {
+    try {
+      const { code, orderTotal, orderId } = req.body;
+      
+      const card = await storage.getGiftCardByCode(code);
+      if (!card) {
+        return res.status(404).json({ error: 'Gift card not found' });
+      }
+      
+      if (!card.isActive) {
+        return res.status(400).json({ error: 'Gift card is inactive' });
+      }
+      
+      if (card.expiresAt && new Date(card.expiresAt) < new Date()) {
+        return res.status(400).json({ error: 'Gift card has expired' });
+      }
+      
+      const currentBalance = parseFloat(card.currentBalance);
+      const amountToApply = Math.min(currentBalance, orderTotal);
+      const newBalance = currentBalance - amountToApply;
+      
+      // Update balance
+      await storage.updateGiftCardBalance(card.id, newBalance);
+      
+      // Record transaction
+      await storage.createGiftCardTransaction({
+        giftCardId: card.id,
+        orderId: orderId || null,
+        amount: amountToApply.toFixed(2),
+        balanceBefore: currentBalance.toFixed(2),
+        balanceAfter: newBalance.toFixed(2),
+        transactionType: 'redemption',
+      });
+      
+      res.json({
+        applied: amountToApply,
+        remainingBalance: newBalance,
+        remainingOrderTotal: orderTotal - amountToApply,
+      });
+    } catch (error: any) {
+      console.error('Error applying gift card:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all gift cards
+  app.get('/api/admin/gift-cards', requireAdmin, async (req, res) => {
+    try {
+      const cards = await storage.getGiftCards();
+      res.json(cards);
+    } catch (error: any) {
+      console.error('Error fetching gift cards:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get single gift card with transactions
+  app.get('/api/admin/gift-cards/:id', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const card = await storage.getGiftCard(id);
+      
+      if (!card) {
+        return res.status(404).json({ error: 'Gift card not found' });
+      }
+      
+      const transactions = await storage.getGiftCardTransactions(id);
+      res.json({ ...card, transactions });
+    } catch (error: any) {
+      console.error('Error fetching gift card:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Create gift card
+  app.post('/api/admin/gift-cards', requireAdmin, async (req, res) => {
+    try {
+      const { initialValue, currency, expiresAt, customCode } = req.body;
+      
+      const code = customCode || generateGiftCardCode();
+      
+      // Check if code already exists
+      const existing = await storage.getGiftCardByCode(code);
+      if (existing) {
+        return res.status(400).json({ error: 'Gift card code already exists' });
+      }
+      
+      const parsed = insertGiftCardSchema.safeParse({
+        code,
+        initialValue: initialValue.toFixed(2),
+        currency: currency || 'EUR',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        isActive: true,
+      });
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid gift card data', details: parsed.error.flatten() });
+      }
+      
+      const card = await storage.createGiftCard(parsed.data);
+      res.status(201).json(card);
+    } catch (error: any) {
+      console.error('Error creating gift card:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Generate multiple gift cards
+  app.post('/api/admin/gift-cards/batch', requireAdmin, async (req, res) => {
+    try {
+      const { count, initialValue, currency, expiresAt } = req.body;
+      
+      if (count < 1 || count > 100) {
+        return res.status(400).json({ error: 'Count must be between 1 and 100' });
+      }
+      
+      const cards = [];
+      for (let i = 0; i < count; i++) {
+        const code = generateGiftCardCode();
+        const card = await storage.createGiftCard({
+          code,
+          initialValue: initialValue.toFixed(2),
+          currency: currency || 'EUR',
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+          isActive: true,
+        });
+        cards.push(card);
+      }
+      
+      res.status(201).json({ created: cards.length, cards });
+    } catch (error: any) {
+      console.error('Error creating gift cards:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Deactivate gift card
+  app.post('/api/admin/gift-cards/:id/deactivate', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deactivateGiftCard(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deactivating gift card:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Add balance to gift card (e.g., for refunds)
+  app.post('/api/admin/gift-cards/:id/add-balance', requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { amount, reason } = req.body;
+      
+      const card = await storage.getGiftCard(id);
+      if (!card) {
+        return res.status(404).json({ error: 'Gift card not found' });
+      }
+      
+      const currentBalance = parseFloat(card.currentBalance);
+      const newBalance = currentBalance + amount;
+      
+      await storage.updateGiftCardBalance(id, newBalance);
+      
+      await storage.createGiftCardTransaction({
+        giftCardId: id,
+        amount: amount.toFixed(2),
+        balanceBefore: currentBalance.toFixed(2),
+        balanceAfter: newBalance.toFixed(2),
+        transactionType: reason || 'admin_adjustment',
+      });
+      
+      res.json({ success: true, newBalance });
+    } catch (error: any) {
+      console.error('Error adding balance:', error);
       res.status(500).json({ error: error.message });
     }
   });

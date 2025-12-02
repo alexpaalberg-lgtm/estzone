@@ -472,10 +472,15 @@ export const reviews = pgTable("reviews", {
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
   createdAt: true,
-  isVerifiedPurchase: true,
-  isApproved: true,
 }).extend({
   rating: z.number().min(1).max(5),
+});
+
+// Separate schema for updates that allows isApproved
+export const updateReviewSchema = z.object({
+  isApproved: z.boolean().optional(),
+  title: z.string().optional(),
+  comment: z.string().optional(),
 });
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
