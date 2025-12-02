@@ -125,11 +125,16 @@ The following 50 campaign products are hidden (is_active = false) and can be res
 
 ## Future Features (Deferred)
 
-- **Merge & Fan Products**: New category for merchandise and fan items
-- **Seasonal Themes**: Christmas/holiday themes with special discounts (temporary visual changes)
 - **Courier API Integration**: Automatic shipment creation via Omniva/DPD APIs (waiting for credentials)
 - **Pre-order System**: For upcoming products (when needed)
 - **Trade-in Program**: For used gaming equipment
+- **Affiliate Program**: Partner/influencer referral system
+
+## Payment Gateway Status
+
+- **Stripe**: ✓ Configured and working
+- **PayPal**: Pending - needs `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`
+- **Montonio**: Pending - needs `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY`
 
 ### UI/UX Decisions
 
