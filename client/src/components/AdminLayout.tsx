@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain, Shield, DollarSign, Gift, GraduationCap, Percent, Megaphone, Search, UserCircle, Image, Mail, Gamepad2 } from 'lucide-react';
+import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain, Shield, DollarSign, Gift, GraduationCap, Percent, Megaphone, Search, UserCircle, Image, Mail, Gamepad2, Bot } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -152,6 +152,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       title: language === 'et' ? 'Autotooted' : 'Auto Products',
       url: '/admin/ai-auto-products',
       icon: Gamepad2,
+    },
+    {
+      title: language === 'et' ? 'Automaatika' : 'Automation',
+      url: '/admin/ai-automation',
+      icon: Bot,
     },
   ];
 

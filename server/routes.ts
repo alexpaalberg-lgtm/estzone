@@ -2103,6 +2103,81 @@ Format your response as JSON:
     }
   });
 
+  // ============================================
+  // AUTOMATION SYSTEM
+  // ============================================
+
+  app.get('/api/admin/automation', requireAdmin, async (req, res) => {
+    try {
+      const { getAutomationSettings, getAutomationLogs } = await import('./utils/automationScheduler');
+      
+      const settings = await getAutomationSettings();
+      const logs = await getAutomationLogs(20);
+      
+      res.json({
+        settings,
+        logs,
+      });
+    } catch (error: any) {
+      console.error('Error fetching automation settings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/automation/settings', requireAdmin, async (req, res) => {
+    try {
+      const { saveAutomationSettings, startAutomationScheduler, stopAutomationScheduler } = await import('./utils/automationScheduler');
+      
+      const settings = req.body;
+      await saveAutomationSettings(settings);
+      
+      if (settings.enabled) {
+        startAutomationScheduler();
+      } else {
+        stopAutomationScheduler();
+      }
+      
+      res.json({ success: true, settings });
+    } catch (error: any) {
+      console.error('Error saving automation settings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/automation/run/:taskId', requireAdmin, async (req, res) => {
+    try {
+      const { runTask } = await import('./utils/automationScheduler');
+      const { taskId } = req.params;
+      
+      const result = await runTask(taskId);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error running automation task:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/automation/start', requireAdmin, async (req, res) => {
+    try {
+      const { startAutomationScheduler } = await import('./utils/automationScheduler');
+      startAutomationScheduler();
+      res.json({ success: true, message: 'Automation scheduler started' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/automation/stop', requireAdmin, async (req, res) => {
+    try {
+      const { stopAutomationScheduler } = await import('./utils/automationScheduler');
+      stopAutomationScheduler();
+      res.json({ success: true, message: 'Automation scheduler stopped' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
