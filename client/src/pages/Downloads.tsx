@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import estonianPoster from "@assets/generated_images/estonian_poster_with_more_text.png";
+import estonianPoster from "@assets/generated_images/estonian_estzone_gaming_store_poster.png";
 import englishPoster from "@assets/generated_images/english_poster_with_more_text.png";
 
 export default function Downloads() {
