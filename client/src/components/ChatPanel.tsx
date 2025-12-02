@@ -487,7 +487,7 @@ const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(({ onLanguageChange }
                 }
                 
                 if (data.done) {
-                  if (data.personaName && !personaName) {
+                  if (data.personaName) {
                     setPersonaName(data.personaName);
                   }
                   

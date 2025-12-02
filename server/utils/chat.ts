@@ -515,33 +515,58 @@ ${context.user.phone ? `- **Phone**: ${context.user.phone}` : ''}
 Greet the customer by name and offer personalized service!`;
     contextInfo += userGreeting;
     
-    // Add wishlist if available
+    // Add wishlist if available with sale notifications
     if (context.wishlist && context.wishlist.length > 0 && context.allProducts) {
-      const wishlistItems = context.wishlist.map(w => {
+      const wishlistData = context.wishlist.map(w => {
         const product = context.allProducts?.find(p => p.id === w.productId);
         if (!product) return null;
         const name = language === 'et' ? product.nameEt : product.nameEn;
-        const price = product.salePrice ? parseFloat(product.salePrice) : parseFloat(product.price);
+        const originalPrice = parseFloat(product.price);
+        const salePrice = product.salePrice ? parseFloat(product.salePrice) : null;
         const inStock = product.stock > 0;
-        const onSale = !!product.salePrice;
-        return `- ${name}: €${price.toFixed(2)} ${onSale ? '(SOODUSHIND!)' : ''} - ${inStock ? (language === 'et' ? 'Laos' : 'In Stock') : (language === 'et' ? 'Otsas' : 'Out of Stock')}`;
-      }).filter(Boolean).join('\n');
+        const onSale = !!salePrice;
+        const discountPercent = onSale ? Math.round((1 - salePrice / originalPrice) * 100) : 0;
+        return { name, originalPrice, salePrice, inStock, onSale, discountPercent };
+      }).filter(Boolean);
+      
+      const itemsOnSale = wishlistData.filter(item => item?.onSale);
+      const itemsOutOfStock = wishlistData.filter(item => !item?.inStock);
+      
+      const wishlistItems = wishlistData.map(item => {
+        if (!item) return '';
+        if (item.onSale) {
+          return `- **${item.name}**: ~~€${item.originalPrice.toFixed(2)}~~ → **€${item.salePrice!.toFixed(2)}** (-${item.discountPercent}% ${language === 'et' ? 'SOODUSHIND!' : 'SALE!'})`;
+        }
+        return `- ${item.name}: €${item.originalPrice.toFixed(2)} - ${item.inStock ? (language === 'et' ? 'Laos' : 'In Stock') : (language === 'et' ? 'Otsas' : 'Out of Stock')}`;
+      }).join('\n');
+      
+      // Create sale alert section if items are on sale
+      let saleAlert = '';
+      if (itemsOnSale.length > 0) {
+        saleAlert = language === 'et'
+          ? `\n\n🔥 **OLULINE TEADE:** ${itemsOnSale.length} toode${itemsOnSale.length > 1 ? 't' : ''} kliendi soovinimekirjas on NÜÜD ALLAHINNATUD!
+${itemsOnSale.map(i => `- ${i?.name}: -${i?.discountPercent}%`).join('\n')}
+TULETA KLIENDILE KINDLASTI MEELDE, et nende lemmiktooted on soodustusega!`
+          : `\n\n🔥 **IMPORTANT NOTICE:** ${itemsOnSale.length} item${itemsOnSale.length > 1 ? 's' : ''} in customer's wishlist ${itemsOnSale.length > 1 ? 'are' : 'is'} NOW ON SALE!
+${itemsOnSale.map(i => `- ${i?.name}: -${i?.discountPercent}%`).join('\n')}
+MAKE SURE TO NOTIFY the customer that their favorite products are discounted!`;
+      }
       
       const wishlistInfo = language === 'et'
         ? `\n\n## KLIENDI SOOVINIMEKIRI (${context.wishlist.length} toodet)
-${wishlistItems}
+${wishlistItems}${saleAlert}
 
 Sa saad aidata kliendil:
-- Vaadata oma soovinimekirja: ${baseUrl}/wishlist
-- Soovitada alternatiive otsas olevatele toodetele
-- Teavitada sooduspakkumistest nende lemmiktoodete kohta`
+- Vaadata soovinimekirja: ${baseUrl}/wishlist
+- Soovitada alternatiive otsas toodetele${itemsOutOfStock.length > 0 ? ` (${itemsOutOfStock.length} toodet otsas!)` : ''}
+- ${itemsOnSale.length > 0 ? `TEAVITA SOODUSTUSTEST! ${itemsOnSale.length} toodet on allahinnatud!` : 'Teavita uutest sooduspakkumistest'}`
         : `\n\n## CUSTOMER WISHLIST (${context.wishlist.length} items)
-${wishlistItems}
+${wishlistItems}${saleAlert}
 
 You can help the customer:
 - View their wishlist: ${baseUrl}/wishlist
-- Recommend alternatives for out-of-stock items
-- Notify about sales on their favorite products`;
+- Recommend alternatives for out-of-stock items${itemsOutOfStock.length > 0 ? ` (${itemsOutOfStock.length} items out of stock!)` : ''}
+- ${itemsOnSale.length > 0 ? `NOTIFY ABOUT SALES! ${itemsOnSale.length} items are discounted!` : 'Notify about new sales on their favorite products'}`;
       contextInfo += wishlistInfo;
     }
     
