@@ -2,6 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Search, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -174,10 +175,16 @@ export default function Header() {
                         <div className="grid grid-cols-2 gap-1">
                           {moreCategories.map((cat) => {
                             const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                            const isCampaign = cat.slug === 'campaign';
                             return (
                               <Link key={cat.id} href={`/products/${cat.slug}`}>
                                 <div
-                                  className="block px-4 py-2 rounded-md hover-elevate active-elevate-2 text-sm text-muted-foreground"
+                                  className={cn(
+                                    "block px-4 py-2 rounded-md hover-elevate active-elevate-2 text-sm",
+                                    isCampaign 
+                                      ? "text-primary font-semibold" 
+                                      : "text-muted-foreground"
+                                  )}
                                   data-testid={`link-more-category-${cat.slug}`}
                                 >
                                   {catName}
@@ -421,11 +428,17 @@ export default function Header() {
                       <div className="ml-4 space-y-1">
                         {moreCategories.map((cat) => {
                           const catName = language === 'et' ? cat.nameEt : cat.nameEn;
+                          const isCampaign = cat.slug === 'campaign';
                           return (
                             <Link key={cat.id} href={`/products/${cat.slug}`}>
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start text-sm text-muted-foreground"
+                                className={cn(
+                                  "w-full justify-start text-sm",
+                                  isCampaign 
+                                    ? "text-primary font-semibold" 
+                                    : "text-muted-foreground"
+                                )}
                                 data-testid={`mobile-link-${cat.slug}`}
                                 onClick={() => {
                                   setMobileMenuOpen(false);
