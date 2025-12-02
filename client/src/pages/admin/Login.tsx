@@ -36,12 +36,19 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      await apiRequest('POST', '/api/admin/login', { password });
-      toast({
-        title: t.admin.loginButton,
-        description: t.admin.welcomeBack,
-      });
-      setLocation('/admin/products');
+      const response = await apiRequest('POST', '/api/admin/login', { password });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: t.admin.loginButton,
+          description: t.admin.welcomeBack,
+        });
+        // Use window.location for reliable redirect
+        window.location.href = '/admin/products';
+      } else {
+        throw new Error(data.error || 'Login failed');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
