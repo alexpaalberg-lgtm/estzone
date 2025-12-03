@@ -889,10 +889,10 @@ export default function Checkout() {
 
                               <Separator className="my-4" />
 
-                              {/* International Payment Option */}
+                              {/* Stripe Payment Option - International + Wallets */}
                               <div className="space-y-2">
                                 <p className="text-sm font-medium text-muted-foreground">
-                                  {language === 'et' ? 'Rahvusvaheline makse' : 'International payment'}
+                                  {language === 'et' ? 'Rahvusvaheline makse & rahakotid' : 'International payments & wallets'}
                                 </p>
                                 <div 
                                   className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
@@ -905,10 +905,14 @@ export default function Checkout() {
                                     <RadioGroupItem value="stripe" id="stripe" />
                                     <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
                                       <span className="font-semibold flex items-center gap-2">
-                                        <span>💳</span>
-                                        {language === 'et' ? 'Kaardimakse' : 'Card Payment'}
+                                        <span>🌍</span>
+                                        Stripe
                                       </span>
-                                      <span className="text-xs text-muted-foreground">Visa, Mastercard, Apple Pay, Google Pay</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {language === 'et' 
+                                          ? 'Kaardimakse, Apple Pay, Google Pay' 
+                                          : 'Card payment, Apple Pay, Google Pay'}
+                                      </span>
                                     </Label>
                                   </div>
                                 </div>
