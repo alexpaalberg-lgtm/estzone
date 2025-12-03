@@ -53,13 +53,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertProductSchema, type Product, type Category } from '@shared/schema';
-import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package } from 'lucide-react';
+import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-const productFormSchema = insertProductSchema.extend({
-  images: z.string().optional(),
-});
+const productFormSchema = insertProductSchema.omit({ images: true });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -78,6 +76,10 @@ export default function AdminProducts() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const MAX_IMAGES = 5;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -139,7 +141,6 @@ export default function AdminProducts() {
       isNew: false,
       isFeatured: false,
       isActive: true,
-      images: '',
     },
   });
 
@@ -147,7 +148,7 @@ export default function AdminProducts() {
     mutationFn: (data: ProductFormData) => {
       const payload = {
         ...data,
-        images: data.images ? data.images.split(',').map(url => url.trim()) : [],
+        images: productImages,
       };
       return apiRequest('POST', '/api/admin/products', payload);
     },
@@ -157,6 +158,8 @@ export default function AdminProducts() {
         title: t.admin.productCreated,
       });
       setIsDialogOpen(false);
+      setProductImages([]);
+      setNewImageUrl('');
       form.reset();
     },
     onError: (error: any) => {
@@ -172,7 +175,7 @@ export default function AdminProducts() {
     mutationFn: ({ id, data }: { id: string; data: ProductFormData }) => {
       const payload = {
         ...data,
-        images: data.images ? data.images.split(',').map(url => url.trim()) : [],
+        images: productImages,
       };
       return apiRequest('PUT', `/api/admin/products/${id}`, payload);
     },
@@ -183,6 +186,8 @@ export default function AdminProducts() {
       });
       setIsDialogOpen(false);
       setEditingProduct(null);
+      setProductImages([]);
+      setNewImageUrl('');
       form.reset();
     },
     onError: (error: any) => {
@@ -215,6 +220,8 @@ export default function AdminProducts() {
 
   const handleAddProduct = () => {
     setEditingProduct(null);
+    setProductImages([]);
+    setNewImageUrl('');
     form.reset({
       nameEn: '',
       nameEt: '',
@@ -229,13 +236,14 @@ export default function AdminProducts() {
       isNew: false,
       isFeatured: false,
       isActive: true,
-      images: '',
     });
     setIsDialogOpen(true);
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
+    setProductImages(product.images || []);
+    setNewImageUrl('');
     form.reset({
       nameEn: product.nameEn,
       nameEt: product.nameEt,
@@ -250,9 +258,40 @@ export default function AdminProducts() {
       isNew: product.isNew ?? false,
       isFeatured: product.isFeatured ?? false,
       isActive: product.isActive ?? true,
-      images: product.images?.join(', ') ?? '',
     });
     setIsDialogOpen(true);
+  };
+
+  const addImage = () => {
+    if (!newImageUrl.trim()) return;
+    if (productImages.length >= MAX_IMAGES) {
+      toast({
+        variant: 'destructive',
+        title: language === 'et' ? 'Liiga palju pilte' : 'Too many images',
+        description: language === 'et' ? `Maksimaalselt ${MAX_IMAGES} pilti` : `Maximum ${MAX_IMAGES} images allowed`,
+      });
+      return;
+    }
+    setProductImages([...productImages, newImageUrl.trim()]);
+    setNewImageUrl('');
+  };
+
+  const removeImage = (index: number) => {
+    setProductImages(productImages.filter((_, i) => i !== index));
+  };
+
+  const moveImageUp = (index: number) => {
+    if (index === 0) return;
+    const newImages = [...productImages];
+    [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+    setProductImages(newImages);
+  };
+
+  const moveImageDown = (index: number) => {
+    if (index === productImages.length - 1) return;
+    const newImages = [...productImages];
+    [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+    setProductImages(newImages);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -811,19 +850,117 @@ export default function AdminProducts() {
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.admin.images}</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder={t.admin.imagesPlaceholder} data-testid="input-images" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel>
+                    {t.admin.images} 
+                    <span className="text-muted-foreground ml-2">
+                      ({productImages.length}/{MAX_IMAGES})
+                    </span>
+                  </FormLabel>
+                  {productImages.length > 0 && (
+                    <Badge variant="outline" data-testid="badge-image-count">
+                      {productImages.length === 1 
+                        ? (language === 'et' ? '1 pilt' : '1 image')
+                        : (language === 'et' ? `${productImages.length} pilti` : `${productImages.length} images`)
+                      }
+                    </Badge>
+                  )}
+                </div>
+                
+                {productImages.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2" data-testid="container-image-previews">
+                    {productImages.map((imageUrl, index) => (
+                      <div key={index} className="relative group border rounded-md overflow-hidden aspect-square">
+                        <img
+                          src={imageUrl}
+                          alt={`${language === 'et' ? 'Pilt' : 'Image'} ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          data-testid={`img-preview-${index}`}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder-product.png';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-white hover:bg-white/20"
+                            onClick={() => moveImageUp(index)}
+                            disabled={index === 0}
+                            data-testid={`button-move-up-${index}`}
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-white hover:bg-white/20"
+                            onClick={() => moveImageDown(index)}
+                            disabled={index === productImages.length - 1}
+                            data-testid={`button-move-down-${index}`}
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                            onClick={() => removeImage(index)}
+                            data-testid={`button-remove-image-${index}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        {index === 0 && (
+                          <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded">
+                            {language === 'et' ? 'Peamine' : 'Main'}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
-              />
+                
+                {productImages.length < MAX_IMAGES && (
+                  <div className="flex gap-2">
+                    <Input
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      placeholder={language === 'et' ? 'Sisesta pildi URL...' : 'Enter image URL...'}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addImage();
+                        }
+                      }}
+                      data-testid="input-new-image-url"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addImage}
+                      disabled={!newImageUrl.trim()}
+                      data-testid="button-add-image"
+                    >
+                      <ImagePlus className="w-4 h-4 mr-2" />
+                      {language === 'et' ? 'Lisa' : 'Add'}
+                    </Button>
+                  </div>
+                )}
+                
+                {productImages.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'et' 
+                      ? 'Lisa kuni 5 pilti. Esimene pilt on peamine toote pilt.'
+                      : 'Add up to 5 images. The first image will be the main product image.'
+                    }
+                  </p>
+                )}
+              </div>
 
               <div className="flex gap-6 flex-wrap">
                 <FormField
