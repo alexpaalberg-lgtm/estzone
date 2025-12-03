@@ -65,6 +65,9 @@ export const products = pgTable("products", {
   discountPercent: integer("discount_percent"),
   discountStartDate: timestamp("discount_start_date"),
   discountEndDate: timestamp("discount_end_date"),
+  deliveryDaysMin: integer("delivery_days_min").default(2),
+  deliveryDaysMax: integer("delivery_days_max").default(4),
+  stockStatus: text("stock_status").default('in_stock'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
