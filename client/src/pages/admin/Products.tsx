@@ -53,7 +53,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertProductSchema, type Product, type Category } from '@shared/schema';
-import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus, Video, Upload, GripVertical, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus, Video, Upload, GripVertical, Loader2, Truck, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -64,6 +64,9 @@ const productFormSchema = insertProductSchema.omit({ images: true }).extend({
     (val) => !val || val.trim() === '' || youtubeUrlRegex.test(val),
     { message: 'Please enter a valid YouTube URL (youtube.com/watch?v=... or youtu.be/...)' }
   ),
+  stockStatus: z.enum(['in_stock', 'pre_order', 'out_of_stock']).default('in_stock'),
+  deliveryDaysMin: z.number().min(1).max(60).default(2),
+  deliveryDaysMax: z.number().min(1).max(90).default(4),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -153,6 +156,9 @@ export default function AdminProducts() {
       isFeatured: false,
       isActive: true,
       videoUrl: '',
+      stockStatus: 'in_stock',
+      deliveryDaysMin: 2,
+      deliveryDaysMax: 4,
     },
   });
 
@@ -249,6 +255,9 @@ export default function AdminProducts() {
       isFeatured: false,
       isActive: true,
       videoUrl: '',
+      stockStatus: 'in_stock',
+      deliveryDaysMin: 2,
+      deliveryDaysMax: 4,
     });
     setIsDialogOpen(true);
   };
@@ -272,6 +281,9 @@ export default function AdminProducts() {
       isFeatured: product.isFeatured ?? false,
       isActive: product.isActive ?? true,
       videoUrl: product.videoUrl ?? '',
+      stockStatus: (product as any).stockStatus ?? 'in_stock',
+      deliveryDaysMin: (product as any).deliveryDaysMin ?? 2,
+      deliveryDaysMax: (product as any).deliveryDaysMax ?? 4,
     });
     setIsDialogOpen(true);
   };
@@ -652,6 +664,7 @@ export default function AdminProducts() {
                     <TableHead>{t.admin.price}</TableHead>
                     <TableHead className="hidden sm:table-cell">{t.admin.salePrice}</TableHead>
                     <TableHead>{t.admin.stock}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{language === 'et' ? 'Tarne' : 'Delivery'}</TableHead>
                     <TableHead className="hidden xl:table-cell">{t.admin.status}</TableHead>
                     <TableHead>{t.admin.actions}</TableHead>
                   </TableRow>
@@ -700,9 +713,32 @@ export default function AdminProducts() {
                         )}
                       </TableCell>
                       <TableCell data-testid={`text-stock-${product.id}`}>
-                        <span className={product.stock <= (product.lowStockThreshold || 10) ? 'text-red-500 font-bold' : ''}>
-                          {product.stock}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={product.stock <= (product.lowStockThreshold || 10) ? 'text-red-500 font-bold' : ''}>
+                            {product.stock}
+                          </span>
+                          {(product as any).stockStatus === 'pre_order' ? (
+                            <Badge variant="outline" className="text-orange-500 border-orange-500 text-xs">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {language === 'et' ? 'Tellimisel' : 'Pre-order'}
+                            </Badge>
+                          ) : (product as any).stockStatus === 'out_of_stock' ? (
+                            <Badge variant="outline" className="text-red-500 border-red-500 text-xs">
+                              {language === 'et' ? 'Otsas' : 'Out of Stock'}
+                            </Badge>
+                          ) : product.stock > 0 ? (
+                            <Badge variant="outline" className="text-green-500 border-green-500 text-xs">
+                              <Package className="w-3 h-3 mr-1" />
+                              {language === 'et' ? 'Laos' : 'In Stock'}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Truck className="w-3 h-3" />
+                          {(product as any).deliveryDaysMin || 2}-{(product as any).deliveryDaysMax || 4} {language === 'et' ? 'p' : 'd'}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
                         <div className="flex flex-wrap gap-1">
@@ -942,6 +978,88 @@ export default function AdminProducts() {
                           min="0"
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           data-testid="input-low-stock-threshold"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="stockStatus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        {language === 'et' ? 'Laoseisu staatus' : 'Stock Status'}
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? 'in_stock'}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-stock-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="in_stock">
+                            {language === 'et' ? 'Laos' : 'In Stock'}
+                          </SelectItem>
+                          <SelectItem value="pre_order">
+                            {language === 'et' ? 'Tellimisel' : 'Pre-order'}
+                          </SelectItem>
+                          <SelectItem value="out_of_stock">
+                            {language === 'et' ? 'Otsas' : 'Out of Stock'}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="deliveryDaysMin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Truck className="w-4 h-4" />
+                        {language === 'et' ? 'Tarne min (päeva)' : 'Delivery min (days)'}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={field.value ?? 2}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 2)}
+                          data-testid="input-delivery-min"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="deliveryDaysMax"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {language === 'et' ? 'Tarne max (päeva)' : 'Delivery max (days)'}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={field.value ?? 4}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 4)}
+                          data-testid="input-delivery-max"
                         />
                       </FormControl>
                       <FormMessage />
