@@ -15,9 +15,9 @@ if (!isMontonioEnabled) {
   console.warn("⚠️  Montonio credentials not configured. Montonio payments will be disabled.");
 }
 
-const MONTONIO_GATEWAY_URL = process.env.NODE_ENV === "production"
-  ? "https://gateway.montonio.com"
-  : "https://sandbox.montonio.com";
+// Always use production gateway - sandbox is not externally accessible
+// Montonio handles test mode via the API keys (test keys vs live keys)
+const MONTONIO_GATEWAY_URL = "https://gateway.montonio.com";
 
 // Replay protection: Track used nonces in memory
 // For production, replace with database-backed solution

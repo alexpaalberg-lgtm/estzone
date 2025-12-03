@@ -390,6 +390,11 @@ export default function Checkout() {
     }
   };
 
+  // Scroll to top when checkout page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Auto-select default address on load
   useEffect(() => {
     if (savedAddresses && savedAddresses.length > 0) {
