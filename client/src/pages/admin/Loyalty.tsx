@@ -407,19 +407,19 @@ export default function AdminLoyalty() {
           <TabsList>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Members
+              {t.members}
             </TabsTrigger>
             <TabsTrigger value="leaderboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Leaderboard
+              {t.leaderboard}
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2">
               <History className="h-4 w-4" />
-              Transaction History
+              {t.transactionHistory}
             </TabsTrigger>
             <TabsTrigger value="tiers" className="flex items-center gap-2">
               <Crown className="h-4 w-4" />
-              VIP Tiers
+              {t.vipTiers}
             </TabsTrigger>
           </TabsList>
           
@@ -427,12 +427,12 @@ export default function AdminLoyalty() {
             <Card>
               <CardHeader>
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
-                  <CardTitle>Loyalty Members</CardTitle>
+                  <CardTitle>{t.loyaltyMembers}</CardTitle>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input 
-                        placeholder="Search by name or email..."
+                        placeholder={t.searchPlaceholder}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 w-[250px]"
@@ -442,13 +442,13 @@ export default function AdminLoyalty() {
                     <Select value={selectedTier} onValueChange={setSelectedTier}>
                       <SelectTrigger className="w-[180px]" data-testid="select-tier-filter">
                         <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Filter by tier" />
+                        <SelectValue placeholder={t.filterByTier} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Tiers</SelectItem>
+                        <SelectItem value="all">{t.allTiers}</SelectItem>
                         {tiers?.map((tier) => (
                           <SelectItem key={tier.id} value={tier.id}>
-                            {tier.nameEn}
+                            {language === 'et' ? tier.nameEt : tier.nameEn}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -465,19 +465,19 @@ export default function AdminLoyalty() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>VIP Tier</TableHead>
-                        <TableHead className="text-right">Current Points</TableHead>
-                        <TableHead className="text-right">Lifetime Points</TableHead>
-                        <TableHead className="text-right">Total Spend</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>{t.customer}</TableHead>
+                        <TableHead>{t.vipTier}</TableHead>
+                        <TableHead className="text-right">{t.currentPoints}</TableHead>
+                        <TableHead className="text-right">{t.lifetimePoints}</TableHead>
+                        <TableHead className="text-right">{t.totalSpend}</TableHead>
+                        <TableHead className="text-right">{t.actions}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUsers?.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            No loyalty members found
+                            {t.noMembersFound}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -503,10 +503,10 @@ export default function AdminLoyalty() {
                                   className="gap-1"
                                 >
                                   {getTierIcon(user.tier.name)}
-                                  {user.tier.nameEn}
+                                  {language === 'et' ? user.tier.nameEt : user.tier.nameEn}
                                 </Badge>
                               ) : (
-                                <Badge variant="secondary">No Tier</Badge>
+                                <Badge variant="secondary">{t.noTier}</Badge>
                               )}
                             </TableCell>
                             <TableCell className="text-right font-mono">
@@ -528,7 +528,7 @@ export default function AdminLoyalty() {
                                 }}
                                 data-testid={`button-adjust-${user.id}`}
                               >
-                                Adjust Points
+                                {t.adjustPoints}
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -548,18 +548,18 @@ export default function AdminLoyalty() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-primary" />
-                      Customer Leaderboard
+                      {t.customerLeaderboard}
                     </CardTitle>
-                    <CardDescription>Top customers ranked by loyalty metrics</CardDescription>
+                    <CardDescription>{t.topCustomersDesc}</CardDescription>
                   </div>
                   <Select value={leaderboardSort} onValueChange={(v) => setLeaderboardSort(v as 'points' | 'spend' | 'tier')}>
                     <SelectTrigger className="w-[180px]" data-testid="select-leaderboard-sort">
-                      <SelectValue placeholder="Sort by..." />
+                      <SelectValue placeholder={t.sortByPoints} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="points">Sort by Points</SelectItem>
-                      <SelectItem value="spend">Sort by Spend</SelectItem>
-                      <SelectItem value="tier">Sort by Tier</SelectItem>
+                      <SelectItem value="points">{t.sortByPoints}</SelectItem>
+                      <SelectItem value="spend">{t.sortBySpend}</SelectItem>
+                      <SelectItem value="tier">{t.sortByTier}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -573,19 +573,19 @@ export default function AdminLoyalty() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[60px]">Rank</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>VIP Tier</TableHead>
-                        <TableHead className="text-right">Current Points</TableHead>
-                        <TableHead className="text-right">Lifetime Points</TableHead>
-                        <TableHead className="text-right">Total Spend</TableHead>
+                        <TableHead className="w-[60px]">{t.rank}</TableHead>
+                        <TableHead>{t.customer}</TableHead>
+                        <TableHead>{t.vipTier}</TableHead>
+                        <TableHead className="text-right">{t.currentPoints}</TableHead>
+                        <TableHead className="text-right">{t.lifetimePoints}</TableHead>
+                        <TableHead className="text-right">{t.totalSpend}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {!leaderboard || leaderboard.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            No customers found
+                            {t.noCustomersFound}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -653,26 +653,26 @@ export default function AdminLoyalty() {
           <TabsContent value="transactions" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>Points earned, redeemed, and adjusted</CardDescription>
+                <CardTitle>{t.recentTransactions}</CardTitle>
+                <CardDescription>{t.transactionsDesc}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Points</TableHead>
-                      <TableHead className="text-right">Balance After</TableHead>
+                      <TableHead>{t.date}</TableHead>
+                      <TableHead>{t.customer}</TableHead>
+                      <TableHead>{t.type}</TableHead>
+                      <TableHead>{t.transactionDescription}</TableHead>
+                      <TableHead className="text-right">{t.points}</TableHead>
+                      <TableHead className="text-right">{t.balanceAfter}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactions?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No transactions yet
+                          {t.noTransactions}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -720,18 +720,18 @@ export default function AdminLoyalty() {
           <TabsContent value="tiers" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>VIP Tiers Configuration</CardTitle>
-                <CardDescription>Current tier thresholds and benefits</CardDescription>
+                <CardTitle>{t.tiersConfiguration}</CardTitle>
+                <CardDescription>{t.tiersDesc}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tier</TableHead>
-                      <TableHead>Min. Spend Required</TableHead>
-                      <TableHead className="text-center">Discount</TableHead>
-                      <TableHead className="text-center">Points Multiplier</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead>{t.tier}</TableHead>
+                      <TableHead>{t.minSpendRequired}</TableHead>
+                      <TableHead className="text-center">{t.discount}</TableHead>
+                      <TableHead className="text-center">{t.pointsMultiplier}</TableHead>
+                      <TableHead className="text-center">{t.status}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -755,14 +755,14 @@ export default function AdminLoyalty() {
                           €{parseFloat(tier.minSpend).toFixed(2)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">{tier.discountPercent}% off</Badge>
+                          <Badge variant="secondary">{tier.discountPercent}{t.off}</Badge>
                         </TableCell>
                         <TableCell className="text-center font-mono">
                           {tier.pointsMultiplier}x
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={tier.isActive ? 'default' : 'secondary'}>
-                            {tier.isActive ? 'Active' : 'Inactive'}
+                            {tier.isActive ? t.active : t.inactive}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -779,7 +779,7 @@ export default function AdminLoyalty() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-primary" />
-                Adjust Loyalty Points
+                {t.adjustLoyaltyPoints}
               </DialogTitle>
             </DialogHeader>
             {selectedUser && (
@@ -788,12 +788,12 @@ export default function AdminLoyalty() {
                   <p className="font-medium">{selectedUser.user.firstName} {selectedUser.user.lastName}</p>
                   <p className="text-sm text-muted-foreground">{selectedUser.user.email}</p>
                   <p className="text-sm mt-2">
-                    Current balance: <span className="font-mono font-bold">{selectedUser.currentPoints.toLocaleString()}</span> points
+                    {t.currentBalance} <span className="font-mono font-bold">{selectedUser.currentPoints.toLocaleString()}</span> {t.points.toLowerCase()}
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Operation</Label>
+                  <Label>{t.operation}</Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -802,7 +802,7 @@ export default function AdminLoyalty() {
                       onClick={() => setAdjustType('add')}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Points
+                      {t.addPoints}
                     </Button>
                     <Button
                       type="button"
@@ -811,34 +811,34 @@ export default function AdminLoyalty() {
                       onClick={() => setAdjustType('subtract')}
                     >
                       <Minus className="h-4 w-4 mr-2" />
-                      Subtract Points
+                      {t.subtractPoints}
                     </Button>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="points">Number of Points</Label>
+                  <Label htmlFor="points">{t.numberOfPoints}</Label>
                   <Input
                     id="points"
                     type="number"
                     min="1"
-                    placeholder="Enter points..."
+                    placeholder={t.enterPoints}
                     value={adjustPoints}
                     onChange={(e) => setAdjustPoints(e.target.value)}
                     data-testid="input-adjust-points"
                   />
                   {adjustPoints && !isNaN(parseInt(adjustPoints)) && (
                     <p className="text-xs text-muted-foreground">
-                      = €{(parseInt(adjustPoints) / 100).toFixed(2)} value
+                      {t.valuePrefix}{(parseInt(adjustPoints) / 100).toFixed(2)}{t.valueSuffix}
                     </p>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="reason">Reason</Label>
+                  <Label htmlFor="reason">{t.reason}</Label>
                   <Textarea
                     id="reason"
-                    placeholder="Enter reason for adjustment..."
+                    placeholder={t.enterReason}
                     value={adjustReason}
                     onChange={(e) => setAdjustReason(e.target.value)}
                     data-testid="input-adjust-reason"
@@ -848,14 +848,14 @@ export default function AdminLoyalty() {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAdjustOpen(false)}>
-                Cancel
+                {t.cancel}
               </Button>
               <Button 
                 onClick={handleAdjustPoints}
                 disabled={adjustPointsMutation.isPending}
                 data-testid="button-confirm-adjust"
               >
-                {adjustPointsMutation.isPending ? 'Saving...' : 'Confirm Adjustment'}
+                {adjustPointsMutation.isPending ? t.saving : t.confirmAdjustment}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +53,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertProductSchema, type Product, type Category } from '@shared/schema';
-import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus, Video } from 'lucide-react';
+import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus, Video, Upload, GripVertical, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -86,6 +86,10 @@ export default function AdminProducts() {
   
   const [productImages, setProductImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_IMAGES = 5;
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -302,6 +306,92 @@ export default function AdminProducts() {
     const newImages = [...productImages];
     [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
     setProductImages(newImages);
+  };
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    
+    const remainingSlots = MAX_IMAGES - productImages.length;
+    if (remainingSlots <= 0) {
+      toast({
+        variant: 'destructive',
+        title: language === 'et' ? 'Liiga palju pilte' : 'Too many images',
+        description: language === 'et' ? `Maksimaalselt ${MAX_IMAGES} pilti` : `Maximum ${MAX_IMAGES} images allowed`,
+      });
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+    setIsUploading(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+      
+      for (const file of filesToUpload) {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+        
+        const result = await response.json();
+        uploadedUrls.push(result.url);
+      }
+      
+      setProductImages([...productImages, ...uploadedUrls]);
+      toast({
+        title: language === 'et' ? 'Pildid üles laetud' : 'Images uploaded',
+        description: language === 'et' 
+          ? `${uploadedUrls.length} pilti edukalt üles laetud` 
+          : `${uploadedUrls.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        variant: 'destructive',
+        title: language === 'et' ? 'Üleslaadimise viga' : 'Upload error',
+        description: language === 'et' ? 'Piltide üleslaadimine ebaõnnestus' : 'Failed to upload images',
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      const newImages = [...productImages];
+      const [draggedImage] = newImages.splice(draggedIndex, 1);
+      newImages.splice(dragOverIndex, 0, draggedImage);
+      setProductImages(newImages);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    handleDragEnd();
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -877,88 +967,173 @@ export default function AdminProducts() {
                     </Badge>
                   )}
                 </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  data-testid="input-file-upload"
+                />
                 
                 {productImages.length > 0 && (
-                  <div className="grid grid-cols-5 gap-2" data-testid="container-image-previews">
-                    {productImages.map((imageUrl, index) => (
-                      <div key={index} className="relative group border rounded-md overflow-hidden aspect-square">
-                        <img
-                          src={imageUrl}
-                          alt={`${language === 'et' ? 'Pilt' : 'Image'} ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          data-testid={`img-preview-${index}`}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/placeholder-product.png';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-white hover:bg-white/20"
-                            onClick={() => moveImageUp(index)}
-                            disabled={index === 0}
-                            data-testid={`button-move-up-${index}`}
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-white hover:bg-white/20"
-                            onClick={() => moveImageDown(index)}
-                            disabled={index === productImages.length - 1}
-                            data-testid={`button-move-down-${index}`}
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                            onClick={() => removeImage(index)}
-                            data-testid={`button-remove-image-${index}`}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        {index === 0 && (
-                          <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded">
-                            {language === 'et' ? 'Peamine' : 'Main'}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'et' 
+                        ? 'Lohista pilte, et neid ümber järjestada' 
+                        : 'Drag images to reorder them'
+                      }
+                    </p>
+                    <div className="grid grid-cols-5 gap-2" data-testid="container-image-previews">
+                      {productImages.map((imageUrl, index) => (
+                        <div 
+                          key={index} 
+                          className={`relative group border rounded-md overflow-visible aspect-square cursor-grab active:cursor-grabbing transition-all ${
+                            draggedIndex === index ? 'opacity-50 scale-95' : ''
+                          } ${dragOverIndex === index ? 'ring-2 ring-primary' : ''}`}
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          onDrop={(e) => handleDrop(e, index)}
+                        >
+                          <div className="absolute -top-1 -left-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-muted/90 rounded p-0.5">
+                              <GripVertical className="w-3 h-3 text-muted-foreground" />
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="w-full h-full rounded-md overflow-hidden">
+                            <img
+                              src={imageUrl}
+                              alt={`${language === 'et' ? 'Pilt' : 'Image'} ${index + 1}`}
+                              className="w-full h-full object-cover pointer-events-none"
+                              data-testid={`img-preview-${index}`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-product.png';
+                              }}
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded-md">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-white hover:bg-white/20"
+                              onClick={() => moveImageUp(index)}
+                              disabled={index === 0}
+                              data-testid={`button-move-up-${index}`}
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-white hover:bg-white/20"
+                              onClick={() => moveImageDown(index)}
+                              disabled={index === productImages.length - 1}
+                              data-testid={`button-move-down-${index}`}
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                              onClick={() => removeImage(index)}
+                              data-testid={`button-remove-image-${index}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          {index === 0 && (
+                            <div className="absolute top-1 left-4 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded">
+                              {language === 'et' ? 'Peamine' : 'Main'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
                 {productImages.length < MAX_IMAGES && (
-                  <div className="flex gap-2">
-                    <Input
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder={language === 'et' ? 'Sisesta pildi URL...' : 'Enter image URL...'}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addImage();
-                        }
+                  <div className="space-y-3">
+                    <div 
+                      className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                       }}
-                      data-testid="input-new-image-url"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addImage}
-                      disabled={!newImageUrl.trim()}
-                      data-testid="button-add-image"
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleFileUpload(e.dataTransfer.files);
+                      }}
+                      data-testid="dropzone-upload"
                     >
-                      <ImagePlus className="w-4 h-4 mr-2" />
-                      {language === 'et' ? 'Lisa' : 'Add'}
-                    </Button>
+                      {isUploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">
+                            {language === 'et' ? 'Laadin üles...' : 'Uploading...'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {language === 'et' 
+                              ? 'Lohista pildid siia või kliki üleslaadimiseks' 
+                              : 'Drag images here or click to upload'
+                            }
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === 'et' 
+                              ? 'JPEG, PNG, WebP (max 5MB)' 
+                              : 'JPEG, PNG, WebP (max 5MB)'
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">
+                        {language === 'et' ? 'VÕI' : 'OR'}
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Input
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                        placeholder={language === 'et' ? 'Sisesta pildi URL...' : 'Enter image URL...'}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addImage();
+                          }
+                        }}
+                        data-testid="input-new-image-url"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addImage}
+                        disabled={!newImageUrl.trim()}
+                        data-testid="button-add-image"
+                      >
+                        <ImagePlus className="w-4 h-4 mr-2" />
+                        {language === 'et' ? 'Lisa' : 'Add'}
+                      </Button>
+                    </div>
                   </div>
                 )}
                 

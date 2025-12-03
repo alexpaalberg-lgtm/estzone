@@ -107,6 +107,7 @@ function serveStatic(app: express.Express) {
 
   app.use('/stock_images', express.static(path.resolve('attached_assets/stock_images')));
   app.use('/generated_images', express.static(path.resolve('attached_assets/generated_images')));
+  app.use('/uploads', express.static(path.resolve('public/uploads')));
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
