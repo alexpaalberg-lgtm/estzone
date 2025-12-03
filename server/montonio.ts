@@ -16,10 +16,11 @@ if (!isMontonioEnabled) {
   console.warn("⚠️  Montonio credentials not configured. Montonio payments will be disabled.");
 }
 
-// Stargate API URLs
-const MONTONIO_API_URL = process.env.NODE_ENV === "production"
-  ? "https://stargate.montonio.com/api"
-  : "https://sandbox-stargate.montonio.com/api";
+// Stargate API URLs - Always use production since we have live keys
+// Set MONTONIO_USE_SANDBOX=true to use sandbox environment for testing
+const MONTONIO_API_URL = process.env.MONTONIO_USE_SANDBOX === "true"
+  ? "https://sandbox-stargate.montonio.com/api"
+  : "https://stargate.montonio.com/api";
 
 // Montonio payment method types
 export type MontonioPaymentMethod = 
