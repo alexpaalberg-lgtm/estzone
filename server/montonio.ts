@@ -4,214 +4,108 @@ import { Request, Response } from "express";
 import { storage } from "./storage";
 import { emailService } from "./utils/email";
 
-/* Montonio Payment Gateway Integration */
+/* Montonio Stargate API Integration
+ * Documentation: https://docs.montonio.com/api/stargate/
+ */
 
 const { MONTONIO_ACCESS_KEY, MONTONIO_SECRET_KEY } = process.env;
 
-// Make Montonio optional - will be enabled once credentials are provided
 const isMontonioEnabled = !!(MONTONIO_ACCESS_KEY && MONTONIO_SECRET_KEY);
 
 if (!isMontonioEnabled) {
   console.warn("⚠️  Montonio credentials not configured. Montonio payments will be disabled.");
 }
 
-// Always use production gateway - sandbox is not externally accessible
-// Montonio handles test mode via the API keys (test keys vs live keys)
-const MONTONIO_GATEWAY_URL = "https://gateway.montonio.com";
-
-// Replay protection: Track used nonces in memory
-// For production, replace with database-backed solution
-interface NonceEntry {
-  nonce: string;
-  expiry: number;
-}
-
-const usedNonces = new Map<string, NonceEntry>();
-
-// Cleanup expired nonces every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  const entries = Array.from(usedNonces.entries());
-  for (const [key, entry] of entries) {
-    if (entry.expiry < now) {
-      usedNonces.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
+// Stargate API URLs
+const MONTONIO_API_URL = process.env.NODE_ENV === "production"
+  ? "https://stargate.montonio.com/api"
+  : "https://sandbox-stargate.montonio.com/api";
 
 // Montonio payment method types
 export type MontonioPaymentMethod = 
   | 'montonio_bank'     // Bank payments (SEB, Swedbank, LHV, etc.)
   | 'montonio_card'     // Card payments (Visa, MC, Apple Pay, Google Pay)
-  | 'montonio_bnpl'     // Buy Now Pay Later (3 parts)
+  | 'montonio_bnpl'     // Buy Now Pay Later
   | 'montonio_financing'; // Long-term financing via Inbank
 
-interface MontonioPaymentData {
-  amount: string;
+interface MontonioAddress {
+  firstName: string;
+  lastName: string;
+  email: string;
+  addressLine1: string;
+  locality: string;
+  region?: string;
+  country: string;
+  postalCode: string;
+}
+
+interface MontonioLineItem {
+  name: string;
+  quantity: number;
+  finalPrice: number;
+}
+
+interface MontonioPayment {
+  method: string;
+  methodDisplay: string;
+  amount: number;
   currency: string;
-  orderId: string;
-  customerEmail: string;
-  customerName: string;
+  methodOptions?: {
+    paymentDescription?: string;
+    preferredCountry?: string;
+    preferredProvider?: string;
+  };
+}
+
+interface MontonioOrderPayload {
+  accessKey: string;
+  merchantReference: string;
   returnUrl: string;
   notificationUrl: string;
-  paymentMethod?: MontonioPaymentMethod;
-}
-
-interface MontonioJWTPayload {
-  access_key: string;
-  merchant_reference: string;
   currency: string;
-  grand_total: string;
-  checkout_email: string;
-  checkout_first_name?: string;
-  checkout_last_name?: string;
-  merchant_return_url: string;
-  merchant_notification_url: string;
-  payment_information_unstructured?: string;
-  preselected_locale?: string;
-  preselected_payment_method_type?: string; // 'paymentInitiation', 'cardPayments', 'bnpl', 'hirePurchase'
-  exp: number;
-  iat: number;
-  nonce: string;
+  grandTotal: number;
+  locale: string;
+  billingAddress: MontonioAddress;
+  shippingAddress: MontonioAddress;
+  lineItems: MontonioLineItem[];
+  payment: MontonioPayment;
+  exp?: number;
 }
 
 /**
- * Map frontend payment method to Montonio API payment method type
+ * Map frontend payment method to Montonio API payment method
  */
-function mapPaymentMethodToMontonio(method?: MontonioPaymentMethod): string | undefined {
+function mapPaymentMethodToMontonio(method: MontonioPaymentMethod): { method: string; display: string } {
   switch (method) {
     case 'montonio_bank':
-      return 'paymentInitiation'; // Bank payments
+      return { method: 'paymentInitiation', display: 'Pangalink' };
     case 'montonio_card':
-      return 'cardPayments'; // Card payments including Apple/Google Pay
+      return { method: 'cardPayments', display: 'Kaardimakse' };
     case 'montonio_bnpl':
-      return 'bnpl'; // Buy Now Pay Later
+      return { method: 'bnpl', display: 'Maksa hiljem' };
     case 'montonio_financing':
-      return 'hirePurchase'; // Long-term financing
+      return { method: 'hirePurchase', display: 'Järelmaks' };
     default:
-      return undefined; // Let user choose on Montonio page
+      return { method: 'paymentInitiation', display: 'Pangalink' };
   }
 }
 
 /**
- * Generate a nonce for replay protection
+ * Create a Montonio order JWT token
  */
-function generateNonce(): string {
-  return crypto.randomBytes(16).toString('hex');
-}
-
-/**
- * Create a Montonio payment JWT token with replay protection
- */
-export function createMontonioPaymentToken(data: MontonioPaymentData): string {
-  if (!isMontonioEnabled || !MONTONIO_ACCESS_KEY || !MONTONIO_SECRET_KEY) {
-    throw new Error("Montonio is not configured");
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const [firstName, ...lastNameParts] = data.customerName.split(' ');
-  const lastName = lastNameParts.join(' ') || firstName;
-
-  // Generate unique nonce and track it for replay protection
-  const nonce = generateNonce();
-  const nonceKey = `${data.orderId}-${nonce}`;
-  const expiry = (now + 600) * 1000; // Convert to milliseconds
-
-  // Store nonce with expiry (15 minutes to allow for processing delays)
-  usedNonces.set(nonceKey, { nonce, expiry });
-
-  // Map payment method to Montonio API type
-  const preselectedMethod = mapPaymentMethodToMontonio(data.paymentMethod);
-
-  const payload: MontonioJWTPayload = {
-    access_key: MONTONIO_ACCESS_KEY,
-    merchant_reference: data.orderId,
-    currency: data.currency,
-    grand_total: data.amount,
-    checkout_email: data.customerEmail,
-    checkout_first_name: firstName,
-    checkout_last_name: lastName,
-    merchant_return_url: data.returnUrl,
-    merchant_notification_url: data.notificationUrl,
-    payment_information_unstructured: `EstZone Order ${data.orderId}`,
-    preselected_locale: 'et',
-    iat: now,
-    exp: now + 600, // 10 minutes expiration (Montonio requirement)
-    nonce,
-  };
-
-  // Add preselected payment method if specified
-  if (preselectedMethod) {
-    payload.preselected_payment_method_type = preselectedMethod;
+function createMontonioOrderToken(payload: MontonioOrderPayload): string {
+  if (!MONTONIO_SECRET_KEY) {
+    throw new Error("Montonio secret key not configured");
   }
 
   return jwt.sign(payload, MONTONIO_SECRET_KEY, {
     algorithm: 'HS256',
+    expiresIn: '10m'
   });
 }
 
 /**
- * Verify Montonio webhook signature (timing-attack safe)
- */
-export function verifyMontonioWebhookSignature(payload: string, signature: string): boolean {
-  if (!isMontonioEnabled || !MONTONIO_SECRET_KEY) {
-    throw new Error("Montonio is not configured");
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', MONTONIO_SECRET_KEY)
-    .update(payload)
-    .digest('hex');
-
-  // Check lengths first to prevent timingSafeEqual from throwing
-  if (signature.length !== expectedSignature.length) {
-    return false;
-  }
-
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-  } catch (error) {
-    // If timingSafeEqual throws for any reason, treat as invalid
-    console.error('[MONTONIO] Signature comparison error:', error);
-    return false;
-  }
-}
-
-/**
- * Decode and verify Montonio JWT token with replay protection
- */
-export function verifyMontonioToken(token: string): MontonioJWTPayload | null {
-  if (!isMontonioEnabled || !MONTONIO_SECRET_KEY) {
-    throw new Error("Montonio is not configured");
-  }
-
-  try {
-    const decoded = jwt.verify(token, MONTONIO_SECRET_KEY, {
-      algorithms: ['HS256'],
-    }) as MontonioJWTPayload;
-    
-    // Check for replay attack: verify nonce hasn't been used
-    const nonceKey = `${decoded.merchant_reference}-${decoded.nonce}`;
-    if (!usedNonces.has(nonceKey)) {
-      console.error('[MONTONIO] Token replay detected: nonce not found or already consumed');
-      return null;
-    }
-
-    // Nonce is valid and exists - it will be removed after webhook processing
-    return decoded;
-  } catch (error) {
-    console.error('[MONTONIO] Token verification failed:', error);
-    return null;
-  }
-}
-
-/**
  * Create Montonio payment - API endpoint handler
- * 
- * TODO: Add rate limiting to prevent abuse (recommended: max 10 requests/minute per IP)
  */
 export async function createMontonioPayment(req: Request, res: Response) {
   if (!isMontonioEnabled) {
@@ -221,71 +115,150 @@ export async function createMontonioPayment(req: Request, res: Response) {
   }
 
   try {
-    const { amount, currency, orderId, customerEmail, customerName, paymentMethod } = req.body;
+    const { 
+      amount, 
+      currency, 
+      orderId, 
+      customerEmail, 
+      customerName,
+      paymentMethod,
+      shippingAddress,
+      lineItems 
+    } = req.body;
 
     // Validate required fields
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      return res.status(400).json({ error: "Invalid amount. Amount must be a positive number." });
-    }
-
-    if (!currency || !['EUR', 'USD'].includes(currency)) {
-      return res.status(400).json({ error: "Invalid currency. Supported currencies: EUR, USD." });
+      return res.status(400).json({ error: "Invalid amount" });
     }
 
     if (!orderId || !customerEmail || !customerName) {
-      return res.status(400).json({ error: "Missing required fields: orderId, customerEmail, customerName." });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Validate payment method - must be a valid Montonio payment method
+    // Validate payment method
     const validMethods: MontonioPaymentMethod[] = ['montonio_bank', 'montonio_card', 'montonio_bnpl', 'montonio_financing'];
     if (!paymentMethod || !validMethods.includes(paymentMethod)) {
-      return res.status(400).json({ 
-        error: "Invalid or missing payment method. Valid methods: montonio_bank, montonio_card, montonio_bnpl, montonio_financing" 
-      });
+      return res.status(400).json({ error: "Invalid payment method" });
     }
 
-    // Build return and notification URLs from configured base URL
-    // Never trust Host header to prevent host-header injection attacks
+    // Build base URL
     const baseUrl = process.env.BASE_URL || 
       (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000');
 
-    const paymentData: MontonioPaymentData = {
-      amount: parseFloat(amount).toFixed(2),
-      currency: currency === 'USD' ? 'EUR' : currency, // Montonio primarily uses EUR
-      orderId,
-      customerEmail,
-      customerName,
+    // Parse customer name
+    const nameParts = customerName.trim().split(' ');
+    const firstName = nameParts[0] || 'Customer';
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
+    // Map country names to ISO codes
+    const countryToCode: { [key: string]: string } = {
+      'Estonia': 'EE',
+      'Latvia': 'LV', 
+      'Lithuania': 'LT',
+      'Finland': 'FI',
+      'Poland': 'PL',
+      'Germany': 'DE',
+    };
+    const countryCode = shippingAddress?.countryCode || 
+      countryToCode[shippingAddress?.country] || 'EE';
+
+    // Build address from shipping data or defaults
+    const address: MontonioAddress = {
+      firstName,
+      lastName,
+      email: customerEmail,
+      addressLine1: shippingAddress?.street || 'N/A',
+      locality: shippingAddress?.city || 'Tallinn',
+      region: shippingAddress?.region || '',
+      country: countryCode,
+      postalCode: shippingAddress?.postalCode || '10000'
+    };
+
+    // Build line items - finalPrice must be the line total (price * quantity)
+    const items: MontonioLineItem[] = lineItems?.length > 0 
+      ? lineItems.map((item: any) => ({
+          name: item.name || 'Product',
+          quantity: item.quantity || 1,
+          finalPrice: (parseFloat(item.price) || 0) * (item.quantity || 1)
+        }))
+      : [{ name: `EstZone Order ${orderId}`, quantity: 1, finalPrice: parseFloat(amount) }];
+
+    // Map payment method
+    const { method, display } = mapPaymentMethodToMontonio(paymentMethod);
+
+    // Build payment object
+    const payment: MontonioPayment = {
+      method,
+      methodDisplay: display,
+      amount: parseFloat(amount),
+      currency: currency || 'EUR',
+      methodOptions: {
+        paymentDescription: `EstZone tellimus ${orderId}`,
+        preferredCountry: countryCode
+      }
+    };
+
+    // Create the order payload
+    const orderPayload: MontonioOrderPayload = {
+      accessKey: MONTONIO_ACCESS_KEY!,
+      merchantReference: orderId,
       returnUrl: `${baseUrl}/api/payments/montonio/return`,
       notificationUrl: `${baseUrl}/api/payments/montonio/webhook`,
-      paymentMethod: paymentMethod as MontonioPaymentMethod,
+      currency: currency || 'EUR',
+      grandTotal: parseFloat(amount),
+      locale: 'et',
+      billingAddress: address,
+      shippingAddress: address,
+      lineItems: items,
+      payment
     };
 
     // Generate JWT token
-    const paymentToken = createMontonioPaymentToken(paymentData);
+    const token = createMontonioOrderToken(orderPayload);
 
-    // Build gateway redirect URL
-    const gatewayUrl = `${MONTONIO_GATEWAY_URL}?payment_token=${paymentToken}`;
+    // POST to Montonio Stargate API
+    const response = await fetch(`${MONTONIO_API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ data: token })
+    });
 
-    const methodLabel = paymentMethod ? ` (${paymentMethod})` : '';
-    console.log(`[MONTONIO] Payment created for order ${orderId}: ${amount} ${currency}${methodLabel}`);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('[MONTONIO] API error:', response.status, errorData);
+      return res.status(response.status).json({ 
+        error: `Montonio API error: ${response.status}`,
+        details: errorData 
+      });
+    }
+
+    const data = await response.json();
+
+    if (!data.paymentUrl) {
+      console.error('[MONTONIO] No paymentUrl in response:', data);
+      return res.status(500).json({ error: "No payment URL received from Montonio" });
+    }
+
+    console.log(`[MONTONIO] Order created: ${orderId} -> ${data.uuid || 'pending'}`);
 
     return res.json({
       success: true,
-      paymentUrl: gatewayUrl,
+      paymentUrl: data.paymentUrl,
       provider: 'montonio',
       method: paymentMethod,
+      montonioOrderUuid: data.uuid
     });
 
   } catch (error: any) {
     console.error('[MONTONIO] Payment creation failed:', error);
-    return res.status(500).json({ error: error.message || "Failed to create Montonio payment." });
+    return res.status(500).json({ error: error.message || "Failed to create Montonio payment" });
   }
 }
 
 /**
  * Handle Montonio webhook - payment status notification
- * Uses raw body captured by global express.json middleware for HMAC verification
- * Implements replay protection by validating and consuming nonces
  */
 export async function handleMontonioWebhook(req: Request, res: Response) {
   if (!isMontonioEnabled) {
@@ -294,75 +267,52 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
   }
 
   try {
-    // Get raw body for signature verification (captured by global express.json middleware)
-    const rawBody = (req as any).rawBody as Buffer;
-    if (!rawBody) {
-      console.error('[MONTONIO] Webhook missing raw body - raw body middleware may not be configured');
-      return res.status(400).send("ERROR");
-    }
-    
-    const signature = req.headers['x-montonio-signature'] as string;
+    const webhookData = req.body;
+    const { orderToken } = webhookData;
 
-    if (!signature) {
-      console.error('[MONTONIO] Webhook missing signature header');
+    if (!orderToken) {
+      console.error('[MONTONIO] Webhook missing orderToken');
       return res.status(400).send("ERROR");
     }
 
-    // Verify webhook signature using the exact raw payload (convert Buffer to string)
-    const isValid = verifyMontonioWebhookSignature(rawBody.toString('utf8'), signature);
-    if (!isValid) {
-      console.error('[MONTONIO] Webhook signature verification failed');
+    // Decode and verify the token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(orderToken, MONTONIO_SECRET_KEY!, {
+        algorithms: ['HS256']
+      });
+    } catch (jwtError) {
+      console.error('[MONTONIO] Invalid webhook token:', jwtError);
       return res.status(401).send("ERROR");
     }
 
-    const webhookData = req.body;
-    const { status, merchant_reference, payment_token } = webhookData;
+    const { merchantReference, paymentStatus } = decoded;
+    console.log(`[MONTONIO] Webhook received for order ${merchantReference}: status=${paymentStatus}`);
 
-    console.log(`[MONTONIO] Webhook received for order ${merchant_reference}: status=${status}`);
-
-    // Verify and consume the payment token to prevent replay attacks
-    if (payment_token) {
-      const decoded = verifyMontonioToken(payment_token);
-      if (!decoded) {
-        console.error('[MONTONIO] Webhook with invalid or replayed payment token');
-        return res.status(400).send("ERROR");
-      }
-
-      // Consume the nonce to prevent replay
-      const nonceKey = `${decoded.merchant_reference}-${decoded.nonce}`;
-      usedNonces.delete(nonceKey);
-      console.log(`[MONTONIO] Nonce consumed for order ${merchant_reference}`);
-    }
-
-    // Update order status based on Montonio webhook status
-    // Montonio status values: PAID, PENDING, VOIDED, PARTIALLY_REFUNDED, REFUNDED
+    // Update order status based on Montonio status
     try {
-      const order = await storage.getOrderByNumber(merchant_reference);
+      const order = await storage.getOrderByNumber(merchantReference);
       if (!order) {
-        console.error(`[MONTONIO] Order not found: ${merchant_reference}`);
-        return res.status(200).send("OK"); // Still return OK to not trigger retries
+        console.error(`[MONTONIO] Order not found: ${merchantReference}`);
+        return res.status(200).send("OK");
       }
 
-      if (status === 'PAID') {
-        // Update order payment status to completed
+      if (paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED') {
         await storage.updateOrderStatus(order.id, 'processing', 'completed');
-        console.log(`[MONTONIO] Order ${merchant_reference} payment confirmed - sending confirmation email`);
+        console.log(`[MONTONIO] Order ${merchantReference} payment confirmed`);
         
-        // Send confirmation email now that payment is confirmed
+        // Send confirmation email
         const orderItems = await storage.getOrderItems(order.id);
-        await emailService.sendOrderConfirmation(order, orderItems, 'et'); // Default to Estonian
-        console.log(`[MONTONIO] Confirmation email sent for order ${merchant_reference}`);
-      } else if (status === 'VOIDED' || status === 'REFUNDED') {
+        await emailService.sendOrderConfirmation(order, orderItems, 'et');
+        console.log(`[MONTONIO] Confirmation email sent for order ${merchantReference}`);
+      } else if (paymentStatus === 'VOIDED' || paymentStatus === 'REFUNDED' || paymentStatus === 'ABANDONED') {
         await storage.updateOrderStatus(order.id, 'cancelled', 'failed');
-        console.log(`[MONTONIO] Order ${merchant_reference} payment ${status}`);
+        console.log(`[MONTONIO] Order ${merchantReference} payment ${paymentStatus}`);
       }
-      // For PENDING status, order stays in pending state
     } catch (updateError) {
-      console.error(`[MONTONIO] Error updating order ${merchant_reference}:`, updateError);
-      // Still return OK to prevent Montonio from retrying
+      console.error(`[MONTONIO] Error updating order ${merchantReference}:`, updateError);
     }
 
-    // Montonio requires "OK" response for successful webhook processing
     return res.status(200).send("OK");
 
   } catch (error: any) {
@@ -376,30 +326,46 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
  */
 export async function handleMontonioReturn(req: Request, res: Response) {
   if (!isMontonioEnabled) {
-    return res.status(503).json({ error: "Montonio is not configured" });
+    return res.redirect('/checkout?error=payment_failed');
   }
 
   try {
-    const { payment_token } = req.query;
+    const { orderToken } = req.query;
 
-    if (!payment_token || typeof payment_token !== 'string') {
-      return res.status(400).json({ error: "Missing payment token" });
+    if (!orderToken || typeof orderToken !== 'string') {
+      console.error('[MONTONIO] Return missing orderToken');
+      return res.redirect('/checkout?error=missing_token');
     }
 
-    // Verify and decode the JWT token
-    const decoded = verifyMontonioToken(payment_token);
-
-    if (!decoded) {
-      return res.status(400).json({ error: "Invalid payment token" });
+    // Decode and verify the token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(orderToken, MONTONIO_SECRET_KEY!, {
+        algorithms: ['HS256']
+      });
+    } catch (jwtError) {
+      console.error('[MONTONIO] Invalid return token:', jwtError);
+      return res.redirect('/checkout?error=invalid_token');
     }
 
-    console.log(`[MONTONIO] Customer returned for order ${decoded.merchant_reference}`);
+    const { merchantReference, paymentStatus } = decoded;
+    console.log(`[MONTONIO] Customer returned for order ${merchantReference}: status=${paymentStatus}`);
 
-    // Redirect to order confirmation page
-    return res.redirect(`/order-confirmation?orderId=${decoded.merchant_reference}`);
+    if (paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED' || paymentStatus === 'PENDING') {
+      return res.redirect(`/order-confirmation?orderId=${merchantReference}`);
+    } else {
+      return res.redirect(`/checkout?error=payment_${paymentStatus?.toLowerCase() || 'failed'}`);
+    }
 
   } catch (error: any) {
     console.error('[MONTONIO] Return handling failed:', error);
-    return res.status(500).json({ error: "Failed to process return" });
+    return res.redirect('/checkout?error=payment_error');
   }
+}
+
+/**
+ * Check if Montonio is enabled
+ */
+export function isMontonioAvailable(): boolean {
+  return isMontonioEnabled;
 }

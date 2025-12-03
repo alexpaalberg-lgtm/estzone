@@ -487,6 +487,18 @@ export default function Checkout() {
               customerEmail: form.getValues('email'),
               customerName: `${form.getValues('firstName')} ${form.getValues('lastName')}`,
               paymentMethod: paymentMethod,
+              shippingAddress: {
+                street: form.getValues('address'),
+                city: form.getValues('city'),
+                postalCode: form.getValues('postalCode'),
+                country: form.getValues('country'),
+                countryCode: form.getValues('country') === 'Estonia' ? 'EE' : 'EE',
+              },
+              lineItems: items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price.toFixed(2),
+              })),
             }),
           });
           
