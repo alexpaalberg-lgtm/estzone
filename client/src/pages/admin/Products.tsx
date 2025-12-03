@@ -57,7 +57,14 @@ import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft,
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-const productFormSchema = insertProductSchema.omit({ images: true });
+const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)[a-zA-Z0-9_-]{11}.*$/i;
+
+const productFormSchema = insertProductSchema.omit({ images: true }).extend({
+  videoUrl: z.string().optional().refine(
+    (val) => !val || val.trim() === '' || youtubeUrlRegex.test(val),
+    { message: 'Please enter a valid YouTube URL (youtube.com/watch?v=... or youtu.be/...)' }
+  ),
+});
 
 type ProductFormData = z.infer<typeof productFormSchema>;
 
