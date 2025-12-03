@@ -67,6 +67,9 @@ const productFormSchema = insertProductSchema.omit({ images: true }).extend({
   stockStatus: z.enum(['in_stock', 'pre_order', 'out_of_stock']).default('in_stock'),
   deliveryDaysMin: z.number().min(1).max(60).default(2),
   deliveryDaysMax: z.number().min(1).max(90).default(4),
+}).refine((data) => data.deliveryDaysMax >= data.deliveryDaysMin, {
+  message: 'Max delivery days must be greater than or equal to min delivery days',
+  path: ['deliveryDaysMax'],
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -734,7 +737,7 @@ export default function AdminProducts() {
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground" data-testid={`text-delivery-${product.id}`}>
                         <div className="flex items-center gap-1">
                           <Truck className="w-3 h-3" />
                           {(product as any).deliveryDaysMin || 2}-{(product as any).deliveryDaysMax || 4} {language === 'et' ? 'p' : 'd'}
@@ -1034,7 +1037,10 @@ export default function AdminProducts() {
                           min="1"
                           max="60"
                           value={field.value ?? 2}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 2)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            field.onChange(val === '' ? 2 : Math.max(1, parseInt(val) || 2));
+                          }}
                           data-testid="input-delivery-min"
                         />
                       </FormControl>
@@ -1058,7 +1064,10 @@ export default function AdminProducts() {
                           min="1"
                           max="90"
                           value={field.value ?? 4}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 4)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            field.onChange(val === '' ? 4 : Math.max(1, parseInt(val) || 4));
+                          }}
                           data-testid="input-delivery-max"
                         />
                       </FormControl>
