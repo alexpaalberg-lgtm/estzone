@@ -53,7 +53,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertProductSchema, type Product, type Category } from '@shared/schema';
-import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Star, Sparkles, Eye, EyeOff, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Package, X, ArrowUp, ArrowDown, ImagePlus, Video } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -141,6 +141,7 @@ export default function AdminProducts() {
       isNew: false,
       isFeatured: false,
       isActive: true,
+      videoUrl: '',
     },
   });
 
@@ -236,6 +237,7 @@ export default function AdminProducts() {
       isNew: false,
       isFeatured: false,
       isActive: true,
+      videoUrl: '',
     });
     setIsDialogOpen(true);
   };
@@ -258,6 +260,7 @@ export default function AdminProducts() {
       isNew: product.isNew ?? false,
       isFeatured: product.isFeatured ?? false,
       isActive: product.isActive ?? true,
+      videoUrl: product.videoUrl ?? '',
     });
     setIsDialogOpen(true);
   };
@@ -961,6 +964,37 @@ export default function AdminProducts() {
                   </p>
                 )}
               </div>
+
+              <FormField
+                control={form.control}
+                name="videoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Video className="w-4 h-4" />
+                      {language === 'et' ? 'YouTube Video URL' : 'YouTube Video URL'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value ?? ''}
+                        placeholder={language === 'et' 
+                          ? 'https://www.youtube.com/watch?v=...' 
+                          : 'https://www.youtube.com/watch?v=...'
+                        }
+                        data-testid="input-video-url"
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'et' 
+                        ? 'Kleepige YouTube video link (nt https://www.youtube.com/watch?v=xxxxx)'
+                        : 'Paste YouTube video link (e.g. https://www.youtube.com/watch?v=xxxxx)'
+                      }
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex gap-6 flex-wrap">
                 <FormField
