@@ -36,6 +36,27 @@ Payment method types mapped to Montonio API: montonio_bank → paymentInitiation
 
 Files: server/montonio.ts (backend), client/src/pages/Checkout.tsx (UI), client/src/components/Footer.tsx (payment logos)
 
+### Payment Flow & Email Confirmation (December 2024)
+**IMPORTANT**: Order confirmation emails are only sent AFTER successful payment confirmation, not at order creation.
+
+**Flow for External Payments (Montonio, Stripe, PayPal, Paysera)**:
+1. Order is created with paymentStatus='pending' 
+2. Customer is redirected to external payment provider
+3. Payment provider webhook confirms payment
+4. Order status updated to 'processing' or 'completed', paymentStatus='completed'
+5. Confirmation email sent to customer
+
+**Webhook Endpoints**:
+- `/api/payments/montonio/webhook` - Montonio payment notifications (JWT signature verified)
+- `/api/payments/stripe/webhook` - Stripe payment events (signature verified via rawBody)
+
+**Security**:
+- Stripe checkout uses server-side order validation (amounts from database, not client)
+- Montonio uses JWT signature verification with replay attack protection
+- External payments skip email on order creation; webhooks handle email after confirmation
+
+Files: server/routes.ts (order creation, stripe endpoint), server/montonio.ts (montonio webhook), server/utils/payments.ts (stripe webhook)
+
 ## System Architecture
 
 ### Frontend Architecture
