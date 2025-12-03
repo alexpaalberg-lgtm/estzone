@@ -359,25 +359,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Protected Admin Routes
   app.get("/api/admin/products", requireAdmin, async (req, res) => {
     try {
-      const { page = '1', limit = '20', search, sort } = req.query;
-      const products = await storage.getProducts({
-        search: search as string,
-        sort: sort as string,
-      });
+      const { 
+        page = '1', 
+        limit = '20', 
+        search, 
+        sort, 
+        categoryId, 
+        status = 'all' 
+      } = req.query;
       
       const pageNum = parseInt(page as string);
       const limitNum = parseInt(limit as string);
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
       
-      const paginatedProducts = products.slice(startIndex, endIndex);
-      
-      res.json({
-        products: paginatedProducts,
-        total: products.length,
+      const { products, total } = await storage.getAdminProducts({
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(products.length / limitNum)
+        search: search as string,
+        categoryId: categoryId as string,
+        status: status as 'all' | 'active' | 'inactive',
+        sort: sort as string,
+      });
+      
+      res.json({
+        products,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
       });
     } catch (error: any) {
       console.error('Error fetching admin products:', error);

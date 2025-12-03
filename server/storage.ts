@@ -64,6 +64,14 @@ export interface IStorage {
   
   // Products
   getProducts(filters?: { categoryId?: string; featured?: boolean; search?: string; sort?: string }): Promise<Product[]>;
+  getAdminProducts(filters: { 
+    page?: number; 
+    limit?: number; 
+    search?: string; 
+    categoryId?: string; 
+    status?: 'all' | 'active' | 'inactive';
+    sort?: string;
+  }): Promise<{ products: Product[]; total: number }>;
   getProduct(id: string): Promise<Product | undefined>;
   getProductBySku(sku: string): Promise<Product | undefined>;
   getLowStockProducts(): Promise<Product[]>;
@@ -429,6 +437,98 @@ export class DbStorage implements IStorage {
           .where(and(...conditions))
           .orderBy(desc(schema.products.createdAt));
     }
+  }
+  
+  async getAdminProducts(filters: { 
+    page?: number; 
+    limit?: number; 
+    search?: string; 
+    categoryId?: string; 
+    status?: 'all' | 'active' | 'inactive';
+    sort?: string;
+  }): Promise<{ products: Product[]; total: number }> {
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
+    const offset = (page - 1) * limit;
+    
+    const conditions: any[] = [];
+    
+    // Status filter (admin can see all products)
+    if (filters.status === 'active') {
+      conditions.push(eq(schema.products.isActive, true));
+    } else if (filters.status === 'inactive') {
+      conditions.push(eq(schema.products.isActive, false));
+    }
+    // If 'all' or not specified, no status filter
+    
+    // Category filter
+    if (filters.categoryId) {
+      const childCategories = await db.select()
+        .from(schema.categories)
+        .where(eq(schema.categories.parentId, filters.categoryId));
+      
+      if (childCategories.length > 0) {
+        const categoryIds = [filters.categoryId, ...childCategories.map(c => c.id)];
+        conditions.push(inArray(schema.products.categoryId, categoryIds));
+      } else {
+        conditions.push(eq(schema.products.categoryId, filters.categoryId));
+      }
+    }
+    
+    // Search filter
+    if (filters.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      conditions.push(
+        sql`(LOWER(${schema.products.nameEn}) LIKE ${searchTerm} OR LOWER(${schema.products.nameEt}) LIKE ${searchTerm} OR LOWER(${schema.products.sku}) LIKE ${searchTerm})`
+      );
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    // Get total count
+    const [countResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.products)
+      .where(whereClause);
+    const total = Number(countResult?.count || 0);
+    
+    // Get paginated products with sorting
+    let orderBy: any = desc(schema.products.createdAt);
+    switch (filters.sort) {
+      case 'name_az':
+        orderBy = schema.products.nameEn;
+        break;
+      case 'name_za':
+        orderBy = desc(schema.products.nameEn);
+        break;
+      case 'price_asc':
+        orderBy = sql`CAST(${schema.products.price} AS NUMERIC) ASC`;
+        break;
+      case 'price_desc':
+        orderBy = sql`CAST(${schema.products.price} AS NUMERIC) DESC`;
+        break;
+      case 'stock_low':
+        orderBy = schema.products.stock;
+        break;
+      case 'stock_high':
+        orderBy = desc(schema.products.stock);
+        break;
+      case 'oldest':
+        orderBy = schema.products.createdAt;
+        break;
+      case 'newest':
+      default:
+        orderBy = desc(schema.products.createdAt);
+        break;
+    }
+    
+    const products = await db.select()
+      .from(schema.products)
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(limit)
+      .offset(offset);
+    
+    return { products, total };
   }
   
   async getProduct(id: string): Promise<Product | undefined> {
