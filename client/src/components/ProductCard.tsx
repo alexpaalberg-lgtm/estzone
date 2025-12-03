@@ -36,6 +36,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   
   const stock = !inStock ? 'out_of_stock' : lowStock ? 'low_stock' : 'in_stock';
   
+  const stockStatus = (product as any).stockStatus || 'in_stock';
+  const deliveryMin = (product as any).deliveryDaysMin || 2;
+  const deliveryMax = (product as any).deliveryDaysMax || 4;
+  const isPreOrder = stockStatus === 'pre_order';
+  
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
   
   const { data: wishlistItems } = useQuery<Wishlist[]>({
@@ -124,19 +129,21 @@ export default function ProductCard({ product }: ProductCardProps) {
     in_stock: t.product.inStock,
     low_stock: t.product.lowStock,
     out_of_stock: t.product.outOfStock,
+    pre_order: language === 'et' ? 'Tellimisel' : 'Pre-order',
   };
 
   const stockColors = {
     in_stock: 'bg-green-500/20 text-green-400',
     low_stock: 'bg-amber-500/20 text-amber-400',
     out_of_stock: 'bg-muted text-muted-foreground',
+    pre_order: 'bg-blue-500/20 text-blue-400',
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!inStock) return;
+    if (!inStock && !isPreOrder) return;
     
     addItem({
       id: product.id,
@@ -148,7 +155,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     });
     
     toast({
-      title: language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart',
+      title: isPreOrder 
+        ? (language === 'et' ? 'Eeltellimus lisatud' : 'Pre-order added')
+        : (language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart'),
       description: name,
     });
   };
@@ -250,13 +259,13 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
-            <Badge className={`${stockColors[stock]} text-xs`} data-testid={`badge-stock-${product.id}`}>
-              {stockLabels[stock]}
+            <Badge className={`${isPreOrder ? stockColors.pre_order : stockColors[stock]} text-xs`} data-testid={`badge-stock-${product.id}`}>
+              {isPreOrder ? stockLabels.pre_order : stockLabels[stock]}
             </Badge>
-            {inStock && (
+            {(inStock || isPreOrder) && (
               <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
                 <Truck className="h-3 w-3" />
-                {language === 'et' ? '1-3 päeva' : '1-3 days'}
+                {language === 'et' ? `${deliveryMin}-${deliveryMax} päeva` : `${deliveryMin}-${deliveryMax} days`}
               </span>
             )}
           </div>
@@ -264,12 +273,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Button
             className="w-full text-xs sm:text-sm"
             size="sm"
-            disabled={!inStock}
+            disabled={!inStock && !isPreOrder}
             onClick={handleAddToCart}
             data-testid={`button-add-to-cart-${product.id}`}
           >
             <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-            {t.product.addToCart}
+            {isPreOrder 
+              ? (language === 'et' ? 'Eeltelli' : 'Pre-order') 
+              : t.product.addToCart}
           </Button>
         </div>
       </Card>

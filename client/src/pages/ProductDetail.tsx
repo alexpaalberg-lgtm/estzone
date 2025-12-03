@@ -178,8 +178,10 @@ export default function ProductDetail() {
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
   const isGame = isGameProduct(product.sku);
   
+  const isPreOrder = (product as any).stockStatus === 'pre_order';
+  
   const handleAddToCart = () => {
-    if (!inStock) return;
+    if (!inStock && !isPreOrder) return;
     
     addItem({
       id: product.id,
@@ -191,7 +193,9 @@ export default function ProductDetail() {
     }, quantity);
     
     toast({
-      title: language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart',
+      title: isPreOrder 
+        ? (language === 'et' ? 'Eeltellimus lisatud' : 'Pre-order added')
+        : (language === 'et' ? 'Lisatud ostukorvi' : 'Added to cart'),
       description: `${quantity}x ${productName}`,
     });
   };
@@ -320,8 +324,12 @@ export default function ProductDetail() {
                   </Badge>
                 )}
                 
-                <div className="flex items-center gap-2">
-                  {inStock ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  {(product as any).stockStatus === 'pre_order' ? (
+                    <Badge className="bg-blue-500/10 text-blue-500" data-testid="badge-pre-order">
+                      {language === 'et' ? 'Tellimisel' : 'Pre-order'}
+                    </Badge>
+                  ) : inStock ? (
                     <Badge variant="default" className="bg-green-500/10 text-green-500" data-testid="badge-in-stock">
                       {language === 'et' ? 'Laos' : 'In Stock'} ({product.stock})
                     </Badge>
@@ -329,6 +337,14 @@ export default function ProductDetail() {
                     <Badge variant="destructive" data-testid="badge-out-of-stock">
                       {language === 'et' ? 'Otsas' : 'Out of Stock'}
                     </Badge>
+                  )}
+                  {(inStock || (product as any).stockStatus === 'pre_order') && (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Truck className="h-4 w-4" />
+                      {language === 'et' 
+                        ? `Tarne ${(product as any).deliveryDaysMin || 2}-${(product as any).deliveryDaysMax || 4} päeva` 
+                        : `Delivery ${(product as any).deliveryDaysMin || 2}-${(product as any).deliveryDaysMax || 4} days`}
+                    </span>
                   )}
                 </div>
               </div>
@@ -354,7 +370,7 @@ export default function ProductDetail() {
                     size="icon"
                     variant="outline"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={!inStock}
+                    disabled={!inStock && !isPreOrder}
                     data-testid="button-decrease-quantity"
                   >
                     <Minus className="h-4 w-4" />
@@ -365,8 +381,8 @@ export default function ProductDetail() {
                   <Button
                     size="icon"
                     variant="outline"
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    disabled={!inStock}
+                    onClick={() => setQuantity(isPreOrder ? quantity + 1 : Math.min(product.stock, quantity + 1))}
+                    disabled={!inStock && !isPreOrder}
                     data-testid="button-increase-quantity"
                   >
                     <Plus className="h-4 w-4" />
@@ -380,11 +396,13 @@ export default function ProductDetail() {
                   size="lg"
                   className="flex-1"
                   onClick={handleAddToCart}
-                  disabled={!inStock}
+                  disabled={!inStock && (product as any).stockStatus !== 'pre_order'}
                   data-testid="button-add-to-cart"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart'}
+                  {(product as any).stockStatus === 'pre_order' 
+                    ? (language === 'et' ? 'Eeltelli' : 'Pre-order')
+                    : (language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart')}
                 </Button>
                 <Button
                   size="lg"
