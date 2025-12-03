@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import AdminLayout from '@/components/AdminLayout';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VipTier {
   id: string;
@@ -102,6 +103,7 @@ function getTierIcon(tierName: string) {
 
 export default function AdminLoyalty() {
   const { toast } = useToast();
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState<string>('all');
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -110,6 +112,81 @@ export default function AdminLoyalty() {
   const [adjustType, setAdjustType] = useState<'add' | 'subtract'>('add');
   const [adjustReason, setAdjustReason] = useState('');
   const [leaderboardSort, setLeaderboardSort] = useState<'points' | 'spend' | 'tier'>('points');
+  
+  const t = {
+    title: language === 'et' ? 'Lojaalsuse haldus' : 'Loyalty Management',
+    description: language === 'et' ? 'Halda lojaalsuspunkte, VIP tasemeid ja kasutajate preemiaid' : 'Manage loyalty points, VIP tiers, and user rewards',
+    totalMembers: language === 'et' ? 'Liikmeid kokku' : 'Total Members',
+    activeMembers: language === 'et' ? 'Aktiivsed lojaalsusliikmed' : 'Active loyalty members',
+    pointsIssued: language === 'et' ? 'Punkte väljastatud' : 'Points Issued',
+    lifetimeEarned: language === 'et' ? 'Eluajal teenitud punktid' : 'Lifetime points earned',
+    pointsRedeemed: language === 'et' ? 'Punkte kasutatud' : 'Points Redeemed',
+    valuePrefix: language === 'et' ? '= €' : '= €',
+    valueSuffix: language === 'et' ? ' väärtus' : ' value',
+    avgPointsUser: language === 'et' ? 'Keskmised punktid/kasutaja' : 'Avg Points/User',
+    currentBalanceAvg: language === 'et' ? 'Keskmine jääk' : 'Current balance average',
+    vipTierDistribution: language === 'et' ? 'VIP tasemete jaotus' : 'VIP Tier Distribution',
+    members: language === 'et' ? 'Liikmed' : 'Members',
+    leaderboard: language === 'et' ? 'Edetabel' : 'Leaderboard',
+    transactionHistory: language === 'et' ? 'Tehingute ajalugu' : 'Transaction History',
+    vipTiers: language === 'et' ? 'VIP tasemed' : 'VIP Tiers',
+    loyaltyMembers: language === 'et' ? 'Lojaalsusliikmed' : 'Loyalty Members',
+    searchPlaceholder: language === 'et' ? 'Otsi nime või e-posti järgi...' : 'Search by name or email...',
+    filterByTier: language === 'et' ? 'Filtreeri taseme järgi' : 'Filter by tier',
+    allTiers: language === 'et' ? 'Kõik tasemed' : 'All Tiers',
+    customer: language === 'et' ? 'Klient' : 'Customer',
+    vipTier: language === 'et' ? 'VIP tase' : 'VIP Tier',
+    currentPoints: language === 'et' ? 'Hetkel punkte' : 'Current Points',
+    lifetimePoints: language === 'et' ? 'Eluaja punkte' : 'Lifetime Points',
+    totalSpend: language === 'et' ? 'Kokku kulutatud' : 'Total Spend',
+    actions: language === 'et' ? 'Tegevused' : 'Actions',
+    noMembersFound: language === 'et' ? 'Lojaalsusliikmed puuduvad' : 'No loyalty members found',
+    noTier: language === 'et' ? 'Puudub' : 'No Tier',
+    adjustPoints: language === 'et' ? 'Muuda punkte' : 'Adjust Points',
+    customerLeaderboard: language === 'et' ? 'Klientide edetabel' : 'Customer Leaderboard',
+    topCustomersDesc: language === 'et' ? 'Parimad kliendid lojaalsuse näitajate järgi' : 'Top customers ranked by loyalty metrics',
+    sortByPoints: language === 'et' ? 'Sorteeri punktide järgi' : 'Sort by Points',
+    sortBySpend: language === 'et' ? 'Sorteeri kulutuste järgi' : 'Sort by Spend',
+    sortByTier: language === 'et' ? 'Sorteeri taseme järgi' : 'Sort by Tier',
+    rank: language === 'et' ? 'Koht' : 'Rank',
+    noCustomersFound: language === 'et' ? 'Kliente ei leitud' : 'No customers found',
+    recentTransactions: language === 'et' ? 'Viimased tehingud' : 'Recent Transactions',
+    transactionsDesc: language === 'et' ? 'Teenitud, kasutatud ja muudetud punktid' : 'Points earned, redeemed, and adjusted',
+    date: language === 'et' ? 'Kuupäev' : 'Date',
+    type: language === 'et' ? 'Tüüp' : 'Type',
+    transactionDescription: language === 'et' ? 'Kirjeldus' : 'Description',
+    points: language === 'et' ? 'Punktid' : 'Points',
+    balanceAfter: language === 'et' ? 'Jääk pärast' : 'Balance After',
+    noTransactions: language === 'et' ? 'Tehingud puuduvad' : 'No transactions yet',
+    tiersConfiguration: language === 'et' ? 'VIP tasemete seadistus' : 'VIP Tiers Configuration',
+    tiersDesc: language === 'et' ? 'Praegused tasemeläved ja eelised' : 'Current tier thresholds and benefits',
+    tier: language === 'et' ? 'Tase' : 'Tier',
+    minSpendRequired: language === 'et' ? 'Miinimum kulutus' : 'Min. Spend Required',
+    discount: language === 'et' ? 'Allahindlus' : 'Discount',
+    pointsMultiplier: language === 'et' ? 'Punktide kordaja' : 'Points Multiplier',
+    status: language === 'et' ? 'Staatus' : 'Status',
+    active: language === 'et' ? 'Aktiivne' : 'Active',
+    inactive: language === 'et' ? 'Mitteaktiivne' : 'Inactive',
+    off: language === 'et' ? '% soodustus' : '% off',
+    adjustLoyaltyPoints: language === 'et' ? 'Muuda lojaalsuspunkte' : 'Adjust Loyalty Points',
+    currentBalance: language === 'et' ? 'Hetkel jääk:' : 'Current balance:',
+    operation: language === 'et' ? 'Tegevus' : 'Operation',
+    addPoints: language === 'et' ? 'Lisa punkte' : 'Add Points',
+    subtractPoints: language === 'et' ? 'Lahuta punkte' : 'Subtract Points',
+    numberOfPoints: language === 'et' ? 'Punktide arv' : 'Number of Points',
+    enterPoints: language === 'et' ? 'Sisesta punktid...' : 'Enter points...',
+    reason: language === 'et' ? 'Põhjus' : 'Reason',
+    enterReason: language === 'et' ? 'Sisesta muutmise põhjus...' : 'Enter reason for adjustment...',
+    cancel: language === 'et' ? 'Tühista' : 'Cancel',
+    saving: language === 'et' ? 'Salvestamine...' : 'Saving...',
+    confirmAdjustment: language === 'et' ? 'Kinnita muudatus' : 'Confirm Adjustment',
+    pointsAdjusted: language === 'et' ? 'Punktid muudetud' : 'Points adjusted',
+    pointsUpdated: language === 'et' ? 'Kasutaja lojaalsuspunktid on uuendatud' : 'User loyalty points have been updated',
+    error: language === 'et' ? 'Viga' : 'Error',
+    fillAllFields: language === 'et' ? 'Palun täida kõik väljad' : 'Please fill in all fields',
+    enterValidPoints: language === 'et' ? 'Palun sisesta kehtiv punktide arv' : 'Please enter a valid number of points',
+    failedToAdjust: language === 'et' ? 'Punktide muutmine ebaõnnestus' : 'Failed to adjust points',
+  };
   
   const { data: stats, isLoading: statsLoading } = useQuery<LoyaltyStats>({
     queryKey: ['/api/admin/loyalty/stats-full'],
@@ -160,14 +237,14 @@ export default function AdminLoyalty() {
       setAdjustPoints('');
       setAdjustReason('');
       toast({
-        title: 'Points adjusted',
-        description: 'User loyalty points have been updated',
+        title: t.pointsAdjusted,
+        description: t.pointsUpdated,
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error?.message || 'Failed to adjust points',
+        title: t.error,
+        description: error?.message || t.failedToAdjust,
         variant: 'destructive',
       });
     },
@@ -176,8 +253,8 @@ export default function AdminLoyalty() {
   const handleAdjustPoints = () => {
     if (!selectedUser || !adjustPoints || !adjustReason) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all fields',
+        title: t.error,
+        description: t.fillAllFields,
         variant: 'destructive',
       });
       return;
@@ -186,8 +263,8 @@ export default function AdminLoyalty() {
     const points = parseInt(adjustPoints);
     if (isNaN(points) || points <= 0) {
       toast({
-        title: 'Error',
-        description: 'Please enter a valid number of points',
+        title: t.error,
+        description: t.enterValidPoints,
         variant: 'destructive',
       });
       return;
@@ -225,16 +302,16 @@ export default function AdminLoyalty() {
   };
   
   return (
-    <AdminLayout title="Loyalty Management">
+    <AdminLayout title={t.title}>
       <div className="space-y-6" data-testid="admin-loyalty-page">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <Trophy className="h-8 w-8 text-primary" />
-              Loyalty Management
+              {t.title}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage loyalty points, VIP tiers, and user rewards
+              {t.description}
             </p>
           </div>
         </div>
@@ -242,53 +319,53 @@ export default function AdminLoyalty() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.totalMembers}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="stat-total-members">
                 {stats?.totalUsers?.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">Active loyalty members</p>
+              <p className="text-xs text-muted-foreground">{t.activeMembers}</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Points Issued</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.pointsIssued}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-500" data-testid="stat-points-issued">
                 {stats?.totalPointsIssued?.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">Lifetime points earned</p>
+              <p className="text-xs text-muted-foreground">{t.lifetimeEarned}</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Points Redeemed</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.pointsRedeemed}</CardTitle>
               <Gift className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-primary" data-testid="stat-points-redeemed">
                 {stats?.totalPointsRedeemed?.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">= €{((stats?.totalPointsRedeemed || 0) / 100).toFixed(2)} value</p>
+              <p className="text-xs text-muted-foreground">{t.valuePrefix}{((stats?.totalPointsRedeemed || 0) / 100).toFixed(2)}{t.valueSuffix}</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Points/User</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.avgPointsUser}</CardTitle>
               <Sparkles className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="stat-avg-points">
                 {Math.round(stats?.averagePointsPerUser || 0).toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">Current balance average</p>
+              <p className="text-xs text-muted-foreground">{t.currentBalanceAvg}</p>
             </CardContent>
           </Card>
         </div>
@@ -298,7 +375,7 @@ export default function AdminLoyalty() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Crown className="h-5 w-5 text-primary" />
-                VIP Tier Distribution
+                {t.vipTierDistribution}
               </CardTitle>
             </CardHeader>
             <CardContent>
