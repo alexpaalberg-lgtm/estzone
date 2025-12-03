@@ -8,7 +8,7 @@ import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAdd
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
 import { getShippingOptions } from "./utils/shipping";
-import { createStripePayment, createPayseraPayment } from "./utils/payments";
+import { createStripePayment, createPayseraPayment, handleStripeWebhook, createStripeCheckoutSession } from "./utils/payments";
 import { streamChatResponse, detectLanguage, searchProducts, getPersonaByName } from "./utils/chat";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { createMontonioPayment, handleMontonioWebhook, handleMontonioReturn } from "./montonio";
@@ -801,6 +801,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await handleMontonioWebhook(req, res);
   });
   
+  // Stripe checkout session creation
+  // Security: We fetch the order from database to prevent client-side amount tampering
+  app.post("/api/payments/stripe", async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      
+      if (!orderId) {
+        return res.status(400).json({ error: "Missing order ID" });
+      }
+      
+      // Fetch order from database to get verified amount and items
+      const order = await storage.getOrderByNumber(orderId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Check if order is already paid
+      if (order.paymentStatus === 'completed') {
+        return res.status(400).json({ error: "Order is already paid" });
+      }
+      
+      // Get order items from database
+      const orderItems = await storage.getOrderItems(order.id);
+      
+      // Build line items from database data (not client input)
+      const lineItems = orderItems.map(item => ({
+        name: item.productNameEn || item.productNameEt || 'Product',
+        quantity: item.quantity,
+        price: parseFloat(item.price),
+      }));
+      
+      // Add shipping as a line item if there's a shipping cost
+      const shippingCost = parseFloat(order.shippingCost || '0');
+      if (shippingCost > 0) {
+        lineItems.push({
+          name: 'Shipping',
+          quantity: 1,
+          price: shippingCost,
+        });
+      }
+      
+      const result = await createStripeCheckoutSession({
+        orderId: order.orderNumber,
+        amount: parseFloat(order.total),
+        currency: order.currency || 'EUR',
+        customerEmail: order.customerEmail,
+        customerName: order.customerName || '',
+        lineItems,
+      });
+      
+      if (result.success && result.paymentUrl) {
+        res.json({ success: true, paymentUrl: result.paymentUrl });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
+    } catch (error: any) {
+      console.error('[STRIPE] Error creating checkout session:', error);
+      res.status(500).json({ error: error.message || "Failed to create payment session" });
+    }
+  });
+  
+  // Stripe webhook - raw body needed for signature verification
+  app.post("/api/payments/stripe/webhook", async (req, res) => {
+    await handleStripeWebhook(req, res);
+  });
+  
   app.get("/api/payments/montonio/return", async (req, res) => {
     await handleMontonioReturn(req, res);
   });
@@ -996,9 +1062,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Send confirmation email
-      const orderItems = await storage.getOrderItems(createdOrder.id);
-      await emailService.sendOrderConfirmation(createdOrder, orderItems, language);
+      // Send confirmation email - but only for payment methods that complete synchronously
+      // For external payment gateways (Montonio, Stripe with redirect), email is sent after payment confirmation via webhook
+      const paymentMethod = order.paymentMethod || '';
+      const isExternalPayment = paymentMethod.startsWith('montonio_') || paymentMethod === 'stripe' || paymentMethod === 'paypal' || paymentMethod === 'paysera';
+      
+      if (!isExternalPayment) {
+        // Only send email immediately for direct/internal payment methods
+        const orderItems = await storage.getOrderItems(createdOrder.id);
+        await emailService.sendOrderConfirmation(createdOrder, orderItems, language);
+      } else {
+        console.log(`[ORDER] External payment method ${paymentMethod} - email will be sent after payment confirmation`);
+      }
       
       res.status(201).json(createdOrder);
     } catch (error: any) {

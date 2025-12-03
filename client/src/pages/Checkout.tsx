@@ -504,14 +504,45 @@ export default function Checkout() {
         }
       }
       
-      // For other payment methods, proceed normally
+      // Handle Stripe payment
+      if (paymentMethod === 'stripe') {
+        try {
+          const stripeResponse = await fetch('/api/payments/stripe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: createdOrder.orderNumber,
+            }),
+          });
+          
+          const stripeData = await stripeResponse.json();
+          
+          if (stripeData.success && stripeData.paymentUrl) {
+            clearCart();
+            queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
+            window.location.href = stripeData.paymentUrl;
+            return;
+          } else {
+            throw new Error(stripeData.error || 'Failed to create Stripe payment');
+          }
+        } catch (stripeError: any) {
+          toast({
+            variant: "destructive",
+            title: language === 'et' ? 'Makseviga' : 'Payment Error',
+            description: stripeError.message || (language === 'et' ? 'Stripe makse loomine ebaõnnestus' : 'Failed to create Stripe payment'),
+          });
+          return;
+        }
+      }
+      
+      // For other payment methods (PayPal, Paysera), show message that redirect is needed
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
       toast({
-        title: language === 'et' ? 'Tellimus edastatud!' : 'Order placed!',
-        description: language === 'et' ? 'Saadame teile kinnituskirja' : 'We will send you a confirmation email',
+        title: language === 'et' ? 'Tellimus loodud' : 'Order created',
+        description: language === 'et' ? 'Palun oodake, suuname teid maksma...' : 'Please wait, redirecting to payment...',
       });
-      setLocation('/');
+      setLocation(`/order-confirmation?orderId=${createdOrder.orderNumber}`);
     },
     onError: (error: any) => {
       toast({

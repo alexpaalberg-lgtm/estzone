@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { Request, Response } from "express";
+import { storage } from "./storage";
+import { emailService } from "./utils/email";
 
 /* Montonio Payment Gateway Integration */
 
@@ -332,9 +334,33 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
       console.log(`[MONTONIO] Nonce consumed for order ${merchant_reference}`);
     }
 
-    // TODO: Update order status in database based on webhook data
-    // This should integrate with your storage layer
-    // Example: await storage.updateOrderPaymentStatus(merchant_reference, status);
+    // Update order status based on Montonio webhook status
+    // Montonio status values: PAID, PENDING, VOIDED, PARTIALLY_REFUNDED, REFUNDED
+    try {
+      const order = await storage.getOrderByNumber(merchant_reference);
+      if (!order) {
+        console.error(`[MONTONIO] Order not found: ${merchant_reference}`);
+        return res.status(200).send("OK"); // Still return OK to not trigger retries
+      }
+
+      if (status === 'PAID') {
+        // Update order payment status to completed
+        await storage.updateOrderStatus(order.id, 'processing', 'completed');
+        console.log(`[MONTONIO] Order ${merchant_reference} payment confirmed - sending confirmation email`);
+        
+        // Send confirmation email now that payment is confirmed
+        const orderItems = await storage.getOrderItems(order.id);
+        await emailService.sendOrderConfirmation(order, orderItems, 'et'); // Default to Estonian
+        console.log(`[MONTONIO] Confirmation email sent for order ${merchant_reference}`);
+      } else if (status === 'VOIDED' || status === 'REFUNDED') {
+        await storage.updateOrderStatus(order.id, 'cancelled', 'failed');
+        console.log(`[MONTONIO] Order ${merchant_reference} payment ${status}`);
+      }
+      // For PENDING status, order stays in pending state
+    } catch (updateError) {
+      console.error(`[MONTONIO] Error updating order ${merchant_reference}:`, updateError);
+      // Still return OK to prevent Montonio from retrying
+    }
 
     // Montonio requires "OK" response for successful webhook processing
     return res.status(200).send("OK");
