@@ -1976,6 +1976,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return orderDate >= prevStartDate && orderDate <= prevEndDate;
       });
 
+      // Get last 7 days for weekly analysis
+      const weekStartDate = new Date(startDate);
+      weekStartDate.setDate(weekStartDate.getDate() - 7);
+      const weekOrders = allOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= weekStartDate && orderDate <= endDate;
+      });
+
+      // Get last 30 days for monthly analysis
+      const monthStartDate = new Date(startDate);
+      monthStartDate.setDate(monthStartDate.getDate() - 30);
+      const monthOrders = allOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= monthStartDate && orderDate <= endDate;
+      });
+
       // Calculate summary statistics
       const totalOrders = dateOrders.length;
       const totalRevenue = dateOrders.reduce((sum, o) => sum + parseFloat(o.total || '0'), 0);
@@ -1983,6 +1999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get products data
       const products = await storage.getProducts();
+      const categories = await storage.getCategories();
       const lowStockProducts = products.filter(p => p.stock <= (p.lowStockThreshold || 10));
 
       // Get order items for top products
@@ -1990,6 +2007,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const order of dateOrders) {
         const items = await storage.getOrderItems(order.id);
         orderItems.push(...items);
+      }
+
+      // Get all order items for the week (for analysis)
+      const weekOrderItems: Array<{productId: string, quantity: number, price: string, orderId: string}> = [];
+      for (const order of weekOrders) {
+        const items = await storage.getOrderItems(order.id);
+        weekOrderItems.push(...items.map(i => ({ ...i, orderId: order.id })));
       }
 
       // Calculate top products
@@ -2009,6 +2033,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map(([id, data]) => ({ id, ...data, revenue: data.revenue.toFixed(2) }))
         .sort((a, b) => b.revenue as any - (a.revenue as any))
         .slice(0, 5);
+
+      // ============ SALES ANALYSIS ============
+      // Peak hours analysis
+      const hourlyOrders: Record<number, number> = {};
+      for (let h = 0; h < 24; h++) hourlyOrders[h] = 0;
+      dateOrders.forEach(o => {
+        const hour = new Date(o.createdAt).getHours();
+        hourlyOrders[hour]++;
+      });
+      const peakHours = Object.entries(hourlyOrders)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([hour, count]) => ({ hour: parseInt(hour), orders: count }));
+
+      // Best days of the week (from last 30 days)
+      const dayOrders: Record<number, { orders: number; revenue: number }> = {};
+      for (let d = 0; d < 7; d++) dayOrders[d] = { orders: 0, revenue: 0 };
+      monthOrders.forEach(o => {
+        const day = new Date(o.createdAt).getDay();
+        dayOrders[day].orders++;
+        dayOrders[day].revenue += parseFloat(o.total || '0');
+      });
+      const dayNames = ['Pühapäev', 'Esmaspäev', 'Teisipäev', 'Kolmapäev', 'Neljapäev', 'Reede', 'Laupäev'];
+      const bestDays = Object.entries(dayOrders)
+        .map(([day, data]) => ({ day: dayNames[parseInt(day)], ...data, revenue: data.revenue.toFixed(2) }))
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 3);
+
+      // Products frequently bought together
+      const orderProductPairs: Record<string, number> = {};
+      const orderProductMap: Record<string, string[]> = {};
+      weekOrderItems.forEach(item => {
+        if (!orderProductMap[item.orderId]) orderProductMap[item.orderId] = [];
+        orderProductMap[item.orderId].push(item.productId);
+      });
+      Object.values(orderProductMap).forEach(productIds => {
+        if (productIds.length >= 2) {
+          for (let i = 0; i < productIds.length; i++) {
+            for (let j = i + 1; j < productIds.length; j++) {
+              const key = [productIds[i], productIds[j]].sort().join('|');
+              orderProductPairs[key] = (orderProductPairs[key] || 0) + 1;
+            }
+          }
+        }
+      });
+      const frequentlyBoughtTogether = Object.entries(orderProductPairs)
+        .filter(([, count]) => count >= 2)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([pair, count]) => {
+          const [id1, id2] = pair.split('|');
+          const p1 = products.find(p => p.id === id1);
+          const p2 = products.find(p => p.id === id2);
+          return {
+            product1: p1?.nameEn || 'Unknown',
+            product2: p2?.nameEn || 'Unknown',
+            count
+          };
+        });
+
+      // ============ CUSTOMER BEHAVIOR ============
+      // Category performance
+      const categorySales: Record<string, { orders: number; revenue: number; name: string }> = {};
+      weekOrderItems.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (product?.categoryId) {
+          const category = categories.find(c => c.id === product.categoryId);
+          if (!categorySales[product.categoryId]) {
+            categorySales[product.categoryId] = { orders: 0, revenue: 0, name: category?.nameEn || 'Unknown' };
+          }
+          categorySales[product.categoryId].orders += item.quantity;
+          categorySales[product.categoryId].revenue += parseFloat(item.price) * item.quantity;
+        }
+      });
+      const topCategories = Object.entries(categorySales)
+        .map(([id, data]) => ({ id, ...data, revenue: data.revenue.toFixed(2) }))
+        .sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue))
+        .slice(0, 5);
+
+      // ============ INVENTORY ANALYSIS ============
+      // Critical stock (0-3 items)
+      const criticalStock = products
+        .filter(p => p.isActive && p.stock <= 3)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 10)
+        .map(p => ({ id: p.id, name: p.nameEn, stock: p.stock, sku: p.sku }));
+
+      // Slow-moving products (no sales in last 30 days)
+      const soldProductIds = new Set(weekOrderItems.map(i => i.productId));
+      const slowMoving = products
+        .filter(p => p.isActive && p.stock > 0 && !soldProductIds.has(p.id))
+        .slice(0, 10)
+        .map(p => ({ id: p.id, name: p.nameEn, stock: p.stock, price: p.price }));
+
+      // ============ FINANCIAL FORECAST ============
+      // Weekly revenue data
+      const weeklyRevenue: { date: string; revenue: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() - i);
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(d);
+        dayEnd.setHours(23, 59, 59, 999);
+        const dayRevenue = allOrders
+          .filter(o => {
+            const od = new Date(o.createdAt);
+            return od >= dayStart && od <= dayEnd;
+          })
+          .reduce((sum, o) => sum + parseFloat(o.total || '0'), 0);
+        weeklyRevenue.push({ 
+          date: d.toISOString().split('T')[0], 
+          revenue: parseFloat(dayRevenue.toFixed(2)) 
+        });
+      }
+
+      // Simple forecast (average of last 7 days * 7)
+      const avgDailyRevenue = weeklyRevenue.reduce((sum, d) => sum + d.revenue, 0) / 7;
+      const forecastNextWeek = avgDailyRevenue * 7;
+      const forecastNextMonth = avgDailyRevenue * 30;
 
       // Get coupons used
       const couponsUsed = dateOrders.filter(o => o.couponCode).length;
@@ -2109,6 +2253,28 @@ Format your response as JSON:
           couponDiscount: couponDiscount.toFixed(2),
           chatSessions: Math.floor(Math.random() * 50) + 10, // Placeholder
           conversionRate: (Math.random() * 3 + 1).toFixed(1), // Placeholder
+        },
+        salesAnalysis: {
+          peakHours,
+          bestDays,
+          frequentlyBoughtTogether,
+        },
+        customerBehavior: {
+          topCategories,
+          weeklyOrderCount: weekOrders.length,
+          weeklyRevenue: weekOrders.reduce((sum, o) => sum + parseFloat(o.total || '0'), 0).toFixed(2),
+        },
+        inventoryAnalysis: {
+          criticalStock,
+          slowMoving,
+          totalLowStock: lowStockProducts.length,
+          totalProducts: products.filter(p => p.isActive).length,
+        },
+        financialForecast: {
+          weeklyRevenue,
+          avgDailyRevenue: avgDailyRevenue.toFixed(2),
+          forecastNextWeek: forecastNextWeek.toFixed(2),
+          forecastNextMonth: forecastNextMonth.toFixed(2),
         },
         aiInsights,
         recommendations,

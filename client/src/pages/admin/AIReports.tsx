@@ -28,7 +28,12 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Euro
+  Euro,
+  BarChart3,
+  Layers,
+  Boxes,
+  Target,
+  Zap
 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +53,28 @@ interface DailyReport {
     couponDiscount: string;
     chatSessions: number;
     conversionRate: string;
+  };
+  salesAnalysis?: {
+    peakHours: Array<{ hour: number; orders: number }>;
+    bestDays: Array<{ day: string; orders: number; revenue: string }>;
+    frequentlyBoughtTogether: Array<{ product1: string; product2: string; count: number }>;
+  };
+  customerBehavior?: {
+    topCategories: Array<{ id: string; name: string; orders: number; revenue: string }>;
+    weeklyOrderCount: number;
+    weeklyRevenue: string;
+  };
+  inventoryAnalysis?: {
+    criticalStock: Array<{ id: string; name: string; stock: number; sku: string }>;
+    slowMoving: Array<{ id: string; name: string; stock: number; price: string }>;
+    totalLowStock: number;
+    totalProducts: number;
+  };
+  financialForecast?: {
+    weeklyRevenue: Array<{ date: string; revenue: number }>;
+    avgDailyRevenue: string;
+    forecastNextWeek: string;
+    forecastNextMonth: string;
   };
   aiInsights: string[];
   recommendations: string[];
@@ -435,6 +462,270 @@ export default function AIReports() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* MÜÜGIANALÜÜS */}
+            {report.salesAnalysis && (
+              <Card data-testid="card-sales-analysis">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    {language === 'et' ? 'Müügianalüüs' : 'Sales Analysis'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'et' ? 'Tipptunnid, parimad päevad ja koos ostetud tooted' : 'Peak hours, best days and frequently bought together'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-3">
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {language === 'et' ? 'Tipptunnid' : 'Peak Hours'}
+                      </h4>
+                      <div className="space-y-2">
+                        {(report.salesAnalysis.peakHours || []).map((h, i) => (
+                          <div key={i} data-testid={`row-peak-hour-${i}`} className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                            <span className="font-medium">{h.hour}:00 - {h.hour + 1}:00</span>
+                            <Badge variant="secondary">{h.orders} {language === 'et' ? 'tellimust' : 'orders'}</Badge>
+                          </div>
+                        ))}
+                        {(!report.salesAnalysis.peakHours || report.salesAnalysis.peakHours.length === 0) && (
+                          <p className="text-sm text-muted-foreground">{language === 'et' ? 'Andmeid pole' : 'No data'}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        {language === 'et' ? 'Parimad päevad' : 'Best Days'}
+                      </h4>
+                      <div className="space-y-2">
+                        {(report.salesAnalysis.bestDays || []).map((d, i) => (
+                          <div key={i} data-testid={`row-best-day-${i}`} className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                            <span className="font-medium">{d.day}</span>
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">{formatPrice(parseFloat(d.revenue || '0'))}</div>
+                              <div className="text-xs text-muted-foreground">{d.orders} {language === 'et' ? 'tellimust' : 'orders'}</div>
+                            </div>
+                          </div>
+                        ))}
+                        {(!report.salesAnalysis.bestDays || report.salesAnalysis.bestDays.length === 0) && (
+                          <p className="text-sm text-muted-foreground">{language === 'et' ? 'Andmeid pole' : 'No data'}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        {language === 'et' ? 'Koos ostetud' : 'Bought Together'}
+                      </h4>
+                      <div className="space-y-2">
+                        {(report.salesAnalysis.frequentlyBoughtTogether || []).length > 0 ? (
+                          (report.salesAnalysis.frequentlyBoughtTogether || []).map((pair, i) => (
+                            <div key={i} data-testid={`row-fbt-${i}`} className="p-2 bg-muted/30 rounded text-sm">
+                              <span className="font-medium">{pair.product1}</span>
+                              <span className="text-muted-foreground"> + </span>
+                              <span className="font-medium">{pair.product2}</span>
+                              <Badge variant="outline" className="ml-2">{pair.count}x</Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{language === 'et' ? 'Andmeid pole piisavalt' : 'Not enough data'}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* KLIENDIKÄITUMINE */}
+            {report.customerBehavior && (
+              <Card data-testid="card-customer-behavior">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    {language === 'et' ? 'Kliendikäitumine' : 'Customer Behavior'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'et' ? 'Kategooriate müük ja nädala statistika' : 'Category sales and weekly statistics'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <h4 className="font-semibold mb-3">{language === 'et' ? 'Populaarsed kategooriad (7 päeva)' : 'Top Categories (7 days)'}</h4>
+                      <div className="space-y-2">
+                        {(report.customerBehavior.topCategories || []).map((cat, i) => (
+                          <div key={cat.id} data-testid={`row-category-${cat.id}`} className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">#{i + 1}</Badge>
+                              <span className="font-medium">{cat.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">{formatPrice(parseFloat(cat.revenue || '0'))}</div>
+                              <div className="text-xs text-muted-foreground">{cat.orders} {language === 'et' ? 'toodet' : 'items'}</div>
+                            </div>
+                          </div>
+                        ))}
+                        {(!report.customerBehavior.topCategories || report.customerBehavior.topCategories.length === 0) && (
+                          <p className="text-sm text-muted-foreground">{language === 'et' ? 'Andmeid pole' : 'No data'}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div data-testid="stat-weekly-orders" className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <div className="text-3xl font-bold text-primary">{report.customerBehavior.weeklyOrderCount || 0}</div>
+                        <div className="text-sm text-muted-foreground">{language === 'et' ? 'Tellimust (7 päeva)' : 'Orders (7 days)'}</div>
+                      </div>
+                      <div data-testid="stat-weekly-revenue" className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <div className="text-3xl font-bold text-primary">{formatPrice(parseFloat(report.customerBehavior.weeklyRevenue || '0'))}</div>
+                        <div className="text-sm text-muted-foreground">{language === 'et' ? 'Tulu (7 päeva)' : 'Revenue (7 days)'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* LAOSTATISTIKA */}
+            {report.inventoryAnalysis && (
+              <Card data-testid="card-inventory-analysis">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Boxes className="h-5 w-5 text-primary" />
+                    {language === 'et' ? 'Laostatistika' : 'Inventory Analysis'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'et' ? 'Kriitilised tooted ja aeglaselt liikuv kaup' : 'Critical stock and slow-moving products'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-500">
+                        <AlertTriangle className="h-4 w-4" />
+                        {language === 'et' ? 'Kriitiline laoseis (0-3 tk)' : 'Critical Stock (0-3 items)'}
+                      </h4>
+                      <ScrollArea className="h-[200px]">
+                        <div className="space-y-2 pr-4">
+                          {(report.inventoryAnalysis.criticalStock || []).length > 0 ? (
+                            (report.inventoryAnalysis.criticalStock || []).map((p) => (
+                              <div key={p.id} data-testid={`row-critical-${p.id}`} className="flex justify-between items-center p-2 bg-red-500/10 border border-red-500/20 rounded">
+                                <div>
+                                  <div className="font-medium text-sm">{p.name}</div>
+                                  <div className="text-xs text-muted-foreground">SKU: {p.sku}</div>
+                                </div>
+                                <Badge variant="destructive">{p.stock} tk</Badge>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">{language === 'et' ? 'Kriitilisi tooteid pole' : 'No critical products'}</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-yellow-500">
+                        <Clock className="h-4 w-4" />
+                        {language === 'et' ? 'Aeglaselt liikuv kaup' : 'Slow-Moving Products'}
+                      </h4>
+                      <ScrollArea className="h-[200px]">
+                        <div className="space-y-2 pr-4">
+                          {(report.inventoryAnalysis.slowMoving || []).length > 0 ? (
+                            (report.inventoryAnalysis.slowMoving || []).map((p) => (
+                              <div key={p.id} data-testid={`row-slow-${p.id}`} className="flex justify-between items-center p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                                <div className="font-medium text-sm truncate max-w-[200px]">{p.name}</div>
+                                <div className="text-right">
+                                  <div className="text-sm font-semibold">{formatPrice(parseFloat(p.price || '0'))}</div>
+                                  <div className="text-xs text-muted-foreground">{p.stock} tk laos</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">{language === 'et' ? 'Kõik tooted liiguvad hästi' : 'All products moving well'}</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                    <div data-testid="stat-low-stock" className="text-center p-3 bg-muted/30 rounded">
+                      <div className="text-2xl font-bold">{report.inventoryAnalysis.totalLowStock || 0}</div>
+                      <div className="text-sm text-muted-foreground">{language === 'et' ? 'Madala laoseisuga toodet' : 'Low stock products'}</div>
+                    </div>
+                    <div data-testid="stat-total-products" className="text-center p-3 bg-muted/30 rounded">
+                      <div className="text-2xl font-bold">{report.inventoryAnalysis.totalProducts || 0}</div>
+                      <div className="text-sm text-muted-foreground">{language === 'et' ? 'Aktiivset toodet kokku' : 'Total active products'}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* FINANTSPROGNOOS */}
+            {report.financialForecast && (
+              <Card data-testid="card-financial-forecast">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    {language === 'et' ? 'Finantsprognoos' : 'Financial Forecast'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'et' ? 'Käibe trend ja ennustused' : 'Revenue trend and predictions'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-3">
+                    <div className="md:col-span-2">
+                      <h4 className="font-semibold mb-3">{language === 'et' ? 'Viimase 7 päeva käive' : 'Last 7 Days Revenue'}</h4>
+                      <div className="space-y-2">
+                        {(report.financialForecast.weeklyRevenue || []).map((day) => {
+                          const maxRevenue = Math.max(...(report.financialForecast?.weeklyRevenue || []).map(d => d.revenue || 0), 1);
+                          return (
+                            <div key={day.date} data-testid={`row-revenue-${day.date}`} className="flex items-center gap-3">
+                              <span className="text-sm w-24 text-muted-foreground">{day.date}</span>
+                              <div className="flex-1 bg-muted/30 rounded-full h-6 overflow-hidden">
+                                <div 
+                                  className="bg-primary h-full rounded-full transition-all"
+                                  style={{ 
+                                    width: `${Math.min(100, ((day.revenue || 0) / maxRevenue) * 100)}%` 
+                                  }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-20 text-right">{formatPrice(day.revenue || 0)}</span>
+                            </div>
+                          );
+                        })}
+                        {(!report.financialForecast.weeklyRevenue || report.financialForecast.weeklyRevenue.length === 0) && (
+                          <p className="text-sm text-muted-foreground">{language === 'et' ? 'Andmeid pole' : 'No data'}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div data-testid="stat-avg-daily" className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <div className="text-sm text-muted-foreground mb-1">{language === 'et' ? 'Keskmine päevatulu' : 'Avg Daily Revenue'}</div>
+                        <div className="text-2xl font-bold text-primary">{formatPrice(parseFloat(report.financialForecast.avgDailyRevenue || '0'))}</div>
+                      </div>
+                      <div data-testid="stat-forecast-week" className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
+                        <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          {language === 'et' ? 'Ennustus: järgmine nädal' : 'Forecast: Next Week'}
+                        </div>
+                        <div className="text-2xl font-bold text-green-600">{formatPrice(parseFloat(report.financialForecast.forecastNextWeek || '0'))}</div>
+                      </div>
+                      <div data-testid="stat-forecast-month" className="p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                        <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          {language === 'et' ? 'Ennustus: järgmine kuu' : 'Forecast: Next Month'}
+                        </div>
+                        <div className="text-2xl font-bold text-blue-600">{formatPrice(parseFloat(report.financialForecast.forecastNextMonth || '0'))}</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>
