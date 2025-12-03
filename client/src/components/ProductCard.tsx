@@ -39,7 +39,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const stockStatus = (product as any).stockStatus || 'in_stock';
   const deliveryMin = (product as any).deliveryDaysMin || 2;
   const deliveryMax = (product as any).deliveryDaysMax || 4;
-  const isPreOrder = stockStatus === 'pre_order';
+  const isPreOrder = stockStatus === 'pre_order' && product.stock > 0;
   
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
   

@@ -178,7 +178,7 @@ export default function ProductDetail() {
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
   const isGame = isGameProduct(product.sku);
   
-  const isPreOrder = (product as any).stockStatus === 'pre_order';
+  const isPreOrder = (product as any).stockStatus === 'pre_order' && product.stock > 0;
   
   const handleAddToCart = () => {
     if (!inStock && !isPreOrder) return;
@@ -325,20 +325,20 @@ export default function ProductDetail() {
                 )}
                 
                 <div className="flex items-center gap-3 flex-wrap">
-                  {(product as any).stockStatus === 'pre_order' ? (
-                    <Badge className="bg-blue-500/10 text-blue-500" data-testid="badge-pre-order">
-                      {language === 'et' ? 'Tellimisel' : 'Pre-order'}
-                    </Badge>
-                  ) : inStock ? (
-                    <Badge variant="default" className="bg-green-500/10 text-green-500" data-testid="badge-in-stock">
-                      {language === 'et' ? 'Laos' : 'In Stock'} ({product.stock})
-                    </Badge>
-                  ) : (
+                  {!inStock ? (
                     <Badge variant="destructive" data-testid="badge-out-of-stock">
                       {language === 'et' ? 'Otsas' : 'Out of Stock'}
                     </Badge>
+                  ) : isPreOrder ? (
+                    <Badge className="bg-blue-500/10 text-blue-500" data-testid="badge-pre-order">
+                      {language === 'et' ? 'Tellimisel' : 'Pre-order'}
+                    </Badge>
+                  ) : (
+                    <Badge variant="default" className="bg-green-500/10 text-green-500" data-testid="badge-in-stock">
+                      {language === 'et' ? 'Laos' : 'In Stock'} ({product.stock})
+                    </Badge>
                   )}
-                  {(inStock || (product as any).stockStatus === 'pre_order') && (
+                  {(inStock || isPreOrder) && (
                     <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                       <Truck className="h-4 w-4" />
                       {language === 'et' 
