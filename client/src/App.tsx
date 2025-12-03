@@ -52,7 +52,6 @@ import Wishlist from "@/pages/Wishlist";
 import Account from "@/pages/Account";
 import Auth from "@/pages/Auth";
 import Compare from "@/pages/Compare";
-import Downloads from "@/pages/Downloads";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
@@ -80,7 +79,6 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/wishlist" component={Wishlist} />
       <Route path="/compare" component={Compare} />
-      <Route path="/downloads" component={Downloads} />
       <Route path="/account" component={Account} />
       <Route path="/auth" component={Auth} />
       <Route path="/login" component={Auth} />
