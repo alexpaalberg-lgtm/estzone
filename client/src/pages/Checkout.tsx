@@ -74,10 +74,7 @@ const checkoutSchema = z.object({
   shippingMethod: z.enum(["omniva_terminal", "omniva_courier", "dpd_pickup", "dpd_courier", "dhl_pickup", "dhl_courier", "venipak_pickup", "venipak_courier"]),
   paymentMethod: z.enum([
     "stripe", 
-    "paypal", 
-    "paysera", 
     "montonio_bank",
-    "montonio_card", 
     "montonio_bnpl",
     "montonio_financing"
   ]),
@@ -91,15 +88,6 @@ const montonioPaymentOptions = [
     descEn: 'SEB, Swedbank, LHV, Coop, Luminor',
     descEt: 'SEB, Swedbank, LHV, Coop, Luminor',
     icon: '🏦',
-    minAmount: 0
-  },
-  { 
-    id: 'montonio_card', 
-    nameEn: 'Card Payment', 
-    nameEt: 'Kaardimakse',
-    descEn: 'Visa, Mastercard, Apple Pay, Google Pay',
-    descEt: 'Visa, Mastercard, Apple Pay, Google Pay',
-    icon: '💳',
     minAmount: 0
   },
   { 
@@ -581,8 +569,8 @@ export default function Checkout() {
   
   const seoTitle = language === 'et' ? 'Kassa' : 'Checkout';
   const seoDescription = language === 'et' 
-    ? 'Vormista tellimus turvaliselt. Aktsepteerime pangalinke, kaardimakseid ja PayPali.'
-    : 'Complete your order securely. We accept bank links, card payments and PayPal.';
+    ? 'Vormista tellimus turvaliselt. Aktsepteerime pangalinke, kaardimakseid ja järelmaksu.'
+    : 'Complete your order securely. We accept bank links, card payments and buy-now-pay-later.';
 
   if (items.length === 0) {
     return (
@@ -891,56 +879,27 @@ export default function Checkout() {
 
                               <Separator className="my-4" />
 
-                              {/* Other Payment Options */}
+                              {/* International Payment Option */}
                               <div className="space-y-2">
                                 <p className="text-sm font-medium text-muted-foreground">
-                                  {language === 'et' ? 'Muud makseviisid' : 'Other payment methods'}
+                                  {language === 'et' ? 'Rahvusvaheline makse' : 'International payment'}
                                 </p>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                  <div 
-                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
-                                      field.value === 'stripe' ? 'border-primary bg-primary/5' : ''
-                                    }`}
-                                    onClick={() => field.onChange('stripe')}
-                                    data-testid="option-stripe"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <RadioGroupItem value="stripe" id="stripe" />
-                                      <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
-                                        <span className="font-semibold">Stripe</span>
-                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'Rahvusvaheline' : 'International'}</span>
-                                      </Label>
-                                    </div>
-                                  </div>
-                                  <div 
-                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
-                                      field.value === 'paypal' ? 'border-primary bg-primary/5' : ''
-                                    }`}
-                                    onClick={() => field.onChange('paypal')}
-                                    data-testid="option-paypal"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <RadioGroupItem value="paypal" id="paypal" />
-                                      <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
-                                        <span className="font-semibold">PayPal</span>
-                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
-                                      </Label>
-                                    </div>
-                                  </div>
-                                  <div 
-                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
-                                      field.value === 'paysera' ? 'border-primary bg-primary/5' : ''
-                                    }`}
-                                    onClick={() => field.onChange('paysera')}
-                                    data-testid="option-paysera"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <RadioGroupItem value="paysera" id="paysera" />
-                                      <Label htmlFor="paysera" className="cursor-pointer flex flex-col">
-                                        <span className="font-semibold">Paysera</span>
-                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'Pangalink' : 'Bank Link'}</span>
-                                      </Label>
-                                    </div>
+                                <div 
+                                  className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
+                                    field.value === 'stripe' ? 'border-primary bg-primary/5' : ''
+                                  }`}
+                                  onClick={() => field.onChange('stripe')}
+                                  data-testid="option-stripe"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <RadioGroupItem value="stripe" id="stripe" />
+                                    <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
+                                      <span className="font-semibold flex items-center gap-2">
+                                        <span>💳</span>
+                                        {language === 'et' ? 'Kaardimakse' : 'Card Payment'}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">Visa, Mastercard, Apple Pay, Google Pay</span>
+                                    </Label>
                                   </div>
                                 </div>
                               </div>
