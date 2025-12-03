@@ -75,6 +75,7 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum([
     "stripe", 
     "montonio_bank",
+    "montonio_card",
     "montonio_bnpl",
     "montonio_financing"
   ]),
@@ -88,6 +89,15 @@ const montonioPaymentOptions = [
     descEn: 'SEB, Swedbank, LHV, Coop, Luminor',
     descEt: 'SEB, Swedbank, LHV, Coop, Luminor',
     icon: '🏦',
+    minAmount: 0
+  },
+  { 
+    id: 'montonio_card', 
+    nameEn: 'Card Payment', 
+    nameEt: 'Kaardimakse',
+    descEn: 'Visa, Mastercard, Revolut',
+    descEt: 'Visa, Mastercard, Revolut',
+    icon: '💳',
     minAmount: 0
   },
   { 
