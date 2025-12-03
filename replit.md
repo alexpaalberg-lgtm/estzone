@@ -19,7 +19,22 @@ To enable order confirmation emails, add `RESEND_API_KEY` secret. Without it, em
 ### Payment Gateways
 - `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLIC_KEY` - For Stripe payments (configured)
 - `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` - For PayPal payments (not configured)
-- `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY` - For Montonio Baltic payments (not configured)
+- `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY` - For Montonio Baltic payments (awaiting API keys)
+
+### Montonio Payment Integration (December 2024)
+Full Montonio integration is implemented with all available payment methods:
+- **Bank Payments**: SEB, Swedbank, LHV, Coop Pank, Luminor (paymentInitiation)
+- **Card Payments**: Visa, Mastercard, American Express, Revolut (cardPayments)
+- **Digital Wallets**: Apple Pay, Google Pay
+- **Buy Now Pay Later**: Three options with minimum order requirements:
+  - Pay next month (min €30)
+  - Pay in 2 parts (min €75)
+  - Pay in 3 parts (min €75)
+- **Financing**: Hire purchase for larger purchases (hirePurchase)
+
+Payment method types mapped to Montonio API: montonio_bank → paymentInitiation, montonio_card → cardPayments, montonio_bnpl → bnpl, montonio_financing → hirePurchase
+
+Files: server/montonio.ts (backend), client/src/pages/Checkout.tsx (UI), client/src/components/Footer.tsx (payment logos)
 
 ## System Architecture
 

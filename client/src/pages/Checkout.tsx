@@ -72,8 +72,55 @@ const checkoutSchema = z.object({
   postalCode: z.string().min(1, "Postal code is required"),
   country: z.string().default("Estonia"),
   shippingMethod: z.enum(["omniva_terminal", "omniva_courier", "dpd_pickup", "dpd_courier", "dhl_pickup", "dhl_courier", "venipak_pickup", "venipak_courier"]),
-  paymentMethod: z.enum(["stripe", "paypal", "paysera", "montonio"]),
+  paymentMethod: z.enum([
+    "stripe", 
+    "paypal", 
+    "paysera", 
+    "montonio_bank",
+    "montonio_card", 
+    "montonio_bnpl",
+    "montonio_financing"
+  ]),
 });
+
+const montonioPaymentOptions = [
+  { 
+    id: 'montonio_bank', 
+    nameEn: 'Bank Payment', 
+    nameEt: 'Pangamakse',
+    descEn: 'SEB, Swedbank, LHV, Coop, Luminor',
+    descEt: 'SEB, Swedbank, LHV, Coop, Luminor',
+    icon: '🏦',
+    minAmount: 0
+  },
+  { 
+    id: 'montonio_card', 
+    nameEn: 'Card Payment', 
+    nameEt: 'Kaardimakse',
+    descEn: 'Visa, Mastercard, Apple Pay, Google Pay',
+    descEt: 'Visa, Mastercard, Apple Pay, Google Pay',
+    icon: '💳',
+    minAmount: 0
+  },
+  { 
+    id: 'montonio_bnpl', 
+    nameEn: 'Pay Later', 
+    nameEt: 'Maksa hiljem',
+    descEn: 'Pay in 3 parts, interest-free (min €75)',
+    descEt: 'Maksa 3 osas, intressivabalt (min €75)',
+    icon: '📅',
+    minAmount: 75
+  },
+  { 
+    id: 'montonio_financing', 
+    nameEn: 'Financing', 
+    nameEt: 'Järelmaks',
+    descEn: 'Long-term financing via Inbank (min €150)',
+    descEt: 'Pikaajaline järelmaks Inbanki kaudu (min €150)',
+    icon: '💰',
+    minAmount: 150
+  },
+] as const;
 
 const shippingOptions = [
   { id: 'omniva_terminal', name: 'Omniva Pakiautomaat', nameEn: 'Omniva Parcel Terminal', price: 2.99, days: '2-4', carrier: 'Omniva' },
@@ -315,7 +362,7 @@ export default function Checkout() {
       postalCode: "",
       country: "Estonia",
       shippingMethod: "omniva_terminal",
-      paymentMethod: "stripe",
+      paymentMethod: "montonio_bank",
     },
   });
 
@@ -418,7 +465,46 @@ export default function Checkout() {
         } : null,
       });
     },
-    onSuccess: () => {
+    onSuccess: async (createdOrder: any) => {
+      const paymentMethod = form.getValues('paymentMethod');
+      
+      // Handle Montonio payment methods
+      if (paymentMethod.startsWith('montonio_')) {
+        try {
+          const montonioResponse = await fetch('/api/payments/montonio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: grandTotal.toFixed(2),
+              currency: 'EUR',
+              orderId: createdOrder.orderNumber,
+              customerEmail: form.getValues('email'),
+              customerName: `${form.getValues('firstName')} ${form.getValues('lastName')}`,
+              paymentMethod: paymentMethod,
+            }),
+          });
+          
+          const montonioData = await montonioResponse.json();
+          
+          if (montonioData.success && montonioData.paymentUrl) {
+            clearCart();
+            queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
+            window.location.href = montonioData.paymentUrl;
+            return;
+          } else {
+            throw new Error(montonioData.error || 'Failed to create Montonio payment');
+          }
+        } catch (montonioError: any) {
+          toast({
+            variant: "destructive",
+            title: language === 'et' ? 'Makseviga' : 'Payment Error',
+            description: montonioError.message || (language === 'et' ? 'Montonio makse loomine ebaõnnestus' : 'Failed to create Montonio payment'),
+          });
+          return;
+        }
+      }
+      
+      // For other payment methods, proceed normally
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
       toast({
@@ -726,42 +812,102 @@ export default function Checkout() {
                             <RadioGroup
                               onValueChange={field.onChange}
                               value={field.value}
-                              className="space-y-3"
+                              className="space-y-4"
                             >
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-stripe">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="stripe" id="stripe" />
-                                  <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">Stripe</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Krediitkaart' : 'Credit Card'}</span>
-                                  </Label>
+                              {/* Montonio Payment Options */}
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                                  <span className="inline-block w-2 h-2 bg-primary rounded-full"></span>
+                                  Montonio {language === 'et' ? '(Soovitatav)' : '(Recommended)'}
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {montonioPaymentOptions.map((option) => {
+                                    const orderTotal = totalPrice + shippingCost;
+                                    const isDisabled = orderTotal < option.minAmount;
+                                    return (
+                                      <div 
+                                        key={option.id}
+                                        className={`flex items-center justify-between p-4 border rounded-md cursor-pointer transition-all ${
+                                          field.value === option.id ? 'border-primary bg-primary/5' : ''
+                                        } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover-elevate'}`}
+                                        onClick={() => !isDisabled && field.onChange(option.id)}
+                                        data-testid={`option-${option.id}`}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <RadioGroupItem 
+                                            value={option.id} 
+                                            id={option.id} 
+                                            disabled={isDisabled}
+                                          />
+                                          <Label htmlFor={option.id} className={`cursor-pointer flex flex-col ${isDisabled ? 'cursor-not-allowed' : ''}`}>
+                                            <span className="font-semibold flex items-center gap-2">
+                                              <span>{option.icon}</span>
+                                              {language === 'et' ? option.nameEt : option.nameEn}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {language === 'et' ? option.descEt : option.descEn}
+                                            </span>
+                                          </Label>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paypal">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="paypal" id="paypal" />
-                                  <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">PayPal</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
-                                  </Label>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-paysera">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="paysera" id="paysera" />
-                                  <Label htmlFor="paysera" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">Paysera</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Pangalink' : 'Bank Link'}</span>
-                                  </Label>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer" data-testid="option-montonio">
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem value="montonio" id="montonio" />
-                                  <Label htmlFor="montonio" className="cursor-pointer flex flex-col">
-                                    <span className="font-semibold">Montonio</span>
-                                    <span className="text-sm text-muted-foreground">{language === 'et' ? 'Baltikumi pangad' : 'Baltic Banks'}</span>
-                                  </Label>
+
+                              <Separator className="my-4" />
+
+                              {/* Other Payment Options */}
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  {language === 'et' ? 'Muud makseviisid' : 'Other payment methods'}
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div 
+                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
+                                      field.value === 'stripe' ? 'border-primary bg-primary/5' : ''
+                                    }`}
+                                    onClick={() => field.onChange('stripe')}
+                                    data-testid="option-stripe"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <RadioGroupItem value="stripe" id="stripe" />
+                                      <Label htmlFor="stripe" className="cursor-pointer flex flex-col">
+                                        <span className="font-semibold">Stripe</span>
+                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'Rahvusvaheline' : 'International'}</span>
+                                      </Label>
+                                    </div>
+                                  </div>
+                                  <div 
+                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
+                                      field.value === 'paypal' ? 'border-primary bg-primary/5' : ''
+                                    }`}
+                                    onClick={() => field.onChange('paypal')}
+                                    data-testid="option-paypal"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <RadioGroupItem value="paypal" id="paypal" />
+                                      <Label htmlFor="paypal" className="cursor-pointer flex flex-col">
+                                        <span className="font-semibold">PayPal</span>
+                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'PayPal konto' : 'PayPal Account'}</span>
+                                      </Label>
+                                    </div>
+                                  </div>
+                                  <div 
+                                    className={`flex items-center justify-between p-4 border rounded-md hover-elevate cursor-pointer ${
+                                      field.value === 'paysera' ? 'border-primary bg-primary/5' : ''
+                                    }`}
+                                    onClick={() => field.onChange('paysera')}
+                                    data-testid="option-paysera"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <RadioGroupItem value="paysera" id="paysera" />
+                                      <Label htmlFor="paysera" className="cursor-pointer flex flex-col">
+                                        <span className="font-semibold">Paysera</span>
+                                        <span className="text-xs text-muted-foreground">{language === 'et' ? 'Pangalink' : 'Bank Link'}</span>
+                                      </Label>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </RadioGroup>

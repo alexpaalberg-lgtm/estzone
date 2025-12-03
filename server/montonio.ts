@@ -37,6 +37,13 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
+// Montonio payment method types
+export type MontonioPaymentMethod = 
+  | 'montonio_bank'     // Bank payments (SEB, Swedbank, LHV, etc.)
+  | 'montonio_card'     // Card payments (Visa, MC, Apple Pay, Google Pay)
+  | 'montonio_bnpl'     // Buy Now Pay Later (3 parts)
+  | 'montonio_financing'; // Long-term financing via Inbank
+
 interface MontonioPaymentData {
   amount: string;
   currency: string;
@@ -45,6 +52,7 @@ interface MontonioPaymentData {
   customerName: string;
   returnUrl: string;
   notificationUrl: string;
+  paymentMethod?: MontonioPaymentMethod;
 }
 
 interface MontonioJWTPayload {
@@ -59,9 +67,28 @@ interface MontonioJWTPayload {
   merchant_notification_url: string;
   payment_information_unstructured?: string;
   preselected_locale?: string;
+  preselected_payment_method_type?: string; // 'paymentInitiation', 'cardPayments', 'bnpl', 'hirePurchase'
   exp: number;
   iat: number;
   nonce: string;
+}
+
+/**
+ * Map frontend payment method to Montonio API payment method type
+ */
+function mapPaymentMethodToMontonio(method?: MontonioPaymentMethod): string | undefined {
+  switch (method) {
+    case 'montonio_bank':
+      return 'paymentInitiation'; // Bank payments
+    case 'montonio_card':
+      return 'cardPayments'; // Card payments including Apple/Google Pay
+    case 'montonio_bnpl':
+      return 'bnpl'; // Buy Now Pay Later
+    case 'montonio_financing':
+      return 'hirePurchase'; // Long-term financing
+    default:
+      return undefined; // Let user choose on Montonio page
+  }
 }
 
 /**
@@ -91,6 +118,9 @@ export function createMontonioPaymentToken(data: MontonioPaymentData): string {
   // Store nonce with expiry (15 minutes to allow for processing delays)
   usedNonces.set(nonceKey, { nonce, expiry });
 
+  // Map payment method to Montonio API type
+  const preselectedMethod = mapPaymentMethodToMontonio(data.paymentMethod);
+
   const payload: MontonioJWTPayload = {
     access_key: MONTONIO_ACCESS_KEY,
     merchant_reference: data.orderId,
@@ -107,6 +137,11 @@ export function createMontonioPaymentToken(data: MontonioPaymentData): string {
     exp: now + 600, // 10 minutes expiration (Montonio requirement)
     nonce,
   };
+
+  // Add preselected payment method if specified
+  if (preselectedMethod) {
+    payload.preselected_payment_method_type = preselectedMethod;
+  }
 
   return jwt.sign(payload, MONTONIO_SECRET_KEY, {
     algorithm: 'HS256',
@@ -184,7 +219,7 @@ export async function createMontonioPayment(req: Request, res: Response) {
   }
 
   try {
-    const { amount, currency, orderId, customerEmail, customerName } = req.body;
+    const { amount, currency, orderId, customerEmail, customerName, paymentMethod } = req.body;
 
     // Validate required fields
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
@@ -197,6 +232,14 @@ export async function createMontonioPayment(req: Request, res: Response) {
 
     if (!orderId || !customerEmail || !customerName) {
       return res.status(400).json({ error: "Missing required fields: orderId, customerEmail, customerName." });
+    }
+
+    // Validate payment method - must be a valid Montonio payment method
+    const validMethods: MontonioPaymentMethod[] = ['montonio_bank', 'montonio_card', 'montonio_bnpl', 'montonio_financing'];
+    if (!paymentMethod || !validMethods.includes(paymentMethod)) {
+      return res.status(400).json({ 
+        error: "Invalid or missing payment method. Valid methods: montonio_bank, montonio_card, montonio_bnpl, montonio_financing" 
+      });
     }
 
     // Build return and notification URLs from configured base URL
@@ -212,6 +255,7 @@ export async function createMontonioPayment(req: Request, res: Response) {
       customerName,
       returnUrl: `${baseUrl}/api/payments/montonio/return`,
       notificationUrl: `${baseUrl}/api/payments/montonio/webhook`,
+      paymentMethod: paymentMethod as MontonioPaymentMethod,
     };
 
     // Generate JWT token
@@ -220,12 +264,14 @@ export async function createMontonioPayment(req: Request, res: Response) {
     // Build gateway redirect URL
     const gatewayUrl = `${MONTONIO_GATEWAY_URL}?payment_token=${paymentToken}`;
 
-    console.log(`[MONTONIO] Payment created for order ${orderId}: ${amount} ${currency}`);
+    const methodLabel = paymentMethod ? ` (${paymentMethod})` : '';
+    console.log(`[MONTONIO] Payment created for order ${orderId}: ${amount} ${currency}${methodLabel}`);
 
     return res.json({
       success: true,
       paymentUrl: gatewayUrl,
       provider: 'montonio',
+      method: paymentMethod,
     });
 
   } catch (error: any) {

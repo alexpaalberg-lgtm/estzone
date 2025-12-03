@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import { Gamepad2, Mail } from 'lucide-react';
-import { SiStripe, SiVisa, SiMastercard, SiFacebook, SiInstagram, SiX } from 'react-icons/si';
+import { SiStripe, SiVisa, SiMastercard, SiFacebook, SiInstagram, SiX, SiApplepay, SiGooglepay } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -176,11 +176,19 @@ export default function Footer() {
             {/* Payment Methods */}
             <div>
               <p className="text-sm font-medium text-foreground mb-3">{t.footer.paymentMethods}</p>
-              <div className="flex items-center gap-4 flex-wrap">
-                <SiStripe className="h-6 w-6 text-primary" />
-                <SiVisa className="h-6 w-6 text-muted-foreground" />
-                <SiMastercard className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs md:text-sm font-semibold text-muted-foreground">Paysera</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">Montonio</span>
+                <SiVisa className="h-5 w-5 text-muted-foreground" />
+                <SiMastercard className="h-5 w-5 text-muted-foreground" />
+                <SiApplepay className="h-5 w-5 text-muted-foreground" />
+                <SiGooglepay className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-3 flex-wrap mt-2">
+                <span className="text-xs text-muted-foreground">SEB</span>
+                <span className="text-xs text-muted-foreground">Swedbank</span>
+                <span className="text-xs text-muted-foreground">LHV</span>
+                <span className="text-xs text-muted-foreground">Coop</span>
+                <span className="text-xs text-muted-foreground">Luminor</span>
               </div>
             </div>
 
