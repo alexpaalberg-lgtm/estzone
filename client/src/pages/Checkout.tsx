@@ -192,7 +192,8 @@ export default function Checkout() {
   // Mutation to save address after order
   const saveAddressMutation = useMutation({
     mutationFn: async (addressData: Partial<Address>) => {
-      return apiRequest('POST', '/api/addresses', addressData);
+      const response = await apiRequest('POST', '/api/addresses', addressData);
+      return response.json();
     },
   });
   
@@ -229,21 +230,22 @@ export default function Checkout() {
         orderTotal: baseTotalPrice,
         customerEmail: form.getValues('email'),
       });
+      const data = await response.json();
       
-      if (response.valid) {
+      if (data.valid) {
         setAppliedCoupon({
-          id: response.coupon.id,
-          code: response.coupon.code,
-          discountPercent: response.coupon.discountPercent,
-          discountAmount: response.discountAmount,
-          descriptionEn: response.coupon.descriptionEn,
-          descriptionEt: response.coupon.descriptionEt,
+          id: data.coupon.id,
+          code: data.coupon.code,
+          discountPercent: data.coupon.discountPercent,
+          discountAmount: data.discountAmount,
+          descriptionEn: data.coupon.descriptionEn,
+          descriptionEt: data.coupon.descriptionEt,
         });
         toast({
           title: language === 'et' ? 'Kupong rakendatud!' : 'Coupon applied!',
           description: language === 'et' 
-            ? `Soodustus: -${response.coupon.discountPercent}%` 
-            : `Discount: -${response.coupon.discountPercent}%`,
+            ? `Soodustus: -${data.coupon.discountPercent}%` 
+            : `Discount: -${data.coupon.discountPercent}%`,
         });
       }
     } catch (error: any) {
@@ -450,7 +452,7 @@ export default function Checkout() {
         subtotal: (item.price * item.quantity).toFixed(2),
       }));
       
-      return await apiRequest('POST', '/api/orders', { 
+      const response = await apiRequest('POST', '/api/orders', { 
         order: orderData, 
         items: orderItems, 
         language,
@@ -464,6 +466,7 @@ export default function Checkout() {
           discountValue: appliedLoyalty.discountValue,
         } : null,
       });
+      return await response.json();
     },
     onSuccess: async (createdOrder: any) => {
       const paymentMethod = form.getValues('paymentMethod');
