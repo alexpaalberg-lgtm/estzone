@@ -172,16 +172,17 @@ export default function ProductDetail() {
   const productKeywords = product.metaKeywords || `${productName}, ${categoryName}, gaming, Estonia, EstZone`;
   const seoDescription = productDescription || 
     (language === 'et' 
-      ? `Osta ${productName} EstZone-st. ${inStock ? 'Laos saadaval' : 'Otsas'}. Kiire kohaletoimetamine Eestis.`
-      : `Buy ${productName} from EstZone. ${inStock ? 'In stock' : 'Out of stock'}. Fast delivery in Estonia.`);
+      ? `Osta ${productName} EstZone-st. ${inStock ? 'Laos saadaval' : 'Tellimisel'}. Kiire kohaletoimetamine Eestis.`
+      : `Buy ${productName} from EstZone. ${inStock ? 'In stock' : 'Pre-order available'}. Fast delivery in Estonia.`);
   
   const platformInfo = getPlatformInfo(product.sku, product.nameEn);
   const isGame = isGameProduct(product.sku);
   
-  const isPreOrder = (product as any).stockStatus === 'pre_order' && product.stock > 0;
+  const isPreOrder = !inStock;
+  const deliveryMin = inStock ? 2 : 5;
+  const deliveryMax = inStock ? 4 : 10;
   
   const handleAddToCart = () => {
-    if (!inStock && !isPreOrder) return;
     
     addItem({
       id: product.id,
@@ -211,7 +212,7 @@ export default function ProductDetail() {
         product={{
           price: displayPrice.toString(),
           currency: 'EUR',
-          availability: inStock ? 'in stock' : 'out of stock',
+          availability: 'in stock',
         }}
       />
       <Header />
@@ -325,27 +326,21 @@ export default function ProductDetail() {
                 )}
                 
                 <div className="flex items-center gap-3 flex-wrap">
-                  {!inStock ? (
-                    <Badge variant="destructive" data-testid="badge-out-of-stock">
-                      {language === 'et' ? 'Otsas' : 'Out of Stock'}
-                    </Badge>
-                  ) : isPreOrder ? (
-                    <Badge className="bg-blue-500/10 text-blue-500" data-testid="badge-pre-order">
-                      {language === 'et' ? 'Tellimisel' : 'Pre-order'}
-                    </Badge>
-                  ) : (
+                  {inStock ? (
                     <Badge variant="default" className="bg-green-500/10 text-green-500" data-testid="badge-in-stock">
                       {language === 'et' ? 'Laos' : 'In Stock'} ({product.stock})
                     </Badge>
+                  ) : (
+                    <Badge className="bg-blue-500/10 text-blue-500" data-testid="badge-pre-order">
+                      {language === 'et' ? 'Tellimisel' : 'Pre-order'}
+                    </Badge>
                   )}
-                  {(inStock || isPreOrder) && (
-                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <Truck className="h-4 w-4" />
-                      {language === 'et' 
-                        ? `Tarne ${(product as any).deliveryDaysMin || 2}-${(product as any).deliveryDaysMax || 4} päeva` 
-                        : `Delivery ${(product as any).deliveryDaysMin || 2}-${(product as any).deliveryDaysMax || 4} days`}
-                    </span>
-                  )}
+                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <Truck className="h-4 w-4" />
+                    {language === 'et' 
+                      ? `Tarne ${deliveryMin}-${deliveryMax} päeva` 
+                      : `Delivery ${deliveryMin}-${deliveryMax} days`}
+                  </span>
                 </div>
               </div>
               
@@ -370,7 +365,6 @@ export default function ProductDetail() {
                     size="icon"
                     variant="outline"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={!inStock && !isPreOrder}
                     data-testid="button-decrease-quantity"
                   >
                     <Minus className="h-4 w-4" />
@@ -381,8 +375,7 @@ export default function ProductDetail() {
                   <Button
                     size="icon"
                     variant="outline"
-                    onClick={() => setQuantity(isPreOrder ? quantity + 1 : Math.min(product.stock, quantity + 1))}
-                    disabled={!inStock && !isPreOrder}
+                    onClick={() => setQuantity(inStock ? Math.min(product.stock, quantity + 1) : quantity + 1)}
                     data-testid="button-increase-quantity"
                   >
                     <Plus className="h-4 w-4" />
@@ -396,11 +389,10 @@ export default function ProductDetail() {
                   size="lg"
                   className="flex-1"
                   onClick={handleAddToCart}
-                  disabled={!inStock && (product as any).stockStatus !== 'pre_order'}
                   data-testid="button-add-to-cart"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {(product as any).stockStatus === 'pre_order' 
+                  {isPreOrder 
                     ? (language === 'et' ? 'Eeltelli' : 'Pre-order')
                     : (language === 'et' ? 'Lisa ostukorvi' : 'Add to Cart')}
                 </Button>
