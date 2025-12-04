@@ -1,0 +1,10 @@
+# Exclude large asset directories from Railway builds
+attached_assets/**
+public/uploads/**
+dist/
+node_modules/
+
+# Exclude development files
+*.log
+.env.local
+.env.development
