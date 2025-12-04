@@ -81,6 +81,22 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Debug endpoint to check Montonio configuration in production
+  app.get('/api/debug/montonio', (_req, res) => {
+    const accessKey = process.env.MONTONIO_ACCESS_KEY;
+    const secretKey = process.env.MONTONIO_SECRET_KEY;
+    const isEnabled = !!(accessKey && secretKey);
+    
+    res.json({
+      isEnabled,
+      hasAccessKey: !!accessKey,
+      hasSecretKey: !!secretKey,
+      accessKeyPreview: accessKey ? accessKey.substring(0, 4) + '...' : 'NOT SET',
+      environment: process.env.NODE_ENV || 'unknown',
+      isDeployment: process.env.REPLIT_DEPLOYMENT === '1'
+    });
+  });
+
   // Setup Auth based on environment
   if (isReplitEnvironment()) {
     await setupAuth(app);
