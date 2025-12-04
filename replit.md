@@ -19,7 +19,23 @@ To enable order confirmation emails, add `RESEND_API_KEY` secret. Without it, em
 ### Payment Gateways
 - `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLIC_KEY` - For Stripe payments (configured)
 - `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` - For PayPal payments (not configured)
-- `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY` - For Montonio Baltic payments (awaiting API keys)
+- `MONTONIO_ACCESS_KEY` and `MONTONIO_SECRET_KEY` - For Montonio Baltic payments ✅ CONFIGURED & WORKING
+
+## Production Hosting (December 2024)
+
+**IMPORTANT: Production is hosted on Replit, NOT Railway**
+
+- **Production URL**: https://estzone.eu (also https://www.estzone.eu)
+- **Replit App**: gamer-grove--alexpaalberg.replit.app
+- **DNS Provider**: Zone.ee
+
+**DNS Configuration (Zone.ee)**:
+- A record: estzone.eu → 34.111.179.208 (Replit)
+- CNAME: www.estzone.eu → estzone.eu
+- TXT: estzone.eu → replit-verify=8c0b613d-60b6-4712-8289-c7ea8c4b8bb9
+- MX, NS, email TXT records: Untouched (for email delivery)
+
+**Montonio Status**: ✅ FULLY WORKING in production mode with all Estonian banks (SEB, Swedbank, LHV, Luminor, Coop, Citadele, Revolut, N26)
 
 ### Montonio Payment Integration (December 2024)
 **UPDATED: Now uses Montonio Stargate API (POST /api/orders)**
