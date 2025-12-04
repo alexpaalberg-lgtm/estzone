@@ -55,11 +55,11 @@ export default function Footer() {
               {t.footer.description}
             </p>
             <p className="text-sm text-muted-foreground mb-4">
-              Pärnu mnt 31, Tallinn, Estonia
+              Väike-Paala tn 1, 11415 Tallinn, Estonia
             </p>
             <div className="text-xs text-muted-foreground mb-4 space-y-1">
-              <p className="font-medium">AVERING GRUPP OÜ</p>
-              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 16236733</p>
+              <p className="font-medium">Avimer Teenus OÜ</p>
+              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 17135520</p>
             </div>
             
             {/* Social Media Links & Notifications */}
