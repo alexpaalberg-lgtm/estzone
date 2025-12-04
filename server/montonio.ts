@@ -8,12 +8,23 @@ import { emailService } from "./utils/email";
  * Documentation: https://docs.montonio.com/api/stargate/
  */
 
-const { MONTONIO_ACCESS_KEY, MONTONIO_SECRET_KEY } = process.env;
+/**
+ * Get Montonio config at runtime - checks env vars on each call
+ * This ensures secrets added after server start are picked up
+ */
+function getMontonioConfig() {
+  const accessKey = process.env.MONTONIO_ACCESS_KEY;
+  const secretKey = process.env.MONTONIO_SECRET_KEY;
+  const isEnabled = !!(accessKey && secretKey);
+  
+  return { accessKey, secretKey, isEnabled };
+}
 
-const isMontonioEnabled = !!(MONTONIO_ACCESS_KEY && MONTONIO_SECRET_KEY);
-
-if (!isMontonioEnabled) {
-  console.warn("⚠️  Montonio credentials not configured. Montonio payments will be disabled.");
+// Log status at startup (but don't cache the result)
+const startupConfig = getMontonioConfig();
+console.log(`[MONTONIO] Startup check: ${startupConfig.isEnabled ? '✅ Credentials found' : '⚠️ Credentials not configured'}`);
+if (!startupConfig.isEnabled) {
+  console.log('[MONTONIO] Note: Credentials will be checked again on each request');
 }
 
 // Stargate API URLs - Always use production since we have live keys
@@ -94,12 +105,8 @@ function mapPaymentMethodToMontonio(method: MontonioPaymentMethod): { method: st
 /**
  * Create a Montonio order JWT token
  */
-function createMontonioOrderToken(payload: MontonioOrderPayload): string {
-  if (!MONTONIO_SECRET_KEY) {
-    throw new Error("Montonio secret key not configured");
-  }
-
-  return jwt.sign(payload, MONTONIO_SECRET_KEY, {
+function createMontonioOrderToken(payload: MontonioOrderPayload, secretKey: string): string {
+  return jwt.sign(payload, secretKey, {
     algorithm: 'HS256',
     expiresIn: '10m'
   });
@@ -111,7 +118,9 @@ function createMontonioOrderToken(payload: MontonioOrderPayload): string {
 export async function createMontonioPayment(req: Request, res: Response) {
   console.log('[MONTONIO] Payment request received');
   
-  if (!isMontonioEnabled) {
+  // Check credentials at runtime
+  const config = getMontonioConfig();
+  if (!config.isEnabled) {
     console.error('[MONTONIO] Not enabled - missing credentials');
     return res.status(503).json({ 
       error: "Montonio is not configured. Please add MONTONIO_ACCESS_KEY and MONTONIO_SECRET_KEY." 
@@ -206,7 +215,7 @@ export async function createMontonioPayment(req: Request, res: Response) {
 
     // Create the order payload
     const orderPayload: MontonioOrderPayload = {
-      accessKey: MONTONIO_ACCESS_KEY!,
+      accessKey: config.accessKey!,
       merchantReference: orderId,
       returnUrl: `${baseUrl}/api/payments/montonio/return`,
       notificationUrl: `${baseUrl}/api/payments/montonio/webhook`,
@@ -220,7 +229,7 @@ export async function createMontonioPayment(req: Request, res: Response) {
     };
 
     // Generate JWT token
-    const token = createMontonioOrderToken(orderPayload);
+    const token = createMontonioOrderToken(orderPayload, config.secretKey!);
 
     console.log('[MONTONIO] Sending to API:', MONTONIO_API_URL);
     console.log('[MONTONIO] Using BASE_URL:', baseUrl);
@@ -271,7 +280,9 @@ export async function createMontonioPayment(req: Request, res: Response) {
  * Handle Montonio webhook - payment status notification
  */
 export async function handleMontonioWebhook(req: Request, res: Response) {
-  if (!isMontonioEnabled) {
+  // Check credentials at runtime
+  const config = getMontonioConfig();
+  if (!config.isEnabled) {
     console.warn('[MONTONIO] Webhook called but Montonio not configured');
     return res.status(503).send("ERROR");
   }
@@ -288,7 +299,7 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
     // Decode and verify the token
     let decoded: any;
     try {
-      decoded = jwt.verify(orderToken, MONTONIO_SECRET_KEY!, {
+      decoded = jwt.verify(orderToken, config.secretKey!, {
         algorithms: ['HS256']
       });
     } catch (jwtError) {
@@ -335,7 +346,9 @@ export async function handleMontonioWebhook(req: Request, res: Response) {
  * Handle customer return after payment
  */
 export async function handleMontonioReturn(req: Request, res: Response) {
-  if (!isMontonioEnabled) {
+  // Check credentials at runtime
+  const config = getMontonioConfig();
+  if (!config.isEnabled) {
     return res.redirect('/checkout?error=payment_failed');
   }
 
@@ -350,7 +363,7 @@ export async function handleMontonioReturn(req: Request, res: Response) {
     // Decode and verify the token
     let decoded: any;
     try {
-      decoded = jwt.verify(orderToken, MONTONIO_SECRET_KEY!, {
+      decoded = jwt.verify(orderToken, config.secretKey!, {
         algorithms: ['HS256']
       });
     } catch (jwtError) {
@@ -374,8 +387,8 @@ export async function handleMontonioReturn(req: Request, res: Response) {
 }
 
 /**
- * Check if Montonio is enabled
+ * Check if Montonio is enabled - checks at runtime
  */
 export function isMontonioAvailable(): boolean {
-  return isMontonioEnabled;
+  return getMontonioConfig().isEnabled;
 }
