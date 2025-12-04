@@ -109,7 +109,10 @@ function createMontonioOrderToken(payload: MontonioOrderPayload): string {
  * Create Montonio payment - API endpoint handler
  */
 export async function createMontonioPayment(req: Request, res: Response) {
+  console.log('[MONTONIO] Payment request received');
+  
   if (!isMontonioEnabled) {
+    console.error('[MONTONIO] Not enabled - missing credentials');
     return res.status(503).json({ 
       error: "Montonio is not configured. Please add MONTONIO_ACCESS_KEY and MONTONIO_SECRET_KEY." 
     });
@@ -126,6 +129,8 @@ export async function createMontonioPayment(req: Request, res: Response) {
       shippingAddress,
       lineItems 
     } = req.body;
+    
+    console.log('[MONTONIO] Request data:', { orderId, amount, paymentMethod, customerEmail });
 
     // Validate required fields
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
@@ -216,6 +221,10 @@ export async function createMontonioPayment(req: Request, res: Response) {
 
     // Generate JWT token
     const token = createMontonioOrderToken(orderPayload);
+
+    console.log('[MONTONIO] Sending to API:', MONTONIO_API_URL);
+    console.log('[MONTONIO] Using BASE_URL:', baseUrl);
+    console.log('[MONTONIO] Return URL:', orderPayload.returnUrl);
 
     // POST to Montonio Stargate API
     const response = await fetch(`${MONTONIO_API_URL}/orders`, {
