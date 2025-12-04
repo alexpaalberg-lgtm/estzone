@@ -504,6 +504,40 @@ export default function Checkout() {
           
           const montonioData = await montonioResponse.json();
           
+          // Handle specific error cases
+          if (montonioResponse.status === 503) {
+            toast({
+              variant: "destructive",
+              title: language === 'et' ? 'Makseteenuse viga' : 'Payment Service Error',
+              description: language === 'et' 
+                ? 'Montonio makseteenust ei saa hetkel kasutada. Palun proovige Stripe makset või hiljem uuesti.'
+                : 'Montonio payment service is temporarily unavailable. Please try Stripe or try again later.',
+            });
+            return;
+          }
+          
+          if (montonioResponse.status === 400) {
+            let errorMessage = montonioData.error || (language === 'et' ? 'Makseviga' : 'Payment error');
+            
+            // Specific error messages for minimum amounts
+            if (montonioData.errorKey === 'bnpl_min_amount') {
+              errorMessage = language === 'et' 
+                ? `"Maksa hiljem" miinimum on €75. Teie tellimus: €${montonioData.currentAmount?.toFixed(2) || grandTotal.toFixed(2)}`
+                : `Pay Later minimum is €75. Your order: €${montonioData.currentAmount?.toFixed(2) || grandTotal.toFixed(2)}`;
+            } else if (montonioData.errorKey === 'financing_min_amount') {
+              errorMessage = language === 'et'
+                ? `Järelmaksu miinimum on €150. Teie tellimus: €${montonioData.currentAmount?.toFixed(2) || grandTotal.toFixed(2)}`
+                : `Financing minimum is €150. Your order: €${montonioData.currentAmount?.toFixed(2) || grandTotal.toFixed(2)}`;
+            }
+            
+            toast({
+              variant: "destructive",
+              title: language === 'et' ? 'Makseviga' : 'Payment Error',
+              description: errorMessage,
+            });
+            return;
+          }
+          
           if (montonioData.success && montonioData.paymentUrl) {
             clearCart();
             queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });

@@ -1245,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const loyalty = await db.select().from(schema.userLoyalty).where(eq(schema.userLoyalty.userId, userId)).limit(1);
           if (loyalty.length > 0) {
             const userLoyaltyData = loyalty[0];
-            const tiers = await db.select().from(schema.vipTiers).orderBy(schema.vipTiers.minSpent);
+            const tiers = await db.select().from(schema.vipTiers).orderBy(schema.vipTiers.minSpend);
             const currentTier = tiers.find(t => t.id === userLoyaltyData.currentTierId);
             const nextTierIndex = tiers.findIndex(t => t.id === userLoyaltyData.currentTierId) + 1;
             const nextTier = nextTierIndex < tiers.length ? tiers[nextTierIndex] : null;
@@ -1274,12 +1274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 currentPoints: userLoyaltyData.currentPoints,
                 expiringPoints: Math.max(0, expiringPoints),
                 expiringDays,
-                discountPercent: parseFloat(currentTier.discountPercent),
+                discountPercent: currentTier.discountPercent,
                 pointsMultiplier: parseFloat(currentTier.pointsMultiplier),
                 totalSpent: userLoyaltyData.totalSpend,
                 nextTierName: nextTier?.name,
                 nextTierNameEt: nextTier?.nameEt,
-                spendToNextTier: nextTier ? (parseFloat(nextTier.minSpent) - parseFloat(userLoyaltyData.totalSpend)).toFixed(2) : undefined
+                spendToNextTier: nextTier ? (parseFloat(nextTier.minSpend) - parseFloat(userLoyaltyData.totalSpend)).toFixed(2) : undefined
               };
             }
           }

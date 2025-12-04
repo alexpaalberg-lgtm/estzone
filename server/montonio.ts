@@ -156,6 +156,28 @@ export async function createMontonioPayment(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid payment method" });
     }
 
+    // Server-side minimum amount validation for BNPL and Financing
+    const parsedAmount = parseFloat(amount);
+    if (paymentMethod === 'montonio_bnpl' && parsedAmount < 75) {
+      console.log(`[MONTONIO] BNPL rejected: amount ${parsedAmount} < €75 minimum`);
+      return res.status(400).json({ 
+        error: "BNPL minimum is €75",
+        errorKey: "bnpl_min_amount",
+        minAmount: 75,
+        currentAmount: parsedAmount
+      });
+    }
+    
+    if (paymentMethod === 'montonio_financing' && parsedAmount < 150) {
+      console.log(`[MONTONIO] Financing rejected: amount ${parsedAmount} < €150 minimum`);
+      return res.status(400).json({ 
+        error: "Financing minimum is €150",
+        errorKey: "financing_min_amount", 
+        minAmount: 150,
+        currentAmount: parsedAmount
+      });
+    }
+
     // Build base URL
     const baseUrl = process.env.BASE_URL || 
       (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000');
@@ -201,16 +223,29 @@ export async function createMontonioPayment(req: Request, res: Response) {
     // Map payment method
     const { method, display } = mapPaymentMethodToMontonio(paymentMethod);
 
-    // Build payment object
+    // Build payment object with method-specific options
+    const methodOptions: any = {
+      paymentDescription: `EstZone tellimus ${orderId}`,
+      preferredCountry: countryCode
+    };
+    
+    // BNPL (Slice) requires period parameter (1-3 installments)
+    if (paymentMethod === 'montonio_bnpl') {
+      methodOptions.period = 3; // Default to 3 installments (most common)
+    }
+    
+    // Financing (Hire Purchase) - Inbank integration
+    // Let Montonio/Inbank handle the financing terms
+    if (paymentMethod === 'montonio_financing') {
+      // No additional options needed - Inbank handles the terms
+    }
+
     const payment: MontonioPayment = {
       method,
       methodDisplay: display,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       currency: currency || 'EUR',
-      methodOptions: {
-        paymentDescription: `EstZone tellimus ${orderId}`,
-        preferredCountry: countryCode
-      }
+      methodOptions
     };
 
     // Create the order payload
@@ -220,7 +255,7 @@ export async function createMontonioPayment(req: Request, res: Response) {
       returnUrl: `${baseUrl}/api/payments/montonio/return`,
       notificationUrl: `${baseUrl}/api/payments/montonio/webhook`,
       currency: currency || 'EUR',
-      grandTotal: parseFloat(amount),
+      grandTotal: parsedAmount,
       locale: 'et',
       billingAddress: address,
       shippingAddress: address,
