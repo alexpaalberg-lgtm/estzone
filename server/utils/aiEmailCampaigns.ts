@@ -281,7 +281,7 @@ function buildEmailHtml(
 
         <div style="${emailStyles.footer}">
           <p style="${emailStyles.footerText}">
-            <strong>AVERING GRUPP OÜ</strong> | Reg. 16236733
+            <strong>EstZone OÜ</strong>
           </p>
           <p style="${emailStyles.footerText}">
             ${isEt ? 'Täname, et oled EstZone pere osa!' : 'Thank you for being part of the EstZone family!'}

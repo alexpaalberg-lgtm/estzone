@@ -71,7 +71,7 @@ export default function SEO({
           : "https://schema.org/OutOfStock",
         "seller": {
           "@type": "Organization",
-          "name": "AVERING GRUPP OÜ"
+          "name": "EstZone OÜ"
         }
       };
     } else if (ogType === 'article' && article) {

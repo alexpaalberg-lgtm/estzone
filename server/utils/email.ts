@@ -198,7 +198,7 @@ class ResendEmailService implements EmailService {
                 : `For any questions, contact us at: ${CONTACT_EMAIL}`}
             </p>
             <p style="${emailStyles.footerText}">
-              <strong>AVERING GRUPP OÜ</strong> | Reg. 16236733
+              <strong>EstZone OÜ</strong>
             </p>
             <p style="${emailStyles.footerText}">
               ${et ? 'Täname, et valisite EstZone!' : 'Thank you for choosing EstZone!'}
@@ -276,7 +276,7 @@ class ResendEmailService implements EmailService {
                 : 'If you did not subscribe to this newsletter, you can ignore this email.'}
             </p>
             <p style="${emailStyles.footerText}">
-              <strong>AVERING GRUPP OÜ</strong> | Reg. 16236733
+              <strong>EstZone OÜ</strong>
             </p>
           </div>
         </div>
@@ -363,7 +363,7 @@ class ResendEmailService implements EmailService {
               ${et ? `Küsimuste korral: ${CONTACT_EMAIL}` : `Questions? Contact: ${CONTACT_EMAIL}`}
             </p>
             <p style="${emailStyles.footerText}">
-              <strong>AVERING GRUPP OÜ</strong> | Reg. 16236733
+              <strong>EstZone OÜ</strong>
             </p>
           </div>
         </div>
@@ -428,7 +428,7 @@ class ResendEmailService implements EmailService {
               Automaatne teavitus EstZone laohaldussüsteemist
             </p>
             <p style="${emailStyles.footerText}">
-              <strong>AVERING GRUPP OÜ</strong>
+              <strong>EstZone OÜ</strong>
             </p>
           </div>
         </div>
@@ -498,7 +498,7 @@ class ResendEmailService implements EmailService {
               Automaatne teavitus EstZone süsteemist
             </p>
             <p style="${emailStyles.footerText}">
-              <strong>AVERING GRUPP OÜ</strong>
+              <strong>EstZone OÜ</strong>
             </p>
           </div>
         </div>
