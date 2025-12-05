@@ -54,18 +54,15 @@ export default function Footer() {
             <p className="text-muted-foreground mb-6 max-w-sm">
               {t.footer.description}
             </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Väike-Paala tn 1, 11415 Tallinn, Estonia
-            </p>
             <div className="text-xs text-muted-foreground mb-4 space-y-1">
-              <p className="font-medium">Avimer Teenus OÜ</p>
-              <p>{language === 'et' ? 'Registrikood' : 'Reg. code'}: 17135520</p>
+              <p className="font-medium">EstZone OÜ</p>
+              <p>Pärnu mnt 31, Tallinn</p>
             </div>
             
             {/* Social Media Links & Notifications */}
             <div className="flex items-center gap-4 mb-6">
               <a 
-                href="https://facebook.com/estzone" 
+                href="https://www.facebook.com/share/1FStu9LEFX/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
