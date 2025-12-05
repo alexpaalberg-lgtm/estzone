@@ -417,6 +417,23 @@ export default function Checkout() {
       form.setValue('lastName', user.lastName);
     }
   }, [user]);
+
+  // Show toast if payment was cancelled - cart is still intact
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentCancelled = urlParams.get('payment') === 'cancelled';
+    
+    if (paymentCancelled) {
+      toast({
+        title: language === 'et' ? 'Makse katkestatud' : 'Payment Cancelled',
+        description: language === 'et' 
+          ? 'Teie ostukorv on alles. Võite proovida uuesti.' 
+          : 'Your cart is still intact. You can try again.',
+      });
+      // Remove the query param from URL without refreshing
+      window.history.replaceState({}, '', '/checkout');
+    }
+  }, [language, toast]);
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -539,7 +556,7 @@ export default function Checkout() {
           }
           
           if (montonioData.success && montonioData.paymentUrl) {
-            clearCart();
+            // Don't clear cart here - wait until payment is confirmed on return
             queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
             window.location.href = montonioData.paymentUrl;
             return;
@@ -570,7 +587,7 @@ export default function Checkout() {
           const stripeData = await stripeResponse.json();
           
           if (stripeData.success && stripeData.paymentUrl) {
-            clearCart();
+            // Don't clear cart here - wait until payment is confirmed on return
             queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
             window.location.href = stripeData.paymentUrl;
             return;
@@ -588,7 +605,7 @@ export default function Checkout() {
       }
       
       // For other payment methods (PayPal, Paysera), show message that redirect is needed
-      clearCart();
+      // Don't clear cart here - wait until payment is confirmed on return
       queryClient.invalidateQueries({ queryKey: ['/api/loyalty/status'] });
       toast({
         title: language === 'et' ? 'Tellimus loodud' : 'Order created',
