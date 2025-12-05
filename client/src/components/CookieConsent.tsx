@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { updateGAConsent } from '@/lib/analytics';
 
 interface CookiePreferences {
   necessary: boolean;
@@ -91,12 +92,8 @@ export default function CookieConsent() {
     setShowBanner(false);
     setShowSettings(false);
     
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('consent', 'update', {
-        'analytics_storage': prefs.analytics ? 'granted' : 'denied',
-        'ad_storage': prefs.marketing ? 'granted' : 'denied'
-      });
-    }
+    // Update Google Analytics consent
+    updateGAConsent(prefs.analytics, prefs.marketing);
   };
   
   const openSettings = () => {
