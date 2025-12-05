@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import { Gamepad2, Mail } from 'lucide-react';
-import { SiVisa, SiMastercard, SiFacebook, SiApplepay, SiGooglepay } from 'react-icons/si';
+import { SiVisa, SiMastercard, SiFacebook, SiInstagram, SiX, SiApplepay, SiGooglepay } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -70,6 +70,26 @@ export default function Footer() {
                 data-testid="link-facebook"
               >
                 <SiFacebook className="h-6 w-6 text-muted-foreground hover:text-foreground" />
+              </a>
+              <a 
+                href="https://instagram.com/estzone" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="Instagram"
+                data-testid="link-instagram"
+              >
+                <SiInstagram className="h-6 w-6 text-muted-foreground hover:text-foreground" />
+              </a>
+              <a 
+                href="https://x.com/estzone" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="X (Twitter)"
+                data-testid="link-twitter"
+              >
+                <SiX className="h-6 w-6 text-muted-foreground hover:text-foreground" />
               </a>
               <div className="p-0.5 bg-muted rounded-md">
                 <PushNotifications />
