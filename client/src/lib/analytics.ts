@@ -25,12 +25,22 @@ export const initGA = () => {
   }
   window.gtag = gtag;
 
-  // Set default consent to denied (GDPR compliance) - this allows GA to load but not track until consent
+  // GA4 Consent Mode v2 - GDPR compliant with anonymous data modeling
+  // This allows Google to collect anonymized, cookieless pings for modeling
+  // while still respecting user consent for full tracking
   gtag('consent', 'default', {
     'analytics_storage': 'denied',
     'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
     'wait_for_update': 500
   });
+  
+  // Enable URL passthrough for better attribution without cookies
+  gtag('set', 'url_passthrough', true);
+  
+  // Enable ads data redaction when consent is denied (extra privacy)
+  gtag('set', 'ads_data_redaction', true);
 
   // Add Google Analytics script to the head
   const script1 = document.createElement('script');
@@ -141,12 +151,14 @@ export const trackAddToCart = (
   });
 };
 
-// Update consent when user changes preferences
+// Update consent when user changes preferences (Consent Mode v2)
 export const updateGAConsent = (analyticsAllowed: boolean, marketingAllowed: boolean) => {
   if (typeof window === 'undefined' || !window.gtag) return;
   
   window.gtag('consent', 'update', {
     'analytics_storage': analyticsAllowed ? 'granted' : 'denied',
-    'ad_storage': marketingAllowed ? 'granted' : 'denied'
+    'ad_storage': marketingAllowed ? 'granted' : 'denied',
+    'ad_user_data': marketingAllowed ? 'granted' : 'denied',
+    'ad_personalization': marketingAllowed ? 'granted' : 'denied'
   });
 };
