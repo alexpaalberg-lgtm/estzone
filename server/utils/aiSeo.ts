@@ -337,15 +337,15 @@ export async function bulkImproveSeo(): Promise<{ updated: number; avgScore: num
       let updatedEn = product.descriptionEn || '';
       let updatedEt = product.descriptionEt || '';
       
-      // English description improvements
-      if (!updatedEn || updatedEn.length < 100) {
+      // English description improvements (need 200+ chars for best SEO)
+      if (!updatedEn || updatedEn.length < 200) {
         const categoryName = product.categoryId ? await getCategoryName(product.categoryId, 'en') : 'Gaming';
         const priceNum = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
         updatedEn = generateSeoDescription(product.nameEn, categoryName, priceNum, 'en');
       }
       
-      // Estonian description improvements  
-      if (!updatedEt || updatedEt.length < 100) {
+      // Estonian description improvements (need 200+ chars for best SEO)
+      if (!updatedEt || updatedEt.length < 200) {
         const categoryNameEt = product.categoryId ? await getCategoryName(product.categoryId, 'et') : 'Mängimine';
         const priceNum = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
         updatedEt = generateSeoDescription(product.nameEt || product.nameEn, categoryNameEt, priceNum, 'et');
@@ -394,14 +394,16 @@ function generateSeoDescription(productName: string, categoryName: string, price
   const priceStr = `€${price.toFixed(2)}`;
   
   if (lang === 'et') {
-    return `Osta ${productName} soodsa hinnaga ${priceStr} EstZone e-poest. ` +
-      `Kvaliteetne ${categoryName.toLowerCase()} toode kiire tarnega üle Eesti. ` +
-      `Lai valik mänguriseadmeid ja tarvikuid. Turvaline maksmine, soodne hind, kiire kohaletoimetamine. ` +
-      `EstZone - Eesti soodsaim mängupood!`;
+    return `Osta ${productName} soodsa hinnaga ${priceStr} EstZone e-poest - Eesti soodsaim mängupood! ` +
+      `Kvaliteetne ${categoryName.toLowerCase()} toode kiire tarnega üle Eesti ja Baltimaade. ` +
+      `Pakume laia valiku mänguriseadmeid, kontrollereid, peakomplekte ja tarvikuid parimate hindadega. ` +
+      `Turvaline maksmine Montonio, Stripe ja PayPaliga. Kiire kohaletoimetamine Omniva ja DPD-ga. ` +
+      `Meie hinnad on 15-20% madalamad kui konkurentidel. Tellides EstZone'ist saad kvaliteetse toote kiiresti kätte!`;
   }
   
-  return `Buy ${productName} at the best price ${priceStr} from EstZone Gaming Store. ` +
-    `Premium ${categoryName.toLowerCase()} product with fast delivery across Estonia and Baltic region. ` +
-    `Wide selection of gaming gear and accessories. Secure payment, competitive pricing, quick shipping. ` +
-    `EstZone - The cheapest gaming store in the Baltics!`;
+  return `Buy ${productName} at the best price ${priceStr} from EstZone Gaming Store - The cheapest gaming store in the Baltics! ` +
+    `Premium ${categoryName.toLowerCase()} product with fast delivery across Estonia and the Baltic region. ` +
+    `We offer a wide selection of gaming gear, controllers, headsets, and accessories at unbeatable prices. ` +
+    `Secure payment with Montonio, Stripe, and PayPal. Fast delivery with Omniva and DPD courier services. ` +
+    `Our prices are 15-20% lower than competitors. Order from EstZone and get your quality gaming gear delivered fast!`;
 }
