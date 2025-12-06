@@ -1864,6 +1864,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk SEO improvement (without AI - fast and free)
+  app.post("/api/admin/ai/seo/bulk-improve", requireAdmin, async (req, res) => {
+    try {
+      const { bulkImproveSeo } = await import('./utils/aiSeo');
+      const result = await bulkImproveSeo();
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error in bulk SEO improvement:', error);
+      res.status(500).json({ error: "Failed to run bulk SEO improvement" });
+    }
+  });
+
   // ============ AI CAMPAIGNS ENDPOINTS ============
   
   // Generate campaign

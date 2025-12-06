@@ -315,3 +315,93 @@ export async function getLatestSeoAnalysis(): Promise<SeoAnalysis | null> {
   const today = new Date().toISOString().split('T')[0];
   return storage.getAIReport(`seo-${today}`);
 }
+
+// Bulk SEO improvement without AI - fast and free
+export async function bulkImproveSeo(): Promise<{ updated: number; avgScore: number }> {
+  try {
+    const products = await storage.getProducts();
+    const activeProducts = products.filter(p => p.isActive);
+    let updatedCount = 0;
+    let totalScore = 0;
+
+    for (const product of activeProducts) {
+      const currentScore = calculateBasicSeoScore(product);
+      
+      // Skip if already has good SEO (score >= 80)
+      if (currentScore >= 80) {
+        totalScore += currentScore;
+        continue;
+      }
+
+      // Generate improved descriptions if needed
+      let updatedEn = product.descriptionEn || '';
+      let updatedEt = product.descriptionEt || '';
+      
+      // English description improvements
+      if (!updatedEn || updatedEn.length < 100) {
+        const categoryName = product.categoryId ? await getCategoryName(product.categoryId, 'en') : 'Gaming';
+        const priceNum = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+        updatedEn = generateSeoDescription(product.nameEn, categoryName, priceNum, 'en');
+      }
+      
+      // Estonian description improvements  
+      if (!updatedEt || updatedEt.length < 100) {
+        const categoryNameEt = product.categoryId ? await getCategoryName(product.categoryId, 'et') : 'Mängimine';
+        const priceNum = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+        updatedEt = generateSeoDescription(product.nameEt || product.nameEn, categoryNameEt, priceNum, 'et');
+      }
+
+      // Update product if descriptions were improved
+      if (updatedEn !== product.descriptionEn || updatedEt !== product.descriptionEt) {
+        await storage.updateProduct(product.id, {
+          descriptionEn: updatedEn,
+          descriptionEt: updatedEt,
+        });
+        updatedCount++;
+      }
+      
+      totalScore += calculateBasicSeoScore({ ...product, descriptionEn: updatedEn, descriptionEt: updatedEt });
+    }
+
+    const avgScore = activeProducts.length > 0 ? Math.round(totalScore / activeProducts.length) : 0;
+    
+    // Save report
+    await storage.saveAIReport('bulk-seo-' + new Date().toISOString().split('T')[0], {
+      timestamp: new Date(),
+      productsUpdated: updatedCount,
+      totalProducts: activeProducts.length,
+      avgScore,
+    });
+
+    return { updated: updatedCount, avgScore };
+  } catch (error) {
+    console.error('Bulk SEO improvement error:', error);
+    return { updated: 0, avgScore: 0 };
+  }
+}
+
+async function getCategoryName(categoryId: string, lang: 'en' | 'et'): Promise<string> {
+  try {
+    const category = await storage.getCategory(categoryId);
+    if (category) {
+      return lang === 'et' ? (category.nameEt || category.nameEn) : category.nameEn;
+    }
+  } catch {}
+  return lang === 'et' ? 'Mängimine' : 'Gaming';
+}
+
+function generateSeoDescription(productName: string, categoryName: string, price: number, lang: 'en' | 'et'): string {
+  const priceStr = `€${price.toFixed(2)}`;
+  
+  if (lang === 'et') {
+    return `Osta ${productName} soodsa hinnaga ${priceStr} EstZone e-poest. ` +
+      `Kvaliteetne ${categoryName.toLowerCase()} toode kiire tarnega üle Eesti. ` +
+      `Lai valik mänguriseadmeid ja tarvikuid. Turvaline maksmine, soodne hind, kiire kohaletoimetamine. ` +
+      `EstZone - Eesti soodsaim mängupood!`;
+  }
+  
+  return `Buy ${productName} at the best price ${priceStr} from EstZone Gaming Store. ` +
+    `Premium ${categoryName.toLowerCase()} product with fast delivery across Estonia and Baltic region. ` +
+    `Wide selection of gaming gear and accessories. Secure payment, competitive pricing, quick shipping. ` +
+    `EstZone - The cheapest gaming store in the Baltics!`;
+}
