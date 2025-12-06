@@ -35,14 +35,22 @@ interface SeoAnalysis {
 
 export async function analyzeSeo(productIds?: string[]): Promise<SeoAnalysis> {
   try {
-    let products = await storage.getProducts();
+    let allProducts = await storage.getProducts();
+    const activeProducts = allProducts.filter(p => p.isActive);
     
+    // Calculate OVERALL average score from ALL active products
+    let overallTotalScore = 0;
+    for (const product of activeProducts) {
+      overallTotalScore += calculateBasicSeoScore(product);
+    }
+    const overallAvgScore = activeProducts.length > 0 ? Math.round(overallTotalScore / activeProducts.length) : 0;
+    
+    let products: typeof allProducts;
     if (productIds && productIds.length > 0) {
-      products = products.filter(p => productIds.includes(p.id));
+      products = allProducts.filter(p => productIds.includes(p.id));
     } else {
-      // Analyze up to 20 products, prioritizing those with missing SEO
-      products = products
-        .filter(p => p.isActive)
+      // Show recommendations for 20 products with lowest scores
+      products = activeProducts
         .sort((a, b) => {
           const aScore = calculateBasicSeoScore(a);
           const bScore = calculateBasicSeoScore(b);
@@ -52,12 +60,10 @@ export async function analyzeSeo(productIds?: string[]): Promise<SeoAnalysis> {
     }
 
     const recommendations: SeoRecommendation[] = [];
-    let totalScore = 0;
 
     for (const product of products) {
       const recommendation = await generateProductSeoRecommendation(product);
       recommendations.push(recommendation);
-      totalScore += recommendation.score;
     }
 
     // Extract keywords from recommendations
@@ -85,8 +91,8 @@ export async function analyzeSeo(productIds?: string[]): Promise<SeoAnalysis> {
 
     const analysis: SeoAnalysis = {
       timestamp: new Date(),
-      productsAnalyzed: products.length,
-      avgSeoScore: products.length > 0 ? Math.round(totalScore / products.length) : 0,
+      productsAnalyzed: activeProducts.length,
+      avgSeoScore: overallAvgScore,
       recommendations,
       topKeywords,
       topKeywordsEt,
