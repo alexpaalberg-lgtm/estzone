@@ -141,14 +141,18 @@ export async function analyzeSeo(productIds?: string[]): Promise<SeoAnalysis> {
 function calculateBasicSeoScore(product: Product): number {
   let score = 0;
   
-  // Check English fields
-  if (product.nameEn && product.nameEn.length >= 20) score += 20;
-  if (product.descriptionEn && product.descriptionEn.length >= 100) score += 30;
-  if (product.descriptionEn && product.descriptionEn.length >= 200) score += 10;
+  // Check English fields - more realistic scoring
+  if (product.nameEn && product.nameEn.length >= 10) score += 10; // Name exists and reasonable
+  if (product.nameEn && product.nameEn.length >= 20) score += 10; // Bonus for longer name
+  if (product.descriptionEn && product.descriptionEn.length >= 100) score += 20;
+  if (product.descriptionEn && product.descriptionEn.length >= 200) score += 15;
+  if (product.descriptionEn && product.descriptionEn.length >= 400) score += 5; // Long description bonus
   
   // Check Estonian fields
-  if (product.nameEt && product.nameEt.length >= 20) score += 20;
-  if (product.descriptionEt && product.descriptionEt.length >= 100) score += 20;
+  if (product.nameEt && product.nameEt.length >= 10) score += 10;
+  if (product.nameEt && product.nameEt.length >= 20) score += 10;
+  if (product.descriptionEt && product.descriptionEt.length >= 100) score += 15;
+  if (product.descriptionEt && product.descriptionEt.length >= 200) score += 5;
 
   return score;
 }
