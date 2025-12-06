@@ -69,7 +69,7 @@ export default function BlogPost() {
       <SEO 
         title={title}
         description={excerpt || ''}
-        keywords={`${category}, gaming, blog, ${language === 'et' ? 'mänguuudised' : 'gaming news'}`}
+        keywords={`${category}, ${title}, gaming, ${language === 'et' ? 'mänguuudised, Eesti, mängud, konsoolid, PS5, Xbox, mängupood' : 'gaming news, Estonia, games, consoles, PS5, Xbox, gaming store'}`}
         ogType="article"
         ogImage={post.featuredImage || '/og-default.jpg'}
         article={{
