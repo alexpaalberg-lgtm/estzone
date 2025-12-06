@@ -752,3 +752,40 @@ export const insertNotificationHistorySchema = createInsertSchema(notificationHi
 });
 export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
 export type NotificationHistory = typeof notificationHistory.$inferSelect;
+
+// ============================================
+// PAGE VIEWS / TRAFFIC ANALYTICS
+// ============================================
+
+// Page Views - Track all website visits (100% accurate, server-side)
+export const pageViews = pgTable("page_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id"), // Anonymous session tracking
+  userId: varchar("user_id").references(() => users.id), // Logged in user (optional)
+  path: text("path").notNull(), // URL path visited
+  referrer: text("referrer"), // Where they came from
+  userAgent: text("user_agent"), // Browser/device info
+  ip: varchar("ip", { length: 45 }), // IPv4 or IPv6 (anonymized last octet)
+  country: varchar("country", { length: 2 }), // Country code (EE, FI, etc)
+  device: varchar("device", { length: 20 }), // 'mobile', 'tablet', 'desktop'
+  browser: varchar("browser", { length: 50 }), // Browser name
+  productId: varchar("product_id").references(() => products.id), // If viewing product page
+  categoryId: varchar("category_id").references(() => categories.id), // If viewing category page
+  duration: integer("duration"), // Time on page in seconds (updated on next pageview)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_page_views_created_at").on(table.createdAt),
+  index("idx_page_views_path").on(table.path),
+  index("idx_page_views_session").on(table.sessionId),
+  index("idx_page_views_device").on(table.device),
+  index("idx_page_views_browser").on(table.browser),
+  index("idx_page_views_product").on(table.productId),
+  index("idx_page_views_category").on(table.categoryId),
+]);
+
+export const insertPageViewSchema = createInsertSchema(pageViews).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertPageView = z.infer<typeof insertPageViewSchema>;
+export type PageView = typeof pageViews.$inferSelect;

@@ -57,10 +57,14 @@ import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { usePageTracking } from "./hooks/use-page-tracking";
+import AdminTraffic from "@/pages/admin/Traffic";
 
 function Router() {
   // Track page views when routes change (Google Analytics)
   useAnalytics();
+  // Track page views with our own 100% accurate system
+  usePageTracking();
   
   return (
     <Switch>
@@ -112,6 +116,7 @@ function Router() {
       <Route path="/admin/finance" component={AdminFinance} />
       <Route path="/admin/seasonal-themes" component={AdminSeasonalThemes} />
       <Route path="/admin/push-notifications" component={AdminPushNotifications} />
+      <Route path="/admin/traffic" component={AdminTraffic} />
       <Route component={NotFound} />
     </Switch>
   );

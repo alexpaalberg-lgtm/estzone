@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, gte } from "drizzle-orm";
 import { insertProductSchema, insertCategorySchema, insertOrderSchema, insertAddressSchema, insertBlogPostSchema, insertNewsletterSubscriberSchema, insertWishlistSchema, insertRecurringOrderSchema, insertCouponSchema, insertReviewSchema, insertGiftCardSchema } from "@shared/schema";
 import { parseCSV, generateCSVTemplate } from "./utils/csv";
 import { emailService } from "./utils/email";
@@ -1183,6 +1183,224 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error subscribing to newsletter:', error);
       res.status(400).json({ error: error.message || "Failed to subscribe" });
+    }
+  });
+  
+  // ============================================
+  // PAGE VIEW TRACKING (100% accurate analytics)
+  // ============================================
+  
+  // Track page view - called from frontend on every page load
+  app.post("/api/track/pageview", async (req: any, res) => {
+    try {
+      const { path, referrer, sessionId, productId, categoryId } = req.body;
+      
+      if (!path) {
+        return res.status(400).json({ error: "Path is required" });
+      }
+      
+      // Get user agent and parse device/browser
+      const userAgent = req.headers['user-agent'] || '';
+      const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
+      const isTablet = /tablet|ipad/i.test(userAgent);
+      const device = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
+      
+      // Parse browser
+      let browser = 'unknown';
+      if (/chrome/i.test(userAgent) && !/edge/i.test(userAgent)) browser = 'Chrome';
+      else if (/firefox/i.test(userAgent)) browser = 'Firefox';
+      else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari';
+      else if (/edge/i.test(userAgent)) browser = 'Edge';
+      else if (/opera|opr/i.test(userAgent)) browser = 'Opera';
+      
+      // Get IP and anonymize (remove last octet/hextet for privacy)
+      let ip: string = '';
+      const rawIp = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '';
+      if (typeof rawIp === 'string' && rawIp.includes(',')) {
+        ip = rawIp.split(',')[0].trim();
+      } else if (typeof rawIp === 'string') {
+        ip = rawIp.trim();
+      }
+      
+      // Anonymize IP for GDPR compliance
+      if (ip && ip.includes('.')) {
+        // IPv4: replace last octet with 0
+        const parts = ip.split('.');
+        if (parts.length === 4) {
+          parts[3] = '0';
+          ip = parts.join('.');
+        }
+      } else if (ip && ip.includes(':')) {
+        // IPv6: replace last 4 hextets with zeros
+        const parts = ip.split(':');
+        if (parts.length >= 4) {
+          for (let i = Math.max(4, parts.length - 4); i < parts.length; i++) {
+            parts[i] = '0';
+          }
+          ip = parts.join(':');
+        }
+      }
+      
+      // Ensure we have a valid value or null
+      if (!ip || ip.length < 3) {
+        ip = '';
+      }
+      
+      // Get user ID if logged in
+      let userId: string | null = null;
+      if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      } else if (req.user?.id) {
+        userId = req.user.id;
+      }
+      
+      // Insert page view
+      await db.insert(schema.pageViews).values({
+        sessionId: sessionId || null,
+        userId: userId,
+        path,
+        referrer: referrer || null,
+        userAgent: userAgent.substring(0, 500), // Limit length
+        ip,
+        device,
+        browser,
+        productId: productId || null,
+        categoryId: categoryId || null,
+      });
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error tracking page view:', error);
+      // Don't fail the request - tracking errors shouldn't affect user experience
+      res.status(200).json({ success: false });
+    }
+  });
+  
+  // Get traffic statistics (admin only)
+  app.get("/api/admin/traffic/stats", requireAdmin, async (req, res) => {
+    try {
+      const { period = '7d' } = req.query;
+      
+      // Calculate date range
+      let startDate = new Date();
+      if (period === '24h') startDate.setHours(startDate.getHours() - 24);
+      else if (period === '7d') startDate.setDate(startDate.getDate() - 7);
+      else if (period === '30d') startDate.setDate(startDate.getDate() - 30);
+      else if (period === '90d') startDate.setDate(startDate.getDate() - 90);
+      
+      // Get total page views
+      const totalViews = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.pageViews)
+        .where(gte(schema.pageViews.createdAt, startDate));
+      
+      // Get unique sessions
+      const uniqueSessions = await db.select({ count: sql<number>`count(distinct ${schema.pageViews.sessionId})` })
+        .from(schema.pageViews)
+        .where(gte(schema.pageViews.createdAt, startDate));
+      
+      // Get views by day
+      const viewsByDay = await db.execute(sql`
+        SELECT 
+          DATE(created_at) as date,
+          COUNT(*) as views,
+          COUNT(DISTINCT session_id) as sessions
+        FROM page_views 
+        WHERE created_at >= ${startDate}
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+      `);
+      
+      // Get top pages
+      const topPages = await db.execute(sql`
+        SELECT 
+          path,
+          COUNT(*) as views,
+          COUNT(DISTINCT session_id) as unique_visitors
+        FROM page_views 
+        WHERE created_at >= ${startDate}
+        GROUP BY path
+        ORDER BY views DESC
+        LIMIT 20
+      `);
+      
+      // Get device breakdown
+      const deviceBreakdown = await db.execute(sql`
+        SELECT 
+          device,
+          COUNT(*) as count
+        FROM page_views 
+        WHERE created_at >= ${startDate}
+        GROUP BY device
+      `);
+      
+      // Get browser breakdown
+      const browserBreakdown = await db.execute(sql`
+        SELECT 
+          browser,
+          COUNT(*) as count
+        FROM page_views 
+        WHERE created_at >= ${startDate}
+        GROUP BY browser
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+      
+      // Get referrer breakdown (where traffic comes from)
+      const referrerBreakdown = await db.execute(sql`
+        SELECT 
+          CASE 
+            WHEN referrer IS NULL OR referrer = '' THEN 'Direct'
+            WHEN referrer LIKE '%google%' THEN 'Google'
+            WHEN referrer LIKE '%facebook%' THEN 'Facebook'
+            WHEN referrer LIKE '%instagram%' THEN 'Instagram'
+            WHEN referrer LIKE '%tiktok%' THEN 'TikTok'
+            WHEN referrer LIKE '%estzone%' THEN 'Internal'
+            ELSE 'Other'
+          END as source,
+          COUNT(*) as count
+        FROM page_views 
+        WHERE created_at >= ${startDate}
+        GROUP BY source
+        ORDER BY count DESC
+      `);
+      
+      // Get top products viewed
+      const topProducts = await db.execute(sql`
+        SELECT 
+          pv.product_id,
+          p.name_en,
+          p.name_et,
+          COUNT(*) as views
+        FROM page_views pv
+        JOIN products p ON pv.product_id = p.id
+        WHERE pv.created_at >= ${startDate} AND pv.product_id IS NOT NULL
+        GROUP BY pv.product_id, p.name_en, p.name_et
+        ORDER BY views DESC
+        LIMIT 20
+      `);
+      
+      // Get real-time visitors (last 5 minutes)
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      const realtimeVisitors = await db.select({ count: sql<number>`count(distinct ${schema.pageViews.sessionId})` })
+        .from(schema.pageViews)
+        .where(gte(schema.pageViews.createdAt, fiveMinutesAgo));
+      
+      res.json({
+        totalViews: Number(totalViews[0]?.count) || 0,
+        uniqueSessions: Number(uniqueSessions[0]?.count) || 0,
+        realtimeVisitors: Number(realtimeVisitors[0]?.count) || 0,
+        viewsByDay: viewsByDay.rows || [],
+        topPages: topPages.rows || [],
+        deviceBreakdown: deviceBreakdown.rows || [],
+        browserBreakdown: browserBreakdown.rows || [],
+        referrerBreakdown: referrerBreakdown.rows || [],
+        topProducts: topProducts.rows || [],
+      });
+    } catch (error) {
+      console.error('Error fetching traffic stats:', error);
+      res.status(500).json({ error: "Failed to fetch traffic statistics" });
     }
   });
   
