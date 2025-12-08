@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { calculateVatBreakdown } from "@/lib/vat";
+import { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo, trackPurchase } from "@/lib/analytics";
 import { ShoppingBag, Package, CreditCard, MapPin, Plus, Award, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Link } from "wouter";
@@ -174,6 +175,19 @@ export default function Checkout() {
     pointsRedeemed: number;
     discountValue: number;
   } | null>(null);
+  
+  // Track begin checkout for GA4 e-commerce
+  useEffect(() => {
+    if (items.length > 0) {
+      const gaItems = items.map(item => ({
+        item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      }));
+      trackBeginCheckout(gaItems, totalPrice);
+    }
+  }, []); // Only track once when checkout page loads
   
   // Fetch user's loyalty status
   const { data: loyaltyStatus, refetch: refetchLoyalty } = useQuery<LoyaltyStatus>({

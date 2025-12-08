@@ -55,7 +55,7 @@ import Auth from "@/pages/Auth";
 import Compare from "@/pages/Compare";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
-import { initGA } from "./lib/analytics";
+import { initGA, initClarity } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import { usePageTracking } from "./hooks/use-page-tracking";
 import AdminTraffic from "@/pages/admin/Traffic";
@@ -123,13 +123,15 @@ function Router() {
 }
 
 function App() {
-  // Initialize Google Analytics when app loads
+  // Initialize Google Analytics and Microsoft Clarity when app loads
   useEffect(() => {
     if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
       console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
     } else {
       initGA();
     }
+    // Initialize Clarity for heatmaps and session recordings
+    initClarity();
   }, []);
   
   return (

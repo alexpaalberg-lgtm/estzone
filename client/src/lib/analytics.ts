@@ -162,3 +162,114 @@ export const updateGAConsent = (analyticsAllowed: boolean, marketingAllowed: boo
     'ad_personalization': marketingAllowed ? 'granted' : 'denied'
   });
 };
+
+// E-commerce: View item (product page)
+export const trackViewItem = (
+  itemId: string,
+  itemName: string,
+  price: number,
+  category?: string
+) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'view_item', {
+    currency: 'EUR',
+    value: price,
+    items: [{
+      item_id: itemId,
+      item_name: itemName,
+      price: price,
+      item_category: category
+    }]
+  });
+};
+
+// E-commerce: View cart
+export const trackViewCart = (items: any[], totalValue: number) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'view_cart', {
+    currency: 'EUR',
+    value: totalValue,
+    items: items
+  });
+};
+
+// E-commerce: Begin checkout
+export const trackBeginCheckout = (items: any[], totalValue: number) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'begin_checkout', {
+    currency: 'EUR',
+    value: totalValue,
+    items: items
+  });
+};
+
+// E-commerce: Add shipping info
+export const trackAddShippingInfo = (items: any[], totalValue: number, shippingMethod: string) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'add_shipping_info', {
+    currency: 'EUR',
+    value: totalValue,
+    shipping_tier: shippingMethod,
+    items: items
+  });
+};
+
+// E-commerce: Add payment info
+export const trackAddPaymentInfo = (items: any[], totalValue: number, paymentMethod: string) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'add_payment_info', {
+    currency: 'EUR',
+    value: totalValue,
+    payment_type: paymentMethod,
+    items: items
+  });
+};
+
+// E-commerce: Remove from cart
+export const trackRemoveFromCart = (
+  itemId: string,
+  itemName: string,
+  price: number,
+  quantity: number = 1
+) => {
+  if (typeof window === 'undefined' || !window.gtag) return;
+  
+  window.gtag('event', 'remove_from_cart', {
+    currency: 'EUR',
+    value: price * quantity,
+    items: [{
+      item_id: itemId,
+      item_name: itemName,
+      price: price,
+      quantity: quantity
+    }]
+  });
+};
+
+// Initialize Microsoft Clarity for heatmaps and session recordings
+export const initClarity = () => {
+  const clarityId = import.meta.env.VITE_CLARITY_PROJECT_ID;
+  
+  if (!clarityId) {
+    console.warn('Missing VITE_CLARITY_PROJECT_ID - Clarity heatmaps disabled');
+    return;
+  }
+  
+  // Clarity tracking script
+  (function(c: any, l: any, a: any, r: any, i: any, t?: any, y?: any) {
+    c[a] = c[a] || function() { (c[a].q = c[a].q || []).push(arguments); };
+    t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+    y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+  })(window, document, "clarity", "script", clarityId);
+};
+
+// Track custom Clarity events
+export const trackClarityEvent = (eventName: string) => {
+  if (typeof window === 'undefined' || !(window as any).clarity) return;
+  (window as any).clarity('set', eventName, 'true');
+};

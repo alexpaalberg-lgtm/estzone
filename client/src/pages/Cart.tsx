@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -9,6 +10,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateVatBreakdown } from "@/lib/vat";
+import { trackViewCart, trackRemoveFromCart } from "@/lib/analytics";
 import { Trash2, Minus, Plus, ShoppingBag, Sparkles } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import type { Product } from "@shared/schema";
@@ -17,6 +19,28 @@ export default function Cart() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
   const { language } = useLanguage();
   const { formatDualPrice } = useCurrency();
+  
+  // Track cart view for GA4 e-commerce
+  useEffect(() => {
+    if (items.length > 0) {
+      const gaItems = items.map(item => ({
+        item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      }));
+      trackViewCart(gaItems, totalPrice);
+    }
+  }, [items.length, totalPrice]);
+  
+  // Wrapper to track item removal
+  const handleRemoveItem = (itemId: string) => {
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      trackRemoveFromCart(item.id, item.name, item.price, item.quantity);
+    }
+    removeItem(itemId);
+  };
   
   // Calculate VAT on base EUR amount
   // Keep in EUR - formatPrice() will handle conversion to display currency
@@ -124,7 +148,7 @@ export default function Cart() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleRemoveItem(item.id)}
                           data-testid={`button-remove-${item.id}`}
                         >
                           <Trash2 className="h-4 w-4" />

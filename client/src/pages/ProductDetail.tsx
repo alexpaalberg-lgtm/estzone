@@ -39,6 +39,7 @@ function getYouTubeVideoId(url: string): string | null {
 import { getPlatformInfo, isGameProduct } from "@/lib/platform";
 import PlatformIcon from "@/components/PlatformIcon";
 import type { Product, Category } from "@shared/schema";
+import { trackViewItem, trackAddToCart } from "@/lib/analytics";
 
 export default function ProductDetail() {
   const [match, params] = useRoute("/product/:id");
@@ -60,6 +61,14 @@ export default function ProductDetail() {
     queryKey: productId ? [`/api/products/${productId}`] : ['/api/products/null'],
     enabled: match && !!productId, // Only run query if route matches and ID exists
   });
+  
+  // Track product view for GA4 e-commerce
+  useEffect(() => {
+    if (product) {
+      const price = product.salePrice ? parseFloat(product.salePrice) : parseFloat(product.price);
+      trackViewItem(product.id, product.nameEn, price, product.categoryId || undefined);
+    }
+  }, [product]);
   
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
@@ -192,6 +201,9 @@ export default function ProductDetail() {
       sku: product.sku,
       platform: platformInfo?.label,
     }, quantity);
+    
+    // Track add to cart for GA4 e-commerce
+    trackAddToCart(product.id, productName, salePrice || price, quantity);
     
     toast({
       title: isPreOrder 
