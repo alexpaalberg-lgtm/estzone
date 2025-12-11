@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain, Shield, DollarSign, Gift, GraduationCap, Percent, Megaphone, Search, UserCircle, Image, Mail, Gamepad2, Bot, CreditCard, Star, Trophy, Wallet, Snowflake, Bell } from 'lucide-react';
+import { PackageSearch, Package, ShoppingCart, FolderTree, LogOut, Globe, Warehouse, Ticket, Brain, Shield, DollarSign, Gift, GraduationCap, Percent, Megaphone, Search, UserCircle, Image, Mail, Gamepad2, Bot, CreditCard, Star, Trophy, Wallet, Snowflake, Bell, Truck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -87,6 +87,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       title: t.admin.inventory,
       url: '/admin/inventory',
       icon: Warehouse,
+    },
+    {
+      title: language === 'et' ? 'GOE Tarnija' : 'GOE Supplier',
+      url: '/admin/goe',
+      icon: Truck,
     },
     {
       title: language === 'et' ? 'Kupongid' : 'Coupons',

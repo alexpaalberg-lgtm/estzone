@@ -59,6 +59,7 @@ import { initGA, initClarity } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import { usePageTracking } from "./hooks/use-page-tracking";
 import AdminTraffic from "@/pages/admin/Traffic";
+import AdminGOE from "@/pages/admin/GOE";
 
 function Router() {
   // Track page views when routes change (Google Analytics)
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/admin/seasonal-themes" component={AdminSeasonalThemes} />
       <Route path="/admin/push-notifications" component={AdminPushNotifications} />
       <Route path="/admin/traffic" component={AdminTraffic} />
+      <Route path="/admin/goe" component={AdminGOE} />
       <Route component={NotFound} />
     </Switch>
   );

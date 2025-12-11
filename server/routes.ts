@@ -4286,6 +4286,371 @@ Format your response as JSON:
     }
   });
 
+  // ============================================
+  // GOE SUPPLIER INTEGRATION ENDPOINTS
+  // ============================================
+  
+  // Configure multer for GOE file uploads
+  const goeUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    fileFilter: (_req, file, cb) => {
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv',
+        'application/csv',
+      ];
+      if (allowedTypes.includes(file.mimetype) || 
+          file.originalname.endsWith('.xlsx') || 
+          file.originalname.endsWith('.xls') ||
+          file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only Excel and CSV files are allowed.'));
+      }
+    }
+  });
+  
+  // GOE: Get stats
+  app.get('/api/admin/goe/stats', requireAdmin, async (req, res) => {
+    try {
+      const goeProducts = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL`);
+      
+      const lowStock = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL AND COALESCE(${schema.products.ownStock}, 0) < 3`);
+      
+      const valueResult = await db.select({ 
+        total: sql<number>`COALESCE(SUM(CAST(${schema.products.goePrice} AS DECIMAL) * COALESCE(${schema.products.ownStock}, 0)), 0)` 
+      })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL`);
+      
+      const lastImport = await db.select()
+        .from(schema.goeImports)
+        .orderBy(desc(schema.goeImports.createdAt))
+        .limit(1);
+      
+      res.json({
+        totalGoeProducts: Number(goeProducts[0]?.count || 0),
+        lowOwnStock: Number(lowStock[0]?.count || 0),
+        totalGoeValue: Number(valueResult[0]?.total || 0),
+        lastImport: lastImport[0] || null,
+      });
+    } catch (error: any) {
+      console.error('Error getting GOE stats:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Get import history
+  app.get('/api/admin/goe/imports', requireAdmin, async (req, res) => {
+    try {
+      const imports = await db.select()
+        .from(schema.goeImports)
+        .orderBy(desc(schema.goeImports.createdAt))
+        .limit(50);
+      res.json(imports);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Get category mappings
+  app.get('/api/admin/goe/mappings', requireAdmin, async (req, res) => {
+    try {
+      const mappings = await db.select()
+        .from(schema.goeCategoryMappings)
+        .orderBy(schema.goeCategoryMappings.goeFormat);
+      res.json(mappings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Update category mapping
+  app.patch('/api/admin/goe/mappings/:goeFormat', requireAdmin, async (req, res) => {
+    try {
+      const { goeFormat } = req.params;
+      const { categoryId, defaultMarkup } = req.body;
+      
+      const updateData: any = {};
+      if (categoryId !== undefined) updateData.categoryId = categoryId;
+      if (defaultMarkup !== undefined) updateData.defaultMarkup = defaultMarkup;
+      
+      await db.update(schema.goeCategoryMappings)
+        .set(updateData)
+        .where(eq(schema.goeCategoryMappings.goeFormat, goeFormat));
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Get low stock products
+  app.get('/api/admin/goe/low-stock', requireAdmin, async (req, res) => {
+    try {
+      const products = await db.select({
+        id: schema.products.id,
+        nameEn: schema.products.nameEn,
+        sku: schema.products.sku,
+        ownStock: schema.products.ownStock,
+        goeStock: schema.products.goeStock,
+        goePrice: schema.products.goePrice,
+        price: schema.products.price,
+        goePartNo: schema.products.goePartNo,
+      })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL AND COALESCE(${schema.products.ownStock}, 0) < 3`)
+        .orderBy(schema.products.ownStock)
+        .limit(100);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Get order list (products to order from GOE)
+  app.get('/api/admin/goe/order-list', requireAdmin, async (req, res) => {
+    try {
+      const products = await db.select({
+        id: schema.products.id,
+        nameEn: schema.products.nameEn,
+        sku: schema.products.sku,
+        ownStock: schema.products.ownStock,
+        goeStock: schema.products.goeStock,
+        goePrice: schema.products.goePrice,
+        price: schema.products.price,
+        goePartNo: schema.products.goePartNo,
+      })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL AND COALESCE(${schema.products.ownStock}, 0) = 0 AND COALESCE(${schema.products.goeStock}, 0) > 0`)
+        .orderBy(desc(schema.products.goeStock))
+        .limit(100);
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Export order list as CSV
+  app.get('/api/admin/goe/export-order', requireAdmin, async (req, res) => {
+    try {
+      const products = await db.select({
+        goePartNo: schema.products.goePartNo,
+        nameEn: schema.products.nameEn,
+        goeStock: schema.products.goeStock,
+        goePrice: schema.products.goePrice,
+      })
+        .from(schema.products)
+        .where(sql`${schema.products.goePartNo} IS NOT NULL AND COALESCE(${schema.products.ownStock}, 0) = 0 AND COALESCE(${schema.products.goeStock}, 0) > 0`)
+        .orderBy(desc(schema.products.goeStock));
+      
+      let csv = 'Part No,Description,Available,EUR,Order Qty\n';
+      for (const p of products) {
+        const suggestedQty = Math.min(5, p.goeStock || 0);
+        csv += `${p.goePartNo},"${p.nameEn}",${p.goeStock},${p.goePrice},${suggestedQty}\n`;
+      }
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=goe-order.csv');
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GOE: Import Excel file
+  app.post('/api/admin/goe/import', requireAdmin, goeUpload.single('file'), async (req: any, res) => {
+    const XLSX = require('xlsx');
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      
+      const { importType = 'full', markupMultiplier = '2.0' } = req.body;
+      const markup = parseFloat(markupMultiplier);
+      
+      // Create import record
+      const [importRecord] = await db.insert(schema.goeImports)
+        .values({
+          fileName: req.file.originalname,
+          importType,
+          status: 'processing',
+          importedBy: req.session.adminEmail || 'admin',
+        })
+        .returning();
+      
+      // Parse Excel file
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+      
+      // Get header row to find column indices
+      const headers = rows[0] as string[];
+      const colIndex = {
+        partNo: headers.findIndex(h => h?.toLowerCase()?.includes('part') || h === 'Part No'),
+        format: headers.findIndex(h => h?.toLowerCase() === 'format'),
+        description: headers.findIndex(h => h?.toLowerCase()?.includes('description') || h?.toLowerCase()?.includes('desc')),
+        available: headers.findIndex(h => h?.toLowerCase()?.includes('available') || h?.toLowerCase()?.includes('stock')),
+        ean: headers.findIndex(h => h?.toLowerCase()?.includes('ean') || h?.toLowerCase()?.includes('barcode')),
+        eur: headers.findIndex(h => h?.toLowerCase() === 'eur' || h?.toLowerCase()?.includes('price')),
+      };
+      
+      // Get category mappings
+      const mappings = await db.select()
+        .from(schema.goeCategoryMappings)
+        .where(eq(schema.goeCategoryMappings.isActive, true));
+      const categoryMap = new Map(mappings.map(m => [m.goeFormat, m]));
+      
+      let newProducts = 0;
+      let updatedProducts = 0;
+      let skippedProducts = 0;
+      const errors: string[] = [];
+      
+      // Process data rows (skip header)
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+        
+        const partNo = String(row[colIndex.partNo] || '').trim();
+        const format = String(row[colIndex.format] || '').trim();
+        const description = String(row[colIndex.description] || '').trim();
+        let available = row[colIndex.available];
+        const ean = String(row[colIndex.ean] || '').trim();
+        let eurPrice = row[colIndex.eur];
+        
+        if (!partNo || !description) {
+          skippedProducts++;
+          continue;
+        }
+        
+        // Parse available stock (handle comma-formatted numbers like "1,089")
+        if (typeof available === 'string') {
+          available = parseInt(available.replace(/,/g, ''), 10);
+        }
+        available = Number(available) || 0;
+        
+        // Parse EUR price
+        if (typeof eurPrice === 'string') {
+          eurPrice = parseFloat(eurPrice.replace(/,/g, '.'));
+        }
+        eurPrice = Number(eurPrice) || 0;
+        
+        // Get category from mapping
+        const mapping = categoryMap.get(format);
+        if (!mapping?.categoryId && importType === 'full') {
+          // Skip products without category mapping in full import
+          skippedProducts++;
+          continue;
+        }
+        
+        // Calculate sale price with markup
+        const salePrice = (eurPrice * markup).toFixed(2);
+        
+        // Check if product exists by GOE part number
+        const existing = await db.select()
+          .from(schema.products)
+          .where(eq(schema.products.goePartNo, partNo))
+          .limit(1);
+        
+        if (existing.length > 0) {
+          // Update existing product
+          const updateData: any = {
+            goeStock: available,
+            goePrice: eurPrice.toFixed(2),
+            updatedAt: new Date(),
+          };
+          
+          // Update EAN if not set
+          if (ean && ean !== 'N/A' && !existing[0].ean) {
+            updateData.ean = ean;
+          }
+          
+          // Update stock status based on own stock
+          if ((existing[0].ownStock || 0) === 0) {
+            updateData.stockStatus = 'out_of_stock';
+            updateData.stock = 0;
+          }
+          
+          await db.update(schema.products)
+            .set(updateData)
+            .where(eq(schema.products.id, existing[0].id));
+          
+          updatedProducts++;
+        } else if (importType === 'full' && mapping?.categoryId) {
+          // Create new product
+          const sku = `GOE-${partNo}`;
+          
+          // Check if SKU already exists
+          const skuExists = await db.select({ id: schema.products.id })
+            .from(schema.products)
+            .where(eq(schema.products.sku, sku))
+            .limit(1);
+          
+          if (skuExists.length > 0) {
+            skippedProducts++;
+            continue;
+          }
+          
+          await db.insert(schema.products).values({
+            categoryId: mapping.categoryId,
+            nameEn: description,
+            nameEt: description, // Same name for now, can translate later
+            descriptionEn: `${description} - Imported from GOE supplier`,
+            descriptionEt: `${description} - Imporditud GOE tarnijalt`,
+            price: salePrice,
+            sku,
+            stock: 0, // Start with 0 stock until ordered
+            ownStock: 0,
+            goeStock: available,
+            goePartNo: partNo,
+            goePrice: eurPrice.toFixed(2),
+            ean: ean !== 'N/A' ? ean : null,
+            supplierSource: 'goe',
+            isActive: false, // Start inactive until stock is ordered
+            stockStatus: 'out_of_stock',
+          });
+          
+          newProducts++;
+        } else {
+          skippedProducts++;
+        }
+      }
+      
+      // Update import record
+      await db.update(schema.goeImports)
+        .set({
+          status: 'completed',
+          totalRows: rows.length - 1,
+          newProducts,
+          updatedProducts,
+          skippedProducts,
+          errors: errors.length > 0 ? errors : null,
+          completedAt: new Date(),
+        })
+        .where(eq(schema.goeImports.id, importRecord.id));
+      
+      res.json({
+        success: true,
+        importId: importRecord.id,
+        totalRows: rows.length - 1,
+        newProducts,
+        updatedProducts,
+        skippedProducts,
+        errors,
+      });
+    } catch (error: any) {
+      console.error('GOE import error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

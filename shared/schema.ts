@@ -68,6 +68,13 @@ export const products = pgTable("products", {
   deliveryDaysMin: integer("delivery_days_min").default(2),
   deliveryDaysMax: integer("delivery_days_max").default(4),
   stockStatus: text("stock_status").default('in_stock'),
+  // GOE Supplier Integration
+  goePartNo: text("goe_part_no"), // GOE article number (e.g., NS000491)
+  goePrice: decimal("goe_price", { precision: 10, scale: 2 }), // GOE wholesale price in EUR
+  goeStock: integer("goe_stock").default(0), // GOE available stock
+  ownStock: integer("own_stock").default(0), // Our own warehouse stock
+  ean: text("ean"), // EAN/barcode
+  supplierSource: text("supplier_source"), // 'goe', 'other', null for manual
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -789,3 +796,47 @@ export const insertPageViewSchema = createInsertSchema(pageViews).omit({
 });
 export type InsertPageView = z.infer<typeof insertPageViewSchema>;
 export type PageView = typeof pageViews.$inferSelect;
+
+// ============================================
+// GOE SUPPLIER INTEGRATION
+// ============================================
+
+// GOE Import History - Track all imports from GOE stock files
+export const goeImports = pgTable("goe_imports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileName: text("file_name").notNull(),
+  importType: text("import_type").notNull().default('full'), // 'full', 'stock_update', 'price_update'
+  totalRows: integer("total_rows").default(0),
+  newProducts: integer("new_products").default(0),
+  updatedProducts: integer("updated_products").default(0),
+  skippedProducts: integer("skipped_products").default(0),
+  errors: text("errors").array(),
+  status: text("status").notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  importedBy: varchar("imported_by"), // Admin user ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertGoeImportSchema = createInsertSchema(goeImports).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGoeImport = z.infer<typeof insertGoeImportSchema>;
+export type GoeImport = typeof goeImports.$inferSelect;
+
+// GOE Category Mapping - Map GOE format codes to EstZone categories
+export const goeCategoryMappings = pgTable("goe_category_mappings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goeFormat: text("goe_format").notNull().unique(), // GOE format code (NS, NSG, MER, ACC, etc.)
+  categoryId: varchar("category_id").references(() => categories.id),
+  defaultMarkup: decimal("default_markup", { precision: 5, scale: 2 }).default('2.0'), // Price multiplier (2.0 = 100% markup)
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGoeCategoryMappingSchema = createInsertSchema(goeCategoryMappings).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGoeCategoryMapping = z.infer<typeof insertGoeCategoryMappingSchema>;
+export type GoeCategoryMapping = typeof goeCategoryMappings.$inferSelect;

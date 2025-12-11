@@ -1,0 +1,17 @@
+Stock file and automation
+Would it be possible to receive the stock file (with quantities and prices) on a regular basis, for example daily or several times per week, in the same Excel/CSV format?
+Our goal is to build an automated system that updates product availability and prices in our EstZone store directly from your file, so that we always sell only items that are in your stock.
+Yes we can set up a feed via FTP that generate daily updated stockfiles. I would need your details to arrange that
+Order flow and possible direct shipping – We can not offer you direct shipping to end customers , only B2B .
+At the moment, do you ship only to the retailer’s warehouse, or do you also offer shipping directly from your warehouse to our end customers in the EU (dropshipping/fulfilment)?
+If direct‑to‑customer shipping is possible, please let me know:
+How would we send orders to you (B2B portal, EDI/XML/CSV by e‑mail, API, etc.)?
+Would the parcels be sent in neutral packaging or with GOE branding?
+How are returns and defective items handled in the case of dropshipping? – we only ship b2b , Neutral packing boxes and we have daily pick up with DHL , Postnord
+Payment terms and first order
+We understand and accept that the first order must be paid upfront, and that later Net 30 terms depend on Allianz Trade credit approval.
+Our plan is to start with a smaller test order in the range of 2,000–5,000 EUR to build sales history and trust. Please let us know if there is any specific minimum invoice value you prefer for the first shipment. – no , 2-5k its fine to start with
+Next steps
+Please confirm that the next step is to fill in and return the account application form. – please fill the form and we can start prepare the account for you, thank you
+Let us know if you also need any additional documents (company registration, ID of director, VAT certificate, trade references, etc.). – VAT certificate is always good to have , thanks
+We are very motivated to build a long‑term partnership with GOE and to focus on the Baltic region with your products. Once we know what level of technical integration and logistics options are possible from your side, we can adapt our system accordingly and move forward with the first order. -  thank you, looking forward to work with you
