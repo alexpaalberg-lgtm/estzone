@@ -134,8 +134,14 @@ export default function AdminGOE() {
           : `${result.newProducts} new products, ${result.updatedProducts} updated`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe'] });
+      // Invalidate all GOE-related queries after import
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe/imports'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe/mappings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe/low-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/goe/order-list'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
     } catch (error: any) {
       toast({
         title: language === 'et' ? 'Import ebaõnnestus' : 'Import failed',
