@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Package, ShoppingCart, AlertTriangle, Euro, RefreshCcw } from 'lucide-react';
+import { Package, ShoppingCart, AlertTriangle, Euro, RefreshCcw, Truck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,15 @@ interface DashboardStats {
   lowStockProducts: Product[];
 }
 
+interface GOEReorderProduct {
+  id: string;
+  nameEn: string;
+  ownStock: number;
+  goeStock: number;
+  goePrice: string;
+  goePartNo: string;
+}
+
 export default function Dashboard() {
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
@@ -36,6 +45,10 @@ export default function Dashboard() {
   const { data: stats, isLoading, refetch, isRefetching } = useQuery<DashboardStats>({
     queryKey: ['/api/admin/stats'],
     refetchInterval: 30000,
+  });
+
+  const { data: goeOrderList } = useQuery<GOEReorderProduct[]>({
+    queryKey: ['/api/admin/goe/order-list'],
   });
 
   const handleRefresh = () => {
@@ -90,6 +103,12 @@ export default function Dashboard() {
       testId: 'stat-low-stock',
     },
     {
+      title: language === 'et' ? 'GOE Tellimine' : 'GOE Reorder',
+      value: goeOrderList?.length ?? 0,
+      icon: Truck,
+      testId: 'stat-goe-reorder',
+    },
+    {
       title: t.admin.totalRevenue,
       value: stats?.totalRevenue ? formatPrice(parseFloat(stats.totalRevenue)) : formatPrice(0),
       icon: Euro,
@@ -116,7 +135,7 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           {statsCards.map((card) => (
             <Card key={card.testId} data-testid={card.testId}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
